@@ -1,0 +1,47 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI
+from loguru import logger
+
+from app.api.router import api_router
+from app.core.config import settings
+from app.core.logging import configure_logging
+from app.core.middleware import RequestContextMiddleware
+from app.db.session import dispose_engine
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+    configure_logging()
+    logger.info("Starting {} in {} mode", settings.app_name, settings.app_env)
+    yield
+    await dispose_engine()
+    logger.info("Application shutdown complete")
+
+
+def create_app() -> FastAPI:
+    app = FastAPI(
+        title=settings.app_name,
+        version="0.1.0",
+        debug=settings.app_debug,
+        lifespan=lifespan,
+        docs_url="/docs",
+        redoc_url="/redoc",
+        openapi_url="/openapi.json",
+    )
+    app.add_middleware(RequestContextMiddleware)
+    app.include_router(api_router, prefix=settings.api_v1_prefix)
+
+    @app.get("/", tags=["Root"])
+    async def root() -> dict[str, str]:
+        return {
+            "message": settings.app_name,
+            "health": f"{settings.api_v1_prefix}/health",
+            "docs": "/docs",
+        }
+
+    return app
+
+
+app = create_app()
