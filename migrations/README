@@ -1,0 +1,1 @@
+Alembic migration environment. It uses synchronous psycopg even though the application uses asyncpg.
