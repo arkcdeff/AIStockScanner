@@ -2,12 +2,11 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from datetime import UTC, datetime
+from datetime import datetime
 from pathlib import Path
 
-from app.core.config import settings
 from app.db.session import get_session_factory
-from app.services.nse_downloader import NSEDownloadError, NSEDownloader
+from app.services.nse_downloader import NSEDownloader, NSEDownloadError
 from app.services.nse_import import NSEImportService
 
 

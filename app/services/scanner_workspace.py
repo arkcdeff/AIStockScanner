@@ -7,7 +7,7 @@ from typing import Any
 
 from fpdf import FPDF
 from openpyxl import Workbook
-from sqlalchemy import ColumnElement, Select, asc, desc, func, or_, select
+from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.daily_price import DailyPrice
@@ -23,21 +23,22 @@ class ScannerWorkspaceService:
         self.session = session
 
     async def get_filter_options(self) -> dict[str, Any]:
-        sectors = (
-            await self.session.scalars(select(Sector.name).order_by(Sector.name))
-        ).all()
+        sectors = (await self.session.scalars(select(Sector.name).order_by(Sector.name))).all()
         scanners = (
             await self.session.execute(
-                select(ScanDefinition.code, ScanDefinition.name).where(
-                    ScanDefinition.is_active.is_(True)
-                ).order_by(ScanDefinition.name)
+                select(ScanDefinition.code, ScanDefinition.name)
+                .where(ScanDefinition.is_active.is_(True))
+                .order_by(ScanDefinition.name)
             )
         ).fetchall()
         scanner_map = {code: name for code, name in scanners}
 
         dates = (
             await self.session.scalars(
-                select(ScanResult.scan_date).distinct().order_by(ScanResult.scan_date.desc()).limit(30)
+                select(ScanResult.scan_date)
+                .distinct()
+                .order_by(ScanResult.scan_date.desc())
+                .limit(30)
             )
         ).all()
 
@@ -150,19 +151,18 @@ class ScannerWorkspaceService:
         sort_by: str,
         sort_dir: str,
     ) -> Select:
-        price_history = (
-            select(
-                DailyPrice.stock_id,
-                DailyPrice.trade_date,
-                DailyPrice.volume,
-                func.avg(DailyPrice.volume).over(
-                    partition_by=DailyPrice.stock_id,
-                    order_by=DailyPrice.trade_date.asc(),
-                    rows=(-20, -1),
-                ).label("avg_volume_20d"),
+        price_history = select(
+            DailyPrice.stock_id,
+            DailyPrice.trade_date,
+            DailyPrice.volume,
+            func.avg(DailyPrice.volume)
+            .over(
+                partition_by=DailyPrice.stock_id,
+                order_by=DailyPrice.trade_date.asc(),
+                rows=(-20, -1),
             )
-            .subquery()
-        )
+            .label("avg_volume_20d"),
+        ).subquery()
 
         stmt = (
             select(
@@ -189,9 +189,21 @@ class ScannerWorkspaceService:
             .join(ScanDefinition, ScanResult.scan_definition_id == ScanDefinition.id)
             .join(Stock, ScanResult.stock_id == Stock.id)
             .join(Sector, Stock.sector_id == Sector.id, isouter=True)
-            .join(DailyPrice, (DailyPrice.stock_id == Stock.id) & (DailyPrice.trade_date == ScanResult.scan_date))
-            .join(IndicatorResult, (IndicatorResult.stock_id == Stock.id) & (IndicatorResult.trade_date == ScanResult.scan_date))
-            .join(price_history, (price_history.c.stock_id == Stock.id) & (price_history.c.trade_date == ScanResult.scan_date), isouter=True)
+            .join(
+                DailyPrice,
+                (DailyPrice.stock_id == Stock.id) & (DailyPrice.trade_date == ScanResult.scan_date),
+            )
+            .join(
+                IndicatorResult,
+                (IndicatorResult.stock_id == Stock.id)
+                & (IndicatorResult.trade_date == ScanResult.scan_date),
+            )
+            .join(
+                price_history,
+                (price_history.c.stock_id == Stock.id)
+                & (price_history.c.trade_date == ScanResult.scan_date),
+                isouter=True,
+            )
             .where(True)
         )
 
@@ -305,9 +317,21 @@ class ScannerWorkspaceService:
         writer = csv.DictWriter(
             output,
             fieldnames=[
-                "symbol", "company_name", "sector", "price", "volume",
-                "avg_volume_20d", "volume_multiple", "delivery", "rsi",
-                "macd", "adx", "ema_trend", "scanner_score", "reason", "scan_date",
+                "symbol",
+                "company_name",
+                "sector",
+                "price",
+                "volume",
+                "avg_volume_20d",
+                "volume_multiple",
+                "delivery",
+                "rsi",
+                "macd",
+                "adx",
+                "ema_trend",
+                "scanner_score",
+                "reason",
+                "scan_date",
             ],
         )
         writer.writeheader()
@@ -320,29 +344,43 @@ class ScannerWorkspaceService:
         ws = wb.active
         ws.title = "Scanner Results"
         headers = [
-            "Symbol", "Company", "Sector", "Price", "Volume",
-            "20D Avg Volume", "Volume Multiple", "Delivery", "RSI",
-            "MACD", "ADX", "EMA Trend", "Scanner Score", "Reason", "Scan Date",
+            "Symbol",
+            "Company",
+            "Sector",
+            "Price",
+            "Volume",
+            "20D Avg Volume",
+            "Volume Multiple",
+            "Delivery",
+            "RSI",
+            "MACD",
+            "ADX",
+            "EMA Trend",
+            "Scanner Score",
+            "Reason",
+            "Scan Date",
         ]
         ws.append(headers)
         for row in rows:
-            ws.append([
-                row.get("symbol", ""),
-                row.get("company_name", ""),
-                row.get("sector", ""),
-                row.get("price", 0),
-                row.get("volume", 0),
-                row.get("avg_volume_20d", ""),
-                row.get("volume_multiple", ""),
-                row.get("delivery", 0),
-                row.get("rsi", 0),
-                row.get("macd", 0),
-                row.get("adx", 0),
-                row.get("ema_trend", ""),
-                row.get("scanner_score", 0),
-                row.get("reason", ""),
-                row.get("scan_date", ""),
-            ])
+            ws.append(
+                [
+                    row.get("symbol", ""),
+                    row.get("company_name", ""),
+                    row.get("sector", ""),
+                    row.get("price", 0),
+                    row.get("volume", 0),
+                    row.get("avg_volume_20d", ""),
+                    row.get("volume_multiple", ""),
+                    row.get("delivery", 0),
+                    row.get("rsi", 0),
+                    row.get("macd", 0),
+                    row.get("adx", 0),
+                    row.get("ema_trend", ""),
+                    row.get("scanner_score", 0),
+                    row.get("reason", ""),
+                    row.get("scan_date", ""),
+                ]
+            )
         output = io.BytesIO()
         wb.save(output)
         return output.getvalue()
@@ -352,9 +390,21 @@ class ScannerWorkspaceService:
         pdf.add_page()
         pdf.set_font("Helvetica", size=10)
         headers = [
-            "Symbol", "Company", "Sector", "Price", "Volume",
-            "20D Avg", "Vol Mult", "Delivery", "RSI", "MACD", "ADX",
-            "EMA", "Score", "Reason", "Date",
+            "Symbol",
+            "Company",
+            "Sector",
+            "Price",
+            "Volume",
+            "20D Avg",
+            "Vol Mult",
+            "Delivery",
+            "RSI",
+            "MACD",
+            "ADX",
+            "EMA",
+            "Score",
+            "Reason",
+            "Date",
         ]
         col_widths = [18, 28, 18, 16, 18, 18, 16, 16, 12, 16, 12, 12, 12, 35, 18]
 
@@ -386,4 +436,4 @@ class ScannerWorkspaceService:
                 pdf.cell(col_widths[i], 6, value, border=1, align="L")
             pdf.ln()
 
-        return bytes(pdf.output(dest="S"))
+        return bytes(pdf.output())

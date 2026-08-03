@@ -1,7 +1,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
 from app.main import app
@@ -89,3 +88,133 @@ async def test_api_list_scan_results() -> None:
         response = await client.get("/api/v1/scanners/results")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
+
+
+async def _seed_matching_stock(symbol: str = "PERSIST1") -> int:
+
+    from app.db.session import get_session_factory
+    from app.models.daily_price import DailyPrice
+    from app.models.indicator_result import IndicatorResult
+    from app.models.stock import Stock
+
+    factory = get_session_factory()
+    async with factory() as session:
+        stock = Stock(
+            symbol=symbol,
+            company_name="Persist Test",
+            exchange="NSE",
+            series="EQ",
+            is_active=True,
+        )
+        session.add(stock)
+        await session.flush()
+
+        trade_date = datetime.now(UTC).date()
+        session.add(
+            DailyPrice(
+                stock_id=stock.id,
+                trade_date=trade_date,
+                open=100,
+                high=110,
+                low=95,
+                close=105,
+                previous_close=100,
+                volume=1000,
+                delivery_percentage=65.0,
+            )
+        )
+        session.add(
+            IndicatorResult(
+                stock_id=stock.id,
+                trade_date=trade_date,
+                ema_20=100.0,
+                ema_50=99.0,
+            )
+        )
+        await session.commit()
+        return stock.id
+
+
+async def _count_scan_results(scan_code: str) -> int:
+    from sqlalchemy import func, select
+
+    from app.db.session import get_session_factory
+    from app.models.scan_result import ScanResult
+
+    factory = get_session_factory()
+    async with factory() as session:
+        count = await session.scalar(
+            select(func.count(ScanResult.id))
+            .join(ScanDefinition, ScanResult.scan_definition_id == ScanDefinition.id)
+            .where(ScanDefinition.code == scan_code)
+        )
+        return int(count or 0)
+
+
+@pytest.mark.asyncio
+async def test_api_run_scanner_persists_results() -> None:
+    stock_id = await _seed_matching_stock()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
+        assert response.status_code == 200
+        assert await _count_scan_results("delivery_above_60") >= 1
+    finally:
+        await _cleanup_stock(stock_id)
+
+
+@pytest.mark.asyncio
+async def test_api_run_all_persists_results() -> None:
+    stock_id = await _seed_matching_stock()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post("/api/v1/scanners/run-all")
+        assert response.status_code == 200
+        assert await _count_scan_results("delivery_above_60") >= 1
+    finally:
+        await _cleanup_stock(stock_id)
+
+
+@pytest.mark.asyncio
+async def test_api_run_scanner_idempotent() -> None:
+    stock_id = await _seed_matching_stock()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response1 = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
+            assert response1.status_code == 200
+            count1 = await _count_scan_results("delivery_above_60")
+            response2 = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
+            assert response2.status_code == 200
+            count2 = await _count_scan_results("delivery_above_60")
+        assert count1 >= 1
+        assert count2 == count1
+    finally:
+        await _cleanup_stock(stock_id)
+
+
+@pytest.mark.asyncio
+async def test_api_run_no_match_creates_no_rows() -> None:
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        response = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
+    assert response.status_code == 200
+    assert await _count_scan_results("delivery_above_60") == 0
+
+
+async def _cleanup_stock(stock_id: int) -> None:
+    from sqlalchemy import delete
+
+    from app.db.session import get_session_factory
+    from app.models.daily_price import DailyPrice
+    from app.models.indicator_result import IndicatorResult
+    from app.models.scan_result import ScanResult
+    from app.models.stock import Stock
+
+    factory = get_session_factory()
+    async with factory() as session:
+        await session.execute(delete(ScanResult).where(ScanResult.stock_id == stock_id))
+        await session.execute(delete(IndicatorResult).where(IndicatorResult.stock_id == stock_id))
+        await session.execute(delete(DailyPrice).where(DailyPrice.stock_id == stock_id))
+        stock = await session.get(Stock, stock_id)
+        if stock:
+            await session.delete(stock)
+        await session.commit()

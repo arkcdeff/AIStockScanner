@@ -13,7 +13,7 @@ from app.schemas.market_data import (
     ImportJobRead,
     MarketDataSummary,
 )
-from app.services.nse_downloader import NSEDownloadError, NSEDownloader
+from app.services.nse_downloader import NSEDownloader, NSEDownloadError
 from app.services.nse_import import NSEImportService
 
 router = APIRouter(prefix="/market-data", tags=["Market Data"])

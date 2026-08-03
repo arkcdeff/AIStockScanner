@@ -3,7 +3,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.repositories.stock import StockRepository
+from app.repositories.stock_detail import StockDetailRepository
 from app.schemas.stock import StockCreate, StockRead
+from app.schemas.stock_detail import ChartDataResponse
 from app.services.stock import StockService
 
 router = APIRouter(prefix="/stocks", tags=["Stocks"])
@@ -29,3 +31,22 @@ async def create_stock(
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return StockRead.model_validate(stock)
+
+
+@router.get("/{symbol}/chart-data", response_model=ChartDataResponse)
+async def stock_chart_data(
+    symbol: str,
+    period: str = Query(default="1y", pattern="^(1m|3m|6m|1y|3y|5y|all)$"),
+    include_indicators: bool = Query(default=True),
+    session: AsyncSession = Depends(get_db_session),
+) -> ChartDataResponse:
+    repo = StockDetailRepository(session)
+    stock = await repo.get_stock(symbol)
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    actual_period = "all" if period == "all" else period
+    data = await repo.get_chart_data(
+        stock.id, period=actual_period, include_indicators=include_indicators
+    )
+    return ChartDataResponse(symbol=symbol.upper(), **data)

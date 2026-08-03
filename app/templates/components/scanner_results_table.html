@@ -34,7 +34,7 @@
                     {% if results %}
                         {% for row in results %}
                             <tr>
-                                <td class="fw-bold">{{ row.symbol }}</td>
+                                <td><a href="/stocks/{{ row.symbol }}" class="text-decoration-none">{{ row.symbol }}</a></td>
                                 <td>{{ row.company_name }}</td>
                                 <td>{{ row.sector }}</td>
                                 <td>{{ "%.2f"|format(row.price) }}</td>

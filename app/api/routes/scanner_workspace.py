@@ -55,23 +55,28 @@ async def scanner_results_table(
         page_size=page_size,
     )
     options = await service.get_filter_options()
-    html = _render_table(request, data, options, {
-        "search": search,
-        "scanner": scanner,
-        "sector": sector,
-        "date_from": date_from,
-        "date_to": date_to,
-        "min_price": min_price,
-        "max_price": max_price,
-        "min_delivery": min_delivery,
-        "max_delivery": max_delivery,
-        "min_volume": min_volume,
-        "max_volume": max_volume,
-        "sort_by": sort_by,
-        "sort_dir": sort_dir,
-        "page": page,
-        "page_size": page_size,
-    })
+    html = _render_table(
+        request,
+        data,
+        options,
+        {
+            "search": search,
+            "scanner": scanner,
+            "sector": sector,
+            "date_from": date_from,
+            "date_to": date_to,
+            "min_price": min_price,
+            "max_price": max_price,
+            "min_delivery": min_delivery,
+            "max_delivery": max_delivery,
+            "min_volume": min_volume,
+            "max_volume": max_volume,
+            "sort_by": sort_by,
+            "sort_dir": sort_dir,
+            "page": page,
+            "page_size": page_size,
+        },
+    )
     return HTMLResponse(content=html)
 
 

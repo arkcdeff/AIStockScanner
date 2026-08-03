@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}{{ stock.symbol }} - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            <!-- Navbar -->
+            {% include "components/navbar.html" %}
+
+            <!-- Page Title -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <div>
+                    <h1 class="h2">{{ stock.symbol }}</h1>
+                    <p class="text-muted mb-0">{{ stock.company_name }} | {{ sector_name or 'N/A' }} | {{ stock.industry or 'N/A' }}</p>
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="document.body.dispatchEvent(new Event('refresh'))">
+                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stock Overview -->
+            <div id="stock-overview-panel" hx-get="/stocks/{{ stock.symbol }}/overview" hx-trigger="refresh from:body" hx-swap="innerHTML">
+                {% include "components/stock_overview.html" %}
+            </div>
+
+            <!-- Price Chart -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    {% include "components/price_chart.html" with context %}
+                </div>
+            </div>
+
+            <!-- Indicator Cards -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div id="stock-indicators-panel" hx-get="/stocks/{{ stock.symbol }}/indicators" hx-trigger="refresh from:body" hx-swap="innerHTML">
+                        {% include "components/indicator_cards.html" %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Scanner Matches -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div id="stock-scanner-matches-panel" hx-get="/stocks/{{ stock.symbol }}/scanner-results" hx-trigger="refresh from:body" hx-swap="innerHTML">
+                        {% include "components/stock_scanner_matches.html" %}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

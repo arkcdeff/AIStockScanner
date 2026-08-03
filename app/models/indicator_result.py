@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import Date, ForeignKey, Index, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.stock import Stock
 
 
 class IndicatorResult(TimestampMixin, Base):
@@ -48,4 +54,4 @@ class IndicatorResult(TimestampMixin, Base):
     vwap: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
     obv: Mapped[Decimal | None] = mapped_column(Numeric(18, 4), nullable=True)
 
-    stock: Mapped["Stock"] = relationship(back_populates="indicator_results")
+    stock: Mapped[Stock] = relationship(back_populates="indicator_results")

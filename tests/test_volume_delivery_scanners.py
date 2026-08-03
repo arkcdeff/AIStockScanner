@@ -1,15 +1,12 @@
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 
 import pytest
-from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
+from app.db.session import get_session_factory
 from app.main import app
-from app.models.scan_definition import ScanDefinition
 from app.models.stock import Stock
 from app.repositories.stock import StockRepository
-from app.services.scanner_engine import ScannerRegistry
-from app.db.session import get_session_factory
 
 
 @pytest.mark.asyncio
@@ -51,8 +48,7 @@ async def test_volume_2x_average_exact_boundary() -> None:
             session.add(ir)
         await session.commit()
 
-        from app.services.scanner_engine import IndicatorRow
-        from app.services.scanner_engine import volume_2x_average
+        from app.services.scanner_engine import IndicatorRow, volume_2x_average
 
         current = IndicatorRow(
             stock_id=stock.id,
@@ -65,12 +61,26 @@ async def test_volume_2x_average_exact_boundary() -> None:
             avg_delivery_20d=50.0,
             max_delivery_20d=50.0,
             max_high_20d=105.0,
-            ema_20=None, ema_50=None, ema_100=None, ema_200=None,
-            sma=None, rsi_14=None, macd=None, macd_signal=None, macd_hist=None,
-            stochastic_k=None, stochastic_d=None, atr=None,
-            bollinger_upper=None, bollinger_middle=None, bollinger_lower=None,
-            adx=None, supertrend=None, supertrend_direction=None,
-            vwap=None, obv=None,
+            ema_20=None,
+            ema_50=None,
+            ema_100=None,
+            ema_200=None,
+            sma=None,
+            rsi_14=None,
+            macd=None,
+            macd_signal=None,
+            macd_hist=None,
+            stochastic_k=None,
+            stochastic_d=None,
+            atr=None,
+            bollinger_upper=None,
+            bollinger_middle=None,
+            bollinger_lower=None,
+            adx=None,
+            supertrend=None,
+            supertrend_direction=None,
+            vwap=None,
+            obv=None,
         )
         matched, score, metrics = volume_2x_average(current, None)
         assert matched is True

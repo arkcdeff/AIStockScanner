@@ -12,7 +12,6 @@ from app.data.nse_parser import PriceRecord, load_bytes, parse_bhavcopy, parse_d
 from app.models.daily_price import DailyPrice
 from app.models.import_job import ImportJob
 from app.models.stock import Stock
-from app.services.indicator_engine import IndicatorEngine
 
 
 class NSEImportService:
@@ -51,7 +50,9 @@ class NSEImportService:
         await self.session.flush()
 
         try:
-            delivery_map = parse_delivery(delivery, delivery_name or "delivery.csv") if delivery else {}
+            delivery_map = (
+                parse_delivery(delivery, delivery_name or "delivery.csv") if delivery else {}
+            )
             records, errors = parse_bhavcopy(bhavcopy, bhavcopy_name, delivery_map)
             if not records:
                 raise ValueError("No valid equity records found in the bhavcopy")
@@ -92,7 +93,9 @@ class NSEImportService:
     async def _upsert(self, records: list[PriceRecord]) -> tuple[int, int]:
         symbols = sorted({record.symbol for record in records})
         existing_symbols = set(
-            (await self.session.scalars(select(Stock.symbol).where(Stock.symbol.in_(symbols)))).all()
+            (
+                await self.session.scalars(select(Stock.symbol).where(Stock.symbol.in_(symbols)))
+            ).all()
         )
 
         stock_rows = [

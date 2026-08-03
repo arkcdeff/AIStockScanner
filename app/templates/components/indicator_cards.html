@@ -1,0 +1,163 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Indicators</h5>
+        <span class="text-muted small">{{ indicator.trade_date or 'N/A' }}</span>
+    </div>
+    <div class="card-body">
+        {% if indicator %}
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">EMA 20</h6>
+                        <h4 class="text-primary">{{ "%.2f"|format(indicator.ema_20) if indicator.ema_20 else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">EMA 50</h6>
+                        <h4 class="text-success">{{ "%.2f"|format(indicator.ema_50) if indicator.ema_50 else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">EMA 100</h6>
+                        <h4 class="text-warning">{{ "%.2f"|format(indicator.ema_100) if indicator.ema_100 else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-danger">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">EMA 200</h6>
+                        <h4 class="text-danger">{{ "%.2f"|format(indicator.ema_200) if indicator.ema_200 else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">RSI 14</h6>
+                        <h4 class="text-info">{{ "%.1f"|format(indicator.rsi_14) if indicator.rsi_14 else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">MACD</h6>
+                        <h4>{{ "%.2f"|format(indicator.macd) if indicator.macd else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">MACD Signal</h6>
+                        <h4>{{ "%.2f"|format(indicator.macd_signal) if indicator.macd_signal else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-secondary">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">MACD Hist</h6>
+                        <h4>{{ "%.2f"|format(indicator.macd_hist) if indicator.macd_hist else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-dark">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">ADX</h6>
+                        <h4 class="text-dark">{{ "%.1f"|format(indicator.adx) if indicator.adx else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-dark">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">ATR</h6>
+                        <h4 class="text-dark">{{ "%.2f"|format(indicator.atr) if indicator.atr else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-primary">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">SuperTrend</h6>
+                        <h4 class="text-primary">{{ "%.2f"|format(indicator.supertrend) if indicator.supertrend else 'N/A' }}</h4>
+                        {% if indicator.supertrend_direction is not none %}
+                            <span class="badge bg-{{ 'success' if indicator.supertrend_direction == 1 else 'danger' }}">
+                                {{ 'Bullish' if indicator.supertrend_direction == 1 else 'Bearish' }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-success">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">VWAP</h6>
+                        <h4 class="text-success">{{ "%.2f"|format(indicator.vwap) if indicator.vwap else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">OBV</h6>
+                        <h4 class="text-info">{{ "{:,.0f}".format(indicator.obv) if indicator.obv else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">Bollinger Upper</h6>
+                        <h4 class="text-warning">{{ "%.2f"|format(indicator.bollinger_upper) if indicator.bollinger_upper else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">Bollinger Middle</h6>
+                        <h4 class="text-warning">{{ "%.2f"|format(indicator.bollinger_middle) if indicator.bollinger_middle else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-warning">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">Bollinger Lower</h6>
+                        <h4 class="text-warning">{{ "%.2f"|format(indicator.bollinger_lower) if indicator.bollinger_lower else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">Stochastic K</h6>
+                        <h4 class="text-info">{{ "%.1f"|format(indicator.stochastic_k) if indicator.stochastic_k else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card h-100 border-info">
+                    <div class="card-body text-center">
+                        <h6 class="card-title text-muted">Stochastic D</h6>
+                        <h4 class="text-info">{{ "%.1f"|format(indicator.stochastic_d) if indicator.stochastic_d else 'N/A' }}</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-4">No indicator data available</div>
+        {% endif %}
+    </div>
+</div>

@@ -1,6 +1,5 @@
 import asyncio
 import os
-from datetime import UTC, datetime
 
 import pytest
 
@@ -26,8 +25,12 @@ def _clean_test_db() -> None:
     from sqlalchemy import create_engine, text
 
     engine = create_engine(os.environ["DATABASE_URL_SYNC"])
+    tables = (
+        "scan_results, scan_definitions, indicator_results, import_jobs, "
+        "daily_prices, stocks, sectors"
+    )
     with engine.connect() as conn:
-        conn.execute(text("TRUNCATE TABLE scan_results, scan_definitions, indicator_results, import_jobs, daily_prices, stocks RESTART IDENTITY CASCADE"))
+        conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
         conn.commit()
 
 
@@ -41,7 +44,7 @@ async def _dispose_engine() -> None:
 
 @pytest.fixture(autouse=True)
 async def _seed_scan_definitions() -> None:
-    from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
+    from sqlalchemy import select
 
     from app.db.session import get_session_factory
     from app.models.scan_definition import ScanDefinition
@@ -57,37 +60,100 @@ async def _seed_scan_definitions() -> None:
         ("supertrend_bearish", "SuperTrend Bearish", "SuperTrend direction is bearish", "Trend"),
         ("rsi_oversold", "RSI Oversold", "RSI 14 below 30", "Momentum"),
         ("rsi_overbought", "RSI Overbought", "RSI 14 above 70", "Momentum"),
-        ("macd_bullish", "MACD Bullish Crossover", "MACD line crosses above signal line", "Momentum"),
-        ("macd_bearish", "MACD Bearish Crossover", "MACD line crosses below signal line", "Momentum"),
+        (
+            "macd_bullish",
+            "MACD Bullish Crossover",
+            "MACD line crosses above signal line",
+            "Momentum",
+        ),
+        (
+            "macd_bearish",
+            "MACD Bearish Crossover",
+            "MACD line crosses below signal line",
+            "Momentum",
+        ),
         ("stochastic_oversold", "Stochastic Oversold", "Stochastic %K below 20", "Momentum"),
         ("stochastic_overbought", "Stochastic Overbought", "Stochastic %K above 80", "Momentum"),
         ("macd_above_zero", "MACD Above Zero", "MACD line above zero", "Momentum"),
         ("macd_below_zero", "MACD Below Zero", "MACD line below zero", "Momentum"),
-        ("bollinger_band_squeeze", "Bollinger Band Squeeze", "Bollinger bandwidth below 5%", "Volatility"),
-        ("price_above_upper_bollinger", "Price Above Upper Bollinger", "Close price above upper Bollinger Band", "Volatility"),
-        ("price_below_lower_bollinger", "Price Below Lower Bollinger", "Close price below lower Bollinger Band", "Volatility"),
+        (
+            "bollinger_band_squeeze",
+            "Bollinger Band Squeeze",
+            "Bollinger bandwidth below 5%",
+            "Volatility",
+        ),
+        (
+            "price_above_upper_bollinger",
+            "Price Above Upper Bollinger",
+            "Close price above upper Bollinger Band",
+            "Volatility",
+        ),
+        (
+            "price_below_lower_bollinger",
+            "Price Below Lower Bollinger",
+            "Close price below lower Bollinger Band",
+            "Volatility",
+        ),
         ("atr_high_volatility", "ATR High Volatility", "ATR percentage above 3%", "Volatility"),
         ("obv_rising", "OBV Rising", "OBV increasing from previous day", "Volume"),
         ("vwap_bullish", "VWAP Bullish", "Close price above VWAP", "Volume"),
         ("vwap_bearish", "VWAP Bearish", "Close price below VWAP", "Volume"),
         ("strong_trend_adx", "Strong Trend ADX", "ADX above 25", "Trend Strength"),
         ("weak_trend_adx", "Weak Trend ADX", "ADX below 20", "Trend Strength"),
-        ("volume_2x_average", "Volume 2x Average", "Latest volume >= 2x 20-session average", "Volume"),
-        ("volume_5x_average", "Volume 5x Average", "Latest volume >= 5x 20-session average", "Volume"),
-        ("highest_volume_20d", "Highest Volume 20D", "Latest volume is highest in last 20 sessions", "Volume"),
+        (
+            "volume_2x_average",
+            "Volume 2x Average",
+            "Latest volume >= 2x 20-session average",
+            "Volume",
+        ),
+        (
+            "volume_5x_average",
+            "Volume 5x Average",
+            "Latest volume >= 5x 20-session average",
+            "Volume",
+        ),
+        (
+            "highest_volume_20d",
+            "Highest Volume 20D",
+            "Latest volume is highest in last 20 sessions",
+            "Volume",
+        ),
         ("volume_breakout", "Volume Breakout", "Latest volume > previous 20-session max", "Volume"),
         ("delivery_above_60", "Delivery Above 60", "Latest delivery >= 60%", "Delivery"),
         ("delivery_above_70", "Delivery Above 70", "Latest delivery >= 70%", "Delivery"),
-        ("delivery_above_average", "Delivery Above Average", "Latest delivery > 20-session average", "Delivery"),
-        ("delivery_breakout", "Delivery Breakout", "Latest delivery > previous 20-session max", "Delivery"),
-        ("high_volume_high_delivery", "High Volume High Delivery", "Volume >= 2x avg AND delivery >= 60%", "Combined"),
-        ("price_breakout_high_delivery", "Price Breakout High Delivery", "Close > 20d high AND volume >= avg AND delivery >= 60%", "Combined"),
+        (
+            "delivery_above_average",
+            "Delivery Above Average",
+            "Latest delivery > 20-session average",
+            "Delivery",
+        ),
+        (
+            "delivery_breakout",
+            "Delivery Breakout",
+            "Latest delivery > previous 20-session max",
+            "Delivery",
+        ),
+        (
+            "high_volume_high_delivery",
+            "High Volume High Delivery",
+            "Volume >= 2x avg AND delivery >= 60%",
+            "Combined",
+        ),
+        (
+            "price_breakout_high_delivery",
+            "Price Breakout High Delivery",
+            "Close > 20d high AND volume >= avg AND delivery >= 60%",
+            "Combined",
+        ),
         ("accumulation", "Accumulation", "Close up, volume > avg, delivery > avg", "Combined"),
     ]
 
     factory = get_session_factory()
     async with factory() as session:
+        existing = set((await session.execute(select(ScanDefinition.code))).scalars())
         for code, name, description, category in scanners:
+            if code in existing:
+                continue
             scan_def = ScanDefinition(
                 code=code,
                 name=name,

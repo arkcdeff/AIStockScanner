@@ -57,7 +57,8 @@ class NSEDownloader:
     def _raw_path(self, trade_date: date) -> Path:
         target_dir = settings.raw_data_dir / str(trade_date.year) / f"{trade_date.month:02d}"
         target_dir.mkdir(parents=True, exist_ok=True)
-        file_name = f"cm{trade_date.day:02d}{trade_date.strftime('%b').upper()}{trade_date.year}bhav.csv.zip"
+        month = trade_date.strftime("%b").upper()
+        file_name = f"cm{trade_date.day:02d}{month}{trade_date.year}bhav.csv.zip"
         return target_dir / file_name
 
     def _checksum(self, data: bytes) -> str:

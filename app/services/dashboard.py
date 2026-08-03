@@ -3,7 +3,6 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.daily_price import DailyPrice
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
@@ -24,21 +23,19 @@ class DashboardService:
 
     async def get_summary(self) -> dict[str, object]:
         stock_count = await self.session.scalar(select(func.count()).select_from(Stock))
-        indicator_count = await self.session.scalar(select(func.count()).select_from(IndicatorResult))
+        indicator_count = await self.session.scalar(
+            select(func.count()).select_from(IndicatorResult)
+        )
         scan_result_count = await self.session.scalar(select(func.count()).select_from(ScanResult))
         summary = await self.market_repo.summary()
 
-        latest_import = (
-            await self.session.scalar(
-                select(ImportJob).order_by(ImportJob.started_at.desc()).limit(1)
-            )
+        latest_import = await self.session.scalar(
+            select(ImportJob).order_by(ImportJob.started_at.desc()).limit(1)
         )
 
         latest_trade_date = summary.get("last_trade_date")
         market_status = "closed"
         if latest_trade_date:
-            from datetime import date
-
             if isinstance(latest_trade_date, datetime):
                 latest_trade_date = latest_trade_date.date()
             if latest_trade_date == datetime.now(UTC).date():
@@ -65,19 +62,17 @@ class DashboardService:
         return await self.market_repo.list_imports(limit=limit)
 
     async def get_scanner_summary(self) -> dict[str, int]:
-        scan_defs = await self.scan_def_repo.list_active()
-        summary: dict[str, int] = {}
-        for scan_def in scan_defs:
-            count = await self.session.scalar(
-                select(func.count())
-                .select_from(ScanResult)
-                .where(ScanResult.scan_definition_id == scan_def.id)
+        rows = (
+            await self.session.execute(
+                select(ScanDefinition.code, func.count(ScanResult.id))
+                .outerjoin(ScanResult, ScanResult.scan_definition_id == ScanDefinition.id)
+                .where(ScanDefinition.is_active.is_(True))
+                .group_by(ScanDefinition.code)
             )
-            summary[scan_def.code] = count or 0
-        return summary
+        ).all()
+        return {code: count for code, count in rows}
 
     async def get_top_categories(self) -> dict[str, int]:
-        scan_defs = await self.scan_def_repo.list_active()
         result = (
             await self.session.execute(
                 select(ScanDefinition.category, func.count(ScanResult.id))
@@ -90,10 +85,7 @@ class DashboardService:
     async def search_stocks(self, query: str, limit: int = 20) -> list[Stock]:
         statement = (
             select(Stock)
-            .where(
-                (Stock.symbol.ilike(f"%{query}%"))
-                | (Stock.company_name.ilike(f"%{query}%"))
-            )
+            .where((Stock.symbol.ilike(f"%{query}%")) | (Stock.company_name.ilike(f"%{query}%")))
             .limit(limit)
         )
         return list(await self.session.scalars(statement))

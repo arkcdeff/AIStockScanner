@@ -4,7 +4,6 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd
-import pandas_ta as ta
 from loguru import logger
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,24 +23,36 @@ class IndicatorEngine:
     async def calculate_for_stock(self, symbol: str) -> list[dict[str, Any]]:
         rows = (
             await self.session.execute(
-                __import__("sqlalchemy").text("""
+                __import__("sqlalchemy")
+                .text("""
                     SELECT dp.trade_date, dp.open, dp.high, dp.low, dp.close, dp.volume,
                            dp.turnover, dp.trade_count, s.symbol
                     FROM daily_prices dp
                     JOIN stocks s ON s.id = dp.stock_id
                     WHERE s.symbol = :symbol
                     ORDER BY dp.trade_date ASC
-                """).bindparams(symbol=symbol.upper())
+                """)
+                .bindparams(symbol=symbol.upper())
             )
         ).fetchall()
 
         if not rows:
             raise IndicatorEngineError(f"No price data found for symbol: {symbol}")
 
-        df = pd.DataFrame(rows, columns=[
-            "trade_date", "open", "high", "low", "close", "volume",
-            "turnover", "trade_count", "symbol"
-        ])
+        df = pd.DataFrame(
+            rows,
+            columns=[
+                "trade_date",
+                "open",
+                "high",
+                "low",
+                "close",
+                "volume",
+                "turnover",
+                "trade_count",
+                "symbol",
+            ],
+        )
         df["trade_date"] = pd.to_datetime(df["trade_date"])
 
         results = self._calculate_indicators(df)
@@ -124,37 +135,43 @@ class IndicatorEngine:
 
         # Volume
         if "turnover" in df.columns and df["turnover"].notna().any():
-            df["vwap"] = (df["turnover"].cumsum() / (df["volume"].cumsum() * df["close"])).replace([float("inf"), -float("inf")], None)
+            df["vwap"] = (df["turnover"].cumsum() / (df["volume"].cumsum() * df["close"])).replace(
+                [float("inf"), -float("inf")], None
+            )
         else:
             df["vwap"] = None
         df["obv"] = self._extract_series(df.ta.obv())
 
         results = []
         for _, row in df.iterrows():
-            results.append({
-                "symbol": row["symbol"],
-                "trade_date": row["trade_date"].date(),
-                "ema_20": self._to_decimal(row["ema_20"]),
-                "ema_50": self._to_decimal(row["ema_50"]),
-                "ema_100": self._to_decimal(row["ema_100"]),
-                "ema_200": self._to_decimal(row["ema_200"]),
-                "sma": self._to_decimal(row["sma"]),
-                "rsi_14": self._to_decimal(row["rsi_14"]),
-                "macd": self._to_decimal(row["macd"]),
-                "macd_signal": self._to_decimal(row["macd_signal"]),
-                "macd_hist": self._to_decimal(row["macd_hist"]),
-                "stochastic_k": self._to_decimal(row["stochastic_k"]),
-                "stochastic_d": self._to_decimal(row["stochastic_d"]),
-                "atr": self._to_decimal(row["atr"]),
-                "bollinger_upper": self._to_decimal(row["bollinger_upper"]),
-                "bollinger_middle": self._to_decimal(row["bollinger_middle"]),
-                "bollinger_lower": self._to_decimal(row["bollinger_lower"]),
-                "adx": self._to_decimal(row["adx"]),
-                "supertrend": self._to_decimal(row["supertrend"]),
-                "supertrend_direction": int(row["supertrend_direction"]) if pd.notna(row["supertrend_direction"]) else None,
-                "vwap": self._to_decimal(row["vwap"]),
-                "obv": self._to_decimal(row["obv"]),
-            })
+            results.append(
+                {
+                    "symbol": row["symbol"],
+                    "trade_date": row["trade_date"].date(),
+                    "ema_20": self._to_decimal(row["ema_20"]),
+                    "ema_50": self._to_decimal(row["ema_50"]),
+                    "ema_100": self._to_decimal(row["ema_100"]),
+                    "ema_200": self._to_decimal(row["ema_200"]),
+                    "sma": self._to_decimal(row["sma"]),
+                    "rsi_14": self._to_decimal(row["rsi_14"]),
+                    "macd": self._to_decimal(row["macd"]),
+                    "macd_signal": self._to_decimal(row["macd_signal"]),
+                    "macd_hist": self._to_decimal(row["macd_hist"]),
+                    "stochastic_k": self._to_decimal(row["stochastic_k"]),
+                    "stochastic_d": self._to_decimal(row["stochastic_d"]),
+                    "atr": self._to_decimal(row["atr"]),
+                    "bollinger_upper": self._to_decimal(row["bollinger_upper"]),
+                    "bollinger_middle": self._to_decimal(row["bollinger_middle"]),
+                    "bollinger_lower": self._to_decimal(row["bollinger_lower"]),
+                    "adx": self._to_decimal(row["adx"]),
+                    "supertrend": self._to_decimal(row["supertrend"]),
+                    "supertrend_direction": int(row["supertrend_direction"])
+                    if pd.notna(row["supertrend_direction"])
+                    else None,
+                    "vwap": self._to_decimal(row["vwap"]),
+                    "obv": self._to_decimal(row["obv"]),
+                }
+            )
         return results
 
     async def _bulk_upsert(self, results: list[dict[str, Any]]) -> None:
@@ -164,9 +181,9 @@ class IndicatorEngine:
         stock_ids = {r["symbol"]: None for r in results}
         existing = (
             await self.session.execute(
-                __import__("sqlalchemy").select(Stock.symbol, Stock.id).where(
-                    Stock.symbol.in_(stock_ids.keys())
-                )
+                __import__("sqlalchemy")
+                .select(Stock.symbol, Stock.id)
+                .where(Stock.symbol.in_(stock_ids.keys()))
             )
         ).fetchall()
         for symbol, stock_id in existing:

@@ -1,20 +1,21 @@
-from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
 from app.models.indicator_result import IndicatorResult
 from app.models.stock import Stock
-from app.schemas.indicator import IndicatorCalculateResponse, IndicatorResultRead
+from app.schemas.indicator import IndicatorCalculateResponse
 from app.services.indicator_engine import IndicatorEngine, IndicatorEngineError
 
 router = APIRouter(prefix="/indicators", tags=["Indicators"])
 
 
-@router.post("/calculate", response_model=IndicatorCalculateResponse, status_code=status.HTTP_202_ACCEPTED)
+@router.post(
+    "/calculate", response_model=IndicatorCalculateResponse, status_code=status.HTTP_202_ACCEPTED
+)
 async def calculate_indicators(
     symbol: str | None = Query(default=None, min_length=1, max_length=32),
     session: AsyncSession = Depends(get_db_session),
@@ -48,18 +49,16 @@ async def indicator_status(
 ) -> dict[str, Any]:
     if symbol:
         stock = (
-            await session.execute(
-                select(Stock).where(Stock.symbol == symbol.upper())
-            )
+            await session.execute(select(Stock).where(Stock.symbol == symbol.upper()))
         ).scalar_one_or_none()
         if not stock:
             raise HTTPException(status_code=404, detail="Stock not found")
 
         count = (
             await session.execute(
-                select(IndicatorResult).where(IndicatorResult.stock_id == stock.id)
+                select(func.count(IndicatorResult.id)).where(IndicatorResult.stock_id == stock.id)
             )
-        ).unique().scalars().all()
+        ).scalar_one()
         latest = (
             await session.execute(
                 select(IndicatorResult.trade_date)
@@ -71,13 +70,15 @@ async def indicator_status(
 
         return {
             "symbol": stock.symbol,
-            "indicator_rows": len(count),
+            "indicator_rows": int(count),
             "latest_trade_date": latest,
         }
 
-    total = (await session.execute(select(IndicatorResult))).unique().scalars().all()
+    total = (await session.execute(select(func.count(IndicatorResult.id)))).scalar_one()
+    distinct_stocks = (
+        await session.execute(select(func.count(func.distinct(IndicatorResult.stock_id))))
+    ).scalar_one()
     return {
-        "total_indicator_rows": len(total),
-        "stocks_with_indicators": len({r.stock_id for r in total}),
+        "total_indicator_rows": int(total),
+        "stocks_with_indicators": int(distinct_stocks),
     }
-

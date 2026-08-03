@@ -5,10 +5,35 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 ### Planned
-- Dashboard UI with charts and AI explanations
+- Auto-run IndicatorEngine after NSE import (Sprint 11)
 - Watchlist management
 - Price alerts and notifications
 - Real-time scanner execution
+
+## [0.6.1] - 2026-08-03
+
+### Added
+- Stock detail works for stocks without price history (regression tests)
+- Scanner results are persisted by `run` / `run-all` (conflict-safe, idempotent)
+- Regression tests: scanner persistence, idempotency, no-match, no-price stock
+- HTMX refresh wiring for stock detail overview/indicators/scanner-matches partials
+
+### Fixed
+- `sector_name` KeyError when a stock has no `DailyPrice` rows
+- Flaky conftest scan-definition seeding (`UniqueViolationError`)
+- Chart marker N+1 (`session.get(ScanDefinition)` per marker removed)
+- Dashboard scanner summary now uses a single grouped query instead of 36 counts
+- Indicator status uses aggregate counts instead of loading full result sets
+- fpdf2 `dest="S"` deprecation removed
+- Sidebar/navbar no longer link to JSON endpoints
+
+### Changed
+- `IndicatorResult` added to `app/models/__init__.py` `__all__`
+- Removed duplicate `python-multipart` dependency
+- Scanner API docs document persistence and idempotency
+
+### Migrations
+- None (no schema change)
 
 ## [0.4.0] - 2026-08-03
 

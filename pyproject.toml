@@ -22,7 +22,6 @@ dependencies = [
   "jinja2>=3.1,<4.0",
   "openpyxl>=3.1,<4.0",
   "fpdf2>=2.7,<3.0",
-  "python-multipart>=0.0.20,<1.0",
 ]
 
 [project.optional-dependencies]
@@ -53,3 +52,6 @@ line-length = 100
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "ASYNC"]
 ignore = ["B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"migrations/*" = ["E501", "I001"]

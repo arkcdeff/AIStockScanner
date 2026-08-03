@@ -1,10 +1,16 @@
+from __future__ import annotations
+
 from datetime import date
 from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from sqlalchemy import BigInteger, Date, ForeignKey, Index, Numeric, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.stock import Stock
 
 
 class DailyPrice(TimestampMixin, Base):
@@ -29,4 +35,4 @@ class DailyPrice(TimestampMixin, Base):
     delivery_quantity: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     delivery_percentage: Mapped[Decimal | None] = mapped_column(Numeric(7, 3), nullable=True)
 
-    stock: Mapped["Stock"] = relationship(back_populates="daily_prices")
+    stock: Mapped[Stock] = relationship(back_populates="daily_prices")

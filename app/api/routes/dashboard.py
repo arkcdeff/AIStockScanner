@@ -18,23 +18,26 @@ def _render(template_name: str, context: dict) -> str:
 
 @router.get("/", response_class=HTMLResponse)
 async def root_redirect(request: Request) -> HTMLResponse:
-    html = _render("dashboard.html", {
-        "request": request,
-        "summary": {
-            "total_stocks": 0,
-            "total_indicators": 0,
-            "total_scanner_matches": 0,
-            "latest_trade_date": None,
-            "market_status": "closed",
-            "import_status": {},
-            "daily_prices": 0,
-            "first_trade_date": None,
+    html = _render(
+        "dashboard.html",
+        {
+            "request": request,
+            "summary": {
+                "total_stocks": 0,
+                "total_indicators": 0,
+                "total_scanner_matches": 0,
+                "latest_trade_date": None,
+                "market_status": "closed",
+                "import_status": {},
+                "daily_prices": 0,
+                "first_trade_date": None,
+            },
+            "recent_imports": [],
+            "scanner_summary": {},
+            "top_categories": {},
+            "health": {},
         },
-        "recent_imports": [],
-        "scanner_summary": {},
-        "top_categories": {},
-        "health": {},
-    })
+    )
     return HTMLResponse(content=html)
 
 
@@ -50,14 +53,17 @@ async def dashboard(
     top_categories = await service.get_top_categories()
     health = await service.get_health()
 
-    html = _render("dashboard.html", {
-        "request": request,
-        "summary": summary,
-        "recent_imports": recent_imports,
-        "scanner_summary": scanner_summary,
-        "top_categories": top_categories,
-        "health": health,
-    })
+    html = _render(
+        "dashboard.html",
+        {
+            "request": request,
+            "summary": summary,
+            "recent_imports": recent_imports,
+            "scanner_summary": scanner_summary,
+            "top_categories": top_categories,
+            "health": health,
+        },
+    )
     return HTMLResponse(content=html)
 
 
@@ -69,9 +75,12 @@ async def search_stocks(
 ) -> HTMLResponse:
     service = DashboardService(session)
     stocks = await service.search_stocks(q) if q else []
-    html = _render("components/search_results.html", {
-        "request": request,
-        "stocks": stocks,
-        "query": q,
-    })
+    html = _render(
+        "components/search_results.html",
+        {
+            "request": request,
+            "stocks": stocks,
+            "query": q,
+        },
+    )
     return HTMLResponse(content=html)

@@ -1,12 +1,8 @@
-from datetime import date
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_db_session
-from app.models.scan_result import ScanResult
 from app.models.stock import Stock
 from app.repositories.scan import ScanDefinitionRepository, ScanResultRepository
 from app.schemas.scanner import ScanAllResponse, ScanDefinitionRead, ScanResultRead, ScanRunResponse
@@ -34,6 +30,7 @@ async def run_scanner(
         results = await service.run_scanner(scan_code)
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+    await service.persist_results({scan_code: results})
     elapsed_ms = (__import__("time").perf_counter() - start) * 1000
 
     scan_def = await ScanDefinitionRepository(session).get_by_code(scan_code)
@@ -42,9 +39,9 @@ async def run_scanner(
     stock_ids = [r.stock_id for r in results]
     stocks = {}
     if stock_ids:
-        stock_rows = (await session.execute(
-            select(Stock.id, Stock.symbol).where(Stock.id.in_(stock_ids))
-        )).fetchall()
+        stock_rows = (
+            await session.execute(select(Stock.id, Stock.symbol).where(Stock.id.in_(stock_ids)))
+        ).fetchall()
         stocks = {row[0]: row[1] for row in stock_rows}
 
     return ScanRunResponse(
@@ -52,15 +49,18 @@ async def run_scanner(
         matched_stocks=len(results),
         score=sum(r.score for r in results) / len(results) if results else 0.0,
         execution_time_ms=round(elapsed_ms, 2),
-        results=[ScanResultRead(
-            id=0,
-            scan_definition_id=r.scan_definition_id,
-            stock_id=r.stock_id,
-            symbol=stocks.get(r.stock_id, ""),
-            scan_date=r.scan_date,
-            score=r.score,
-            metrics=r.metrics,
-        ) for r in results],
+        results=[
+            ScanResultRead(
+                id=0,
+                scan_definition_id=r.scan_definition_id,
+                stock_id=r.stock_id,
+                symbol=stocks.get(r.stock_id, ""),
+                scan_date=r.scan_date,
+                score=r.score,
+                metrics=r.metrics,
+            )
+            for r in results
+        ],
     )
 
 
@@ -71,6 +71,7 @@ async def run_all_scanners(
     service = ScannerService(session)
     start = __import__("time").perf_counter()
     results = await service.run_all()
+    await service.persist_results(results)
     elapsed_ms = (__import__("time").perf_counter() - start) * 1000
 
     total_matched = sum(len(v) for v in results.values())
@@ -82,21 +83,26 @@ async def run_all_scanners(
 
     stocks = {}
     if stock_ids:
-        stock_rows = (await session.execute(
-            select(Stock.id, Stock.symbol).where(Stock.id.in_(list(stock_ids)))
-        )).fetchall()
+        stock_rows = (
+            await session.execute(
+                select(Stock.id, Stock.symbol).where(Stock.id.in_(list(stock_ids)))
+            )
+        ).fetchall()
         stocks = {row[0]: row[1] for row in stock_rows}
 
     for code, entries in results.items():
-        formatted[code] = [ScanResultRead(
-            id=0,
-            scan_definition_id=e.scan_definition_id,
-            stock_id=e.stock_id,
-            symbol=stocks.get(e.stock_id, ""),
-            scan_date=e.scan_date,
-            score=e.score,
-            metrics=e.metrics,
-        ) for e in entries]
+        formatted[code] = [
+            ScanResultRead(
+                id=0,
+                scan_definition_id=e.scan_definition_id,
+                stock_id=e.stock_id,
+                symbol=stocks.get(e.stock_id, ""),
+                scan_date=e.scan_date,
+                score=e.score,
+                metrics=e.metrics,
+            )
+            for e in entries
+        ]
 
     return ScanAllResponse(
         total_scanners=len(results),
@@ -124,17 +130,20 @@ async def list_scan_results(
     stock_ids = list({r.stock_id for r in results})
     stocks = {}
     if stock_ids:
-        stock_rows = (await session.execute(
-            select(Stock.id, Stock.symbol).where(Stock.id.in_(stock_ids))
-        )).fetchall()
+        stock_rows = (
+            await session.execute(select(Stock.id, Stock.symbol).where(Stock.id.in_(stock_ids)))
+        ).fetchall()
         stocks = {row[0]: row[1] for row in stock_rows}
 
-    return [ScanResultRead(
-        id=r.id,
-        scan_definition_id=r.scan_definition_id,
-        stock_id=r.stock_id,
-        symbol=stocks.get(r.stock_id, ""),
-        scan_date=r.scan_date,
-        score=r.score,
-        metrics=r.metrics,
-    ) for r in results]
+    return [
+        ScanResultRead(
+            id=r.id,
+            scan_definition_id=r.scan_definition_id,
+            stock_id=r.stock_id,
+            symbol=stocks.get(r.stock_id, ""),
+            scan_date=r.scan_date,
+            score=r.score,
+            metrics=r.metrics,
+        )
+        for r in results
+    ]

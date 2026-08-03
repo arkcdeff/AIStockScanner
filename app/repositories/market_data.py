@@ -25,7 +25,11 @@ class MarketDataRepository:
             statement = statement.where(Stock.symbol == symbol.upper())
         if trade_date:
             statement = statement.where(DailyPrice.trade_date == trade_date)
-        statement = statement.order_by(DailyPrice.trade_date.desc(), Stock.symbol).offset(offset).limit(limit)
+        statement = (
+            statement.order_by(DailyPrice.trade_date.desc(), Stock.symbol)
+            .offset(offset)
+            .limit(limit)
+        )
         result = await self.session.execute(statement)
         return list(result.all())
 
@@ -33,7 +37,9 @@ class MarketDataRepository:
         stock_count = await self.session.scalar(select(func.count()).select_from(Stock))
         price_count = await self.session.scalar(select(func.count()).select_from(DailyPrice))
         min_date, max_date = (
-            await self.session.execute(select(func.min(DailyPrice.trade_date), func.max(DailyPrice.trade_date)))
+            await self.session.execute(
+                select(func.min(DailyPrice.trade_date), func.max(DailyPrice.trade_date))
+            )
         ).one()
         return {
             "stocks": stock_count or 0,

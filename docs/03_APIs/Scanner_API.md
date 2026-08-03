@@ -29,6 +29,12 @@ Run a specific scanner by code.
 **Query Parameters:**
 - `scan_code` (required): Scanner code (e.g., "volume_2x_average")
 
+**Persistence:** Every successful run persists matching stocks to `scan_results`.
+Rows are inserted with PostgreSQL `ON CONFLICT DO NOTHING` on
+`(scan_definition_id, stock_id, scan_date)`, so re-running the same scanner on the
+same day is idempotent (no duplicate rows). If persistence fails, the transaction
+is rolled back and the request errors out.
+
 **Response:**
 ```json
 {
@@ -55,6 +61,9 @@ Run a specific scanner by code.
 
 ### POST /scanners/run-all
 Run all active scanners.
+
+**Persistence:** Same behavior as `/scanners/run` — matches for every active scanner
+are persisted conflict-safely, so the scanner workspace and dashboard show real rows.
 
 **Response:**
 ```json

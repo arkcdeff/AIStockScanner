@@ -1,20 +1,16 @@
+# ruff: noqa: E501
 from datetime import UTC, date, datetime
 from io import BytesIO
-from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.data.nse_parser import NSEParseError, parse_bhavcopy
 from app.db.session import get_session_factory
-from app.models.import_job import ImportJob
-from app.repositories.market_data import MarketDataRepository
-from app.services.nse_import import NSEImportService
 from app.main import app
+from app.services.nse_import import NSEImportService
 
 
 def test_parse_invalid_rows() -> None:

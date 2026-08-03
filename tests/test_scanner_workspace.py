@@ -35,7 +35,10 @@ async def test_scanner_results_export_excel() -> None:
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         response = await client.get("/scanner-results/export/excel")
     assert response.status_code == 200
-    assert "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" in response.headers["content-type"]
+    assert (
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        in response.headers["content-type"]
+    )
     assert "attachment" in response.headers["content-disposition"]
 
 

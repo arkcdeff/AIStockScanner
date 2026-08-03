@@ -1,0 +1,184 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Price Chart</h5>
+        <div class="btn-group btn-group-sm">
+            <button class="btn btn-outline-secondary" onclick="changePeriod('1m')">1M</button>
+            <button class="btn btn-outline-secondary" onclick="changePeriod('3m')">3M</button>
+            <button class="btn btn-outline-secondary" onclick="changePeriod('6m')">6M</button>
+            <button class="btn btn-outline-primary" onclick="changePeriod('1y')">1Y</button>
+            <button class="btn btn-outline-secondary" onclick="changePeriod('3y')">3Y</button>
+            <button class="btn btn-outline-secondary" onclick="changePeriod('5y')">5Y</button>
+            <button class="btn btn-outline-secondary" onclick="changePeriod('all')">All</button>
+            <button class="btn btn-outline-success" id="toggle-indicators" onclick="toggleIndicators()">Indicators</button>
+        </div>
+    </div>
+    <div class="card-body">
+        <div id="chart-container" style="height: 500px; width: 100%;"></div>
+        <div id="chart-loading" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading chart data...</p>
+        </div>
+        <div id="chart-error" class="text-center py-4" style="display: none;">
+            <p class="text-danger">Failed to load chart data. Please try again.</p>
+        </div>
+        <div id="chart-empty" class="text-center py-4" style="display: none;">
+            <p class="text-muted">No price data available for this stock.</p>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { createChart, ColorType, CrosshairMode } from 'https://cdn.jsdelivr.net/npm/lightweight-charts@4.1.3/dist/lightweight-charts.standalone.production.js';
+
+    let chart;
+    let candleSeries;
+    let volumeSeries;
+    let ema20Series;
+    let ema50Series;
+    let ema200Series;
+    let currentPeriod = '1y';
+    let includeIndicators = true;
+
+    function initChart() {
+        const container = document.getElementById('chart-container');
+        if (!container) return;
+
+        chart = createChart(container, {
+            layout: {
+                background: { type: ColorType.Solid, color: '#ffffff' },
+                textColor: '#333',
+            },
+            grid: {
+                vertLines: { color: '#f0f0f0' },
+                horzLines: { color: '#f0f0f0' },
+            },
+            crosshair: {
+                mode: CrosshairMode.Normal,
+            },
+            rightPriceScale: {
+                borderColor: '#f0f0f0',
+            },
+            timeScale: {
+                borderColor: '#f0f0f0',
+                timeVisible: true,
+                secondsVisible: false,
+            },
+        });
+
+        candleSeries = chart.addCandlestickSeries({
+            upColor: '#26a69a',
+            downColor: '#ef5350',
+            borderVisible: false,
+            wickUpColor: '#26a69a',
+            wickDownColor: '#ef5350',
+        });
+
+        volumeSeries = chart.addHistogramSeries({
+            color: '#26a69a',
+            priceFormat: { type: 'volume' },
+            priceScaleId: '',
+        });
+        volumeSeries.priceScale().applyOptions({
+            scaleMargins: { top: 0.8, bottom: 0 },
+        });
+
+        ema20Series = chart.addLineSeries({ color: '#2196F3', lineWidth: 2, title: 'EMA 20' });
+        ema50Series = chart.addLineSeries({ color: '#FF9800', lineWidth: 2, title: 'EMA 50' });
+        ema200Series = chart.addLineSeries({ color: '#F44336', lineWidth: 2, title: 'EMA 200' });
+
+        chart.timeScale().fitContent();
+    }
+
+    async function loadChart(period, showIndicators) {
+        const container = document.getElementById('chart-container');
+        const loading = document.getElementById('chart-loading');
+        const error = document.getElementById('chart-error');
+        const empty = document.getElementById('chart-empty');
+
+        if (container) container.style.display = 'none';
+        if (loading) loading.style.display = 'block';
+        if (error) error.style.display = 'none';
+        if (empty) empty.style.display = 'none';
+
+        try {
+            const url = `/api/v1/stocks/{{ symbol }}/chart-data?period=${period}&include_indicators=${showIndicators}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Failed to fetch chart data');
+            const data = await response.json();
+
+            if (!data.candles || data.candles.length === 0) {
+                if (loading) loading.style.display = 'none';
+                if (empty) empty.style.display = 'block';
+                return;
+            }
+
+            if (!chart) initChart();
+
+            candleSeries.setData(data.candles);
+            volumeSeries.setData(data.volume);
+
+            if (showIndicators) {
+                ema20Series.setData(data.ema20 || []);
+                ema50Series.setData(data.ema50 || []);
+                ema200Series.setData(data.ema200 || []);
+                ema20Series.applyOptions({ visible: true });
+                ema50Series.applyOptions({ visible: true });
+                ema200Series.applyOptions({ visible: true });
+            } else {
+                ema20Series.applyOptions({ visible: false });
+                ema50Series.applyOptions({ visible: false });
+                ema200Series.applyOptions({ visible: false });
+            }
+
+            if (data.scanner_markers && data.scanner_markers.length > 0) {
+                chart.applyOptions({
+                    markers: data.scanner_markers.map(m => ({
+                        time: m.time,
+                        position: m.position,
+                        color: m.color,
+                        shape: m.shape,
+                        text: m.text,
+                    })),
+                });
+            }
+
+            chart.timeScale().fitContent();
+            if (loading) loading.style.display = 'none';
+            if (container) container.style.display = 'block';
+        } catch (err) {
+            console.error(err);
+            if (loading) loading.style.display = 'none';
+            if (error) error.style.display = 'block';
+        }
+    }
+
+    window.changePeriod = function(period) {
+        currentPeriod = period;
+        loadChart(period, includeIndicators);
+    };
+
+    window.toggleIndicators = function() {
+        includeIndicators = !includeIndicators;
+        const btn = document.getElementById('toggle-indicators');
+        if (includeIndicators) {
+            btn.classList.remove('btn-outline-secondary');
+            btn.classList.add('btn-outline-success');
+        } else {
+            btn.classList.remove('btn-outline-success');
+            btn.classList.add('btn-outline-secondary');
+        }
+        loadChart(currentPeriod, includeIndicators);
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        loadChart('1y', true);
+    });
+
+    window.addEventListener('resize', function() {
+        if (chart) {
+            chart.applyOptions({
+                width: document.getElementById('chart-container')?.clientWidth || 800,
+            });
+        }
+    });
+</script>

@@ -1,7 +1,17 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sqlalchemy import Boolean, ForeignKey, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.daily_price import DailyPrice
+    from app.models.indicator_result import IndicatorResult
+    from app.models.scan_result import ScanResult
+    from app.models.sector import Sector
 
 
 class Stock(TimestampMixin, Base):
@@ -20,13 +30,13 @@ class Stock(TimestampMixin, Base):
     industry: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
-    sector_ref: Mapped["Sector | None"] = relationship(back_populates="stocks")
-    daily_prices: Mapped[list["DailyPrice"]] = relationship(
+    sector_ref: Mapped[Sector | None] = relationship(back_populates="stocks")
+    daily_prices: Mapped[list[DailyPrice]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
-    scan_results: Mapped[list["ScanResult"]] = relationship(
+    scan_results: Mapped[list[ScanResult]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )
-    indicator_results: Mapped[list["IndicatorResult"]] = relationship(
+    indicator_results: Mapped[list[IndicatorResult]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

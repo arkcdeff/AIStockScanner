@@ -3,11 +3,12 @@ from __future__ import annotations
 import csv
 import io
 import zipfile
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
-from typing import BinaryIO, Iterable
+from typing import BinaryIO
 
 
 class NSEParseError(ValueError):
@@ -131,7 +132,9 @@ def _rows(payload: bytes, file_name: str) -> list[dict[str, str]]:
     return result
 
 
-def parse_delivery(payload: bytes, file_name: str = "delivery.csv") -> dict[tuple[str, str], DeliveryRecord]:
+def parse_delivery(
+    payload: bytes, file_name: str = "delivery.csv"
+) -> dict[tuple[str, str], DeliveryRecord]:
     records: dict[tuple[str, str], DeliveryRecord] = {}
     for row in _rows(payload, file_name):
         symbol = _value(row, DELIVERY_ALIASES["symbol"])
@@ -142,9 +145,7 @@ def parse_delivery(payload: bytes, file_name: str = "delivery.csv") -> dict[tupl
             symbol=symbol.upper(),
             series=series,
             quantity=_integer(_value(row, DELIVERY_ALIASES["quantity"]), "delivery quantity"),
-            percentage=_decimal(
-                _value(row, DELIVERY_ALIASES["percentage"]), "delivery percentage"
-            ),
+            percentage=_decimal(_value(row, DELIVERY_ALIASES["percentage"]), "delivery percentage"),
         )
         records[(record.symbol, record.series)] = record
     return records
@@ -168,11 +169,15 @@ def parse_bhavcopy(
             if series not in allowed_series:
                 continue
             trade_date = _date(_value(row, ALIASES["trade_date"], required=True))  # type: ignore[arg-type]
-            open_price = _decimal(_value(row, ALIASES["open"], required=True), "open", required=True)
+            open_price = _decimal(
+                _value(row, ALIASES["open"], required=True), "open", required=True
+            )
             high = _decimal(_value(row, ALIASES["high"], required=True), "high", required=True)
             low = _decimal(_value(row, ALIASES["low"], required=True), "low", required=True)
             close = _decimal(_value(row, ALIASES["close"], required=True), "close", required=True)
-            volume = _integer(_value(row, ALIASES["volume"], required=True), "volume", required=True)
+            volume = _integer(
+                _value(row, ALIASES["volume"], required=True), "volume", required=True
+            )
             assert open_price is not None and high is not None and low is not None
             assert close is not None and volume is not None
             if min(open_price, high, low, close) < 0 or high < low or volume < 0:

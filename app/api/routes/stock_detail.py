@@ -1,0 +1,280 @@
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.core.config import settings
+from app.db.session import get_db_session
+from app.repositories.stock_detail import StockDetailRepository
+from app.schemas.stock_detail import (
+    IndicatorCardResponse,
+    ScannerMatchResponse,
+    StockOverviewResponse,
+)
+from app.services.stock_detail import StockDetailService
+
+router = APIRouter()
+env_loader = None
+
+
+def _get_env():
+    global env_loader
+    if env_loader is None:
+        from jinja2 import Environment, FileSystemLoader
+
+        env_loader = Environment(
+            loader=FileSystemLoader(str(settings.base_dir / "app" / "templates"))
+        )
+    return env_loader
+
+
+def _render(template_name: str, context: dict) -> str:
+    env = _get_env()
+    return env.get_template(template_name).render(**context)
+
+
+@router.get("/{symbol}", response_class=HTMLResponse)
+async def stock_detail_page(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    response = StockOverviewResponse(
+        symbol=overview["stock"].symbol,
+        company_name=overview["stock"].company_name,
+        exchange=overview["stock"].exchange,
+        series=overview["stock"].series,
+        isin=overview["stock"].isin,
+        sector=overview["sector_name"],
+        industry=overview["stock"].industry,
+        latest_trade_date=overview["latest_price"].trade_date if overview["latest_price"] else None,
+        latest_close=float(overview["latest_price"].close) if overview["latest_price"] else None,
+        previous_close=float(overview["latest_price"].previous_close)
+        if overview["latest_price"] and overview["latest_price"].previous_close
+        else None,
+        price_change=overview["price_change"],
+        price_change_pct=overview["price_change_pct"],
+        open=float(overview["latest_price"].open) if overview["latest_price"] else None,
+        high=float(overview["latest_price"].high) if overview["latest_price"] else None,
+        low=float(overview["latest_price"].low) if overview["latest_price"] else None,
+        volume=overview["latest_price"].volume if overview["latest_price"] else None,
+        avg_volume_20d=overview["avg_volume_20d"],
+        volume_multiple=round(overview["latest_price"].volume / overview["avg_volume_20d"], 2)
+        if overview["latest_price"]
+        and overview["avg_volume_20d"]
+        and overview["avg_volume_20d"] > 0
+        else None,
+        delivery_quantity=overview["latest_price"].delivery_quantity
+        if overview["latest_price"]
+        else None,
+        delivery_percentage=float(overview["latest_price"].delivery_percentage)
+        if overview["latest_price"] and overview["latest_price"].delivery_percentage
+        else None,
+        avg_delivery_20d=overview["avg_delivery_20d"],
+    )
+
+    indicator = None
+    if overview["latest_indicator"]:
+        ind = overview["latest_indicator"]
+        indicator = IndicatorCardResponse(
+            trade_date=ind.trade_date,
+            ema_20=float(ind.ema_20) if ind.ema_20 is not None else None,
+            ema_50=float(ind.ema_50) if ind.ema_50 is not None else None,
+            ema_100=float(ind.ema_100) if ind.ema_100 is not None else None,
+            ema_200=float(ind.ema_200) if ind.ema_200 is not None else None,
+            sma=float(ind.sma) if ind.sma is not None else None,
+            rsi_14=float(ind.rsi_14) if ind.rsi_14 is not None else None,
+            macd=float(ind.macd) if ind.macd is not None else None,
+            macd_signal=float(ind.macd_signal) if ind.macd_signal is not None else None,
+            macd_hist=float(ind.macd_hist) if ind.macd_hist is not None else None,
+            atr=float(ind.atr) if ind.atr is not None else None,
+            adx=float(ind.adx) if ind.adx is not None else None,
+            supertrend=float(ind.supertrend) if ind.supertrend is not None else None,
+            supertrend_direction=ind.supertrend_direction,
+            vwap=float(ind.vwap) if ind.vwap is not None else None,
+            obv=float(ind.obv) if ind.obv is not None else None,
+            bollinger_upper=float(ind.bollinger_upper) if ind.bollinger_upper is not None else None,
+            bollinger_middle=float(ind.bollinger_middle)
+            if ind.bollinger_middle is not None
+            else None,
+            bollinger_lower=float(ind.bollinger_lower) if ind.bollinger_lower is not None else None,
+            stochastic_k=float(ind.stochastic_k) if ind.stochastic_k is not None else None,
+            stochastic_d=float(ind.stochastic_d) if ind.stochastic_d is not None else None,
+        )
+
+    matches = []
+    for sr in overview["scanner_matches"]:
+        reason = ""
+        if sr.metrics and isinstance(sr.metrics, dict):
+            reason = sr.metrics.get("reason", "")
+        matches.append(
+            ScannerMatchResponse(
+                id=sr.id,
+                scan_date=sr.scan_date,
+                matched=True,
+                score=float(sr.score) if sr.score is not None else None,
+                metrics=sr.metrics or {},
+                scanner_name=sr.scan_definition.name if sr.scan_definition else None,
+                category=sr.scan_definition.category if sr.scan_definition else None,
+                reason=reason,
+            )
+        )
+
+    html = _render(
+        "stock_detail.html",
+        {
+            "request": request,
+            "symbol": overview["stock"].symbol,
+            "stock": overview["stock"],
+            "sector_name": overview["sector_name"],
+            "overview": response,
+            "indicator": indicator,
+            "matches": matches,
+        },
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/{symbol}/overview", response_class=HTMLResponse)
+async def stock_overview_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    response = StockOverviewResponse(
+        symbol=overview["stock"].symbol,
+        company_name=overview["stock"].company_name,
+        exchange=overview["stock"].exchange,
+        series=overview["stock"].series,
+        isin=overview["stock"].isin,
+        sector=overview["sector_name"],
+        industry=overview["stock"].industry,
+        latest_trade_date=overview["latest_price"].trade_date if overview["latest_price"] else None,
+        latest_close=float(overview["latest_price"].close) if overview["latest_price"] else None,
+        previous_close=float(overview["latest_price"].previous_close)
+        if overview["latest_price"] and overview["latest_price"].previous_close
+        else None,
+        price_change=overview["price_change"],
+        price_change_pct=overview["price_change_pct"],
+        open=float(overview["latest_price"].open) if overview["latest_price"] else None,
+        high=float(overview["latest_price"].high) if overview["latest_price"] else None,
+        low=float(overview["latest_price"].low) if overview["latest_price"] else None,
+        volume=overview["latest_price"].volume if overview["latest_price"] else None,
+        avg_volume_20d=overview["avg_volume_20d"],
+        volume_multiple=round(overview["latest_price"].volume / overview["avg_volume_20d"], 2)
+        if overview["latest_price"]
+        and overview["avg_volume_20d"]
+        and overview["avg_volume_20d"] > 0
+        else None,
+        delivery_quantity=overview["latest_price"].delivery_quantity
+        if overview["latest_price"]
+        else None,
+        delivery_percentage=float(overview["latest_price"].delivery_percentage)
+        if overview["latest_price"] and overview["latest_price"].delivery_percentage
+        else None,
+        avg_delivery_20d=overview["avg_delivery_20d"],
+    )
+    return HTMLResponse(
+        content=_render(
+            "components/stock_overview.html", {"request": request, "overview": response}
+        )
+    )
+
+
+@router.get("/{symbol}/indicators", response_class=HTMLResponse)
+async def stock_indicators_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    indicator = None
+    if overview["latest_indicator"]:
+        ind = overview["latest_indicator"]
+        indicator = IndicatorCardResponse(
+            trade_date=ind.trade_date,
+            ema_20=float(ind.ema_20) if ind.ema_20 is not None else None,
+            ema_50=float(ind.ema_50) if ind.ema_50 is not None else None,
+            ema_100=float(ind.ema_100) if ind.ema_100 is not None else None,
+            ema_200=float(ind.ema_200) if ind.ema_200 is not None else None,
+            sma=float(ind.sma) if ind.sma is not None else None,
+            rsi_14=float(ind.rsi_14) if ind.rsi_14 is not None else None,
+            macd=float(ind.macd) if ind.macd is not None else None,
+            macd_signal=float(ind.macd_signal) if ind.macd_signal is not None else None,
+            macd_hist=float(ind.macd_hist) if ind.macd_hist is not None else None,
+            atr=float(ind.atr) if ind.atr is not None else None,
+            adx=float(ind.adx) if ind.adx is not None else None,
+            supertrend=float(ind.supertrend) if ind.supertrend is not None else None,
+            supertrend_direction=ind.supertrend_direction,
+            vwap=float(ind.vwap) if ind.vwap is not None else None,
+            obv=float(ind.obv) if ind.obv is not None else None,
+            bollinger_upper=float(ind.bollinger_upper) if ind.bollinger_upper is not None else None,
+            bollinger_middle=float(ind.bollinger_middle)
+            if ind.bollinger_middle is not None
+            else None,
+            bollinger_lower=float(ind.bollinger_lower) if ind.bollinger_lower is not None else None,
+            stochastic_k=float(ind.stochastic_k) if ind.stochastic_k is not None else None,
+            stochastic_d=float(ind.stochastic_d) if ind.stochastic_d is not None else None,
+        )
+    return HTMLResponse(
+        content=_render(
+            "components/indicator_cards.html", {"request": request, "indicator": indicator}
+        )
+    )
+
+
+@router.get("/{symbol}/scanner-results", response_class=HTMLResponse)
+async def stock_scanner_results_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    matches = []
+    for sr in overview["scanner_matches"]:
+        reason = ""
+        if sr.metrics and isinstance(sr.metrics, dict):
+            reason = sr.metrics.get("reason", "")
+        matches.append(
+            ScannerMatchResponse(
+                id=sr.id,
+                scan_date=sr.scan_date,
+                matched=True,
+                score=float(sr.score) if sr.score is not None else None,
+                metrics=sr.metrics or {},
+                scanner_name=sr.scan_definition.name if sr.scan_definition else None,
+                category=sr.scan_definition.category if sr.scan_definition else None,
+                reason=reason,
+            )
+        )
+    return HTMLResponse(
+        content=_render(
+            "components/stock_scanner_matches.html", {"request": request, "matches": matches}
+        )
+    )
+
+
+@router.get("/{symbol}/prices", response_class=HTMLResponse)
+async def stock_prices_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    repo = StockDetailRepository(session)
+    stock = await repo.get_stock(symbol)
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    prices = await repo.get_price_history(stock.id, period="1y", limit=200)
+    return HTMLResponse(
+        content=_render(
+            "components/price_chart.html", {"request": request, "symbol": symbol, "prices": prices}
+        )
+    )

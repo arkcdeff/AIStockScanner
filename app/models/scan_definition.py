@@ -1,7 +1,14 @@
-from sqlalchemy import Boolean, JSON, String, Text
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
+from sqlalchemy import JSON, Boolean, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base, TimestampMixin
+
+if TYPE_CHECKING:
+    from app.models.scan_result import ScanResult
 
 
 class ScanDefinition(TimestampMixin, Base):
@@ -15,6 +22,6 @@ class ScanDefinition(TimestampMixin, Base):
     parameters: Mapped[dict] = mapped_column(JSON, default=dict)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
-    results: Mapped[list["ScanResult"]] = relationship(
+    results: Mapped[list[ScanResult]] = relationship(
         back_populates="scan_definition", cascade="all, delete-orphan"
     )

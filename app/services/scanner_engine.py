@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
-from typing import Any, Callable
+from typing import Any
 
 from loguru import logger
 from sqlalchemy import select
@@ -72,6 +72,7 @@ class ScannerRegistry:
         def decorator(func: ScannerFunc) -> ScannerFunc:
             cls.scanners[code] = func
             return func
+
         return decorator
 
     @classmethod
@@ -110,159 +111,241 @@ def _compute_20d_aggregates(rows: list[Any]) -> dict[str, Any]:
 
 
 @ScannerRegistry.register("ema_bullish_crossover")
-def ema_bullish_crossover(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def ema_bullish_crossover(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if previous is None:
         return False, 0.0, {}
-    matched = bool(current.ema_20 and current.ema_50 and previous.ema_20 and previous.ema_50 and
-                    current.ema_20 > current.ema_50 and previous.ema_20 < previous.ema_50)
+    matched = bool(
+        current.ema_20
+        and current.ema_50
+        and previous.ema_20
+        and previous.ema_50
+        and current.ema_20 > current.ema_50
+        and previous.ema_20 < previous.ema_50
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"ema_20": current.ema_20, "ema_50": current.ema_50}
 
 
 @ScannerRegistry.register("ema_bearish_crossover")
-def ema_bearish_crossover(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def ema_bearish_crossover(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if previous is None:
         return False, 0.0, {}
-    matched = bool(current.ema_20 and current.ema_50 and previous.ema_20 and previous.ema_50 and
-                    current.ema_20 < current.ema_50 and previous.ema_20 > previous.ema_50)
+    matched = bool(
+        current.ema_20
+        and current.ema_50
+        and previous.ema_20
+        and previous.ema_50
+        and current.ema_20 < current.ema_50
+        and previous.ema_20 > previous.ema_50
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"ema_20": current.ema_20, "ema_50": current.ema_50}
 
 
 @ScannerRegistry.register("golden_cross")
-def golden_cross(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def golden_cross(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if previous is None:
         return False, 0.0, {}
-    matched = bool(current.ema_50 and current.ema_200 and previous.ema_50 and previous.ema_200 and
-                    current.ema_50 > current.ema_200 and previous.ema_50 < previous.ema_200)
+    matched = bool(
+        current.ema_50
+        and current.ema_200
+        and previous.ema_50
+        and previous.ema_200
+        and current.ema_50 > current.ema_200
+        and previous.ema_50 < previous.ema_200
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"ema_50": current.ema_50, "ema_200": current.ema_200}
 
 
 @ScannerRegistry.register("death_cross")
-def death_cross(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def death_cross(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if previous is None:
         return False, 0.0, {}
-    matched = bool(current.ema_50 and current.ema_200 and previous.ema_50 and previous.ema_200 and
-                    current.ema_50 < current.ema_200 and previous.ema_50 > previous.ema_200)
+    matched = bool(
+        current.ema_50
+        and current.ema_200
+        and previous.ema_50
+        and previous.ema_200
+        and current.ema_50 < current.ema_200
+        and previous.ema_50 > previous.ema_200
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"ema_50": current.ema_50, "ema_200": current.ema_200}
 
 
 @ScannerRegistry.register("price_above_ema20")
-def price_above_ema20(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def price_above_ema20(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = bool(current.ema_20 and current.close > float(current.ema_20))
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "ema_20": current.ema_20}
 
 
 @ScannerRegistry.register("price_below_ema20")
-def price_below_ema20(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def price_below_ema20(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = bool(current.ema_20 and current.close < float(current.ema_20))
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "ema_20": current.ema_20}
 
 
 @ScannerRegistry.register("supertrend_bullish")
-def supertrend_bullish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def supertrend_bullish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.supertrend_direction == 1
     score = 1.0 if matched else 0.0
-    return matched, score, {"supertrend": current.supertrend, "direction": current.supertrend_direction}
+    return (
+        matched,
+        score,
+        {"supertrend": current.supertrend, "direction": current.supertrend_direction},
+    )
 
 
 @ScannerRegistry.register("supertrend_bearish")
-def supertrend_bearish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def supertrend_bearish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.supertrend_direction == -1
     score = 1.0 if matched else 0.0
-    return matched, score, {"supertrend": current.supertrend, "direction": current.supertrend_direction}
+    return (
+        matched,
+        score,
+        {"supertrend": current.supertrend, "direction": current.supertrend_direction},
+    )
 
 
 @ScannerRegistry.register("rsi_oversold")
-def rsi_oversold(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def rsi_oversold(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.rsi_14 is not None and float(current.rsi_14) < 30
     score = 1.0 if matched else 0.0
     return matched, score, {"rsi_14": current.rsi_14}
 
 
 @ScannerRegistry.register("rsi_overbought")
-def rsi_overbought(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def rsi_overbought(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.rsi_14 is not None and float(current.rsi_14) > 70
     score = 1.0 if matched else 0.0
     return matched, score, {"rsi_14": current.rsi_14}
 
 
 @ScannerRegistry.register("macd_bullish")
-def macd_bullish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
-    if previous is None or not all([current.macd, current.macd_signal, previous.macd, previous.macd_signal]):
+def macd_bullish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
+    if previous is None or not all(
+        [current.macd, current.macd_signal, previous.macd, previous.macd_signal]
+    ):
         return False, 0.0, {}
-    matched = float(current.macd) > float(current.macd_signal) and float(previous.macd) < float(previous.macd_signal)
+    matched = float(current.macd) > float(current.macd_signal) and float(previous.macd) < float(
+        previous.macd_signal
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"macd": current.macd, "macd_signal": current.macd_signal}
 
 
 @ScannerRegistry.register("macd_bearish")
-def macd_bearish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
-    if previous is None or not all([current.macd, current.macd_signal, previous.macd, previous.macd_signal]):
+def macd_bearish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
+    if previous is None or not all(
+        [current.macd, current.macd_signal, previous.macd, previous.macd_signal]
+    ):
         return False, 0.0, {}
-    matched = float(current.macd) < float(current.macd_signal) and float(previous.macd) > float(previous.macd_signal)
+    matched = float(current.macd) < float(current.macd_signal) and float(previous.macd) > float(
+        previous.macd_signal
+    )
     score = 1.0 if matched else 0.0
     return matched, score, {"macd": current.macd, "macd_signal": current.macd_signal}
 
 
 @ScannerRegistry.register("stochastic_oversold")
-def stochastic_oversold(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def stochastic_oversold(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.stochastic_k is not None and float(current.stochastic_k) < 20
     score = 1.0 if matched else 0.0
     return matched, score, {"stochastic_k": current.stochastic_k}
 
 
 @ScannerRegistry.register("stochastic_overbought")
-def stochastic_overbought(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def stochastic_overbought(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.stochastic_k is not None and float(current.stochastic_k) > 80
     score = 1.0 if matched else 0.0
     return matched, score, {"stochastic_k": current.stochastic_k}
 
 
 @ScannerRegistry.register("macd_above_zero")
-def macd_above_zero(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def macd_above_zero(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.macd is not None and float(current.macd) > 0
     score = 1.0 if matched else 0.0
     return matched, score, {"macd": current.macd}
 
 
 @ScannerRegistry.register("macd_below_zero")
-def macd_below_zero(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def macd_below_zero(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.macd is not None and float(current.macd) < 0
     score = 1.0 if matched else 0.0
     return matched, score, {"macd": current.macd}
 
 
 @ScannerRegistry.register("bollinger_band_squeeze")
-def bollinger_band_squeeze(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def bollinger_band_squeeze(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if not all([current.bollinger_upper, current.bollinger_lower, current.bollinger_middle]):
         return False, 0.0, {}
-    bandwidth = (float(current.bollinger_upper) - float(current.bollinger_lower)) / float(current.bollinger_middle)
+    bandwidth = (float(current.bollinger_upper) - float(current.bollinger_lower)) / float(
+        current.bollinger_middle
+    )
     matched = bandwidth < 0.05
     score = 1.0 if matched else 0.0
     return matched, score, {"bandwidth": bandwidth}
 
 
 @ScannerRegistry.register("price_above_upper_bollinger")
-def price_above_upper_bollinger(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def price_above_upper_bollinger(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.bollinger_upper is not None and current.close > float(current.bollinger_upper)
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "bollinger_upper": current.bollinger_upper}
 
 
 @ScannerRegistry.register("price_below_lower_bollinger")
-def price_below_lower_bollinger(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def price_below_lower_bollinger(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.bollinger_lower is not None and current.close < float(current.bollinger_lower)
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "bollinger_lower": current.bollinger_lower}
 
 
 @ScannerRegistry.register("atr_high_volatility")
-def atr_high_volatility(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def atr_high_volatility(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.atr is None or current.close == 0:
         return False, 0.0, {}
     atr_pct = float(current.atr) / current.close * 100
@@ -272,7 +355,9 @@ def atr_high_volatility(current: IndicatorRow, previous: IndicatorRow | None) ->
 
 
 @ScannerRegistry.register("obv_rising")
-def obv_rising(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def obv_rising(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if previous is None or current.obv is None or previous.obv is None:
         return False, 0.0, {}
     matched = float(current.obv) > float(previous.obv)
@@ -281,216 +366,319 @@ def obv_rising(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bo
 
 
 @ScannerRegistry.register("vwap_bullish")
-def vwap_bullish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def vwap_bullish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.vwap is not None and current.close > float(current.vwap)
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "vwap": current.vwap}
 
 
 @ScannerRegistry.register("vwap_bearish")
-def vwap_bearish(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def vwap_bearish(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.vwap is not None and current.close < float(current.vwap)
     score = 1.0 if matched else 0.0
     return matched, score, {"close": current.close, "vwap": current.vwap}
 
 
 @ScannerRegistry.register("strong_trend_adx")
-def strong_trend_adx(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def strong_trend_adx(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.adx is not None and float(current.adx) > 25
     score = 1.0 if matched else 0.0
     return matched, score, {"adx": current.adx}
 
 
 @ScannerRegistry.register("weak_trend_adx")
-def weak_trend_adx(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def weak_trend_adx(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     matched = current.adx is not None and float(current.adx) < 20
     score = 1.0 if matched else 0.0
     return matched, score, {"adx": current.adx}
 
 
 @ScannerRegistry.register("volume_2x_average")
-def volume_2x_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def volume_2x_average(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.volume is None or current.avg_volume_20d is None or current.avg_volume_20d == 0:
         return False, 0.0, {}
     multiple = current.volume / current.avg_volume_20d
     matched = multiple >= 2.0
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "volume": current.volume,
-        "average_volume_20d": current.avg_volume_20d,
-        "volume_multiple": multiple,
-        "reason": f"Volume {multiple:.1f}x 20-day average",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "volume": current.volume,
+            "average_volume_20d": current.avg_volume_20d,
+            "volume_multiple": multiple,
+            "reason": f"Volume {multiple:.1f}x 20-day average",
+        },
+    )
 
 
 @ScannerRegistry.register("volume_5x_average")
-def volume_5x_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def volume_5x_average(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.volume is None or current.avg_volume_20d is None or current.avg_volume_20d == 0:
         return False, 0.0, {}
     multiple = current.volume / current.avg_volume_20d
     matched = multiple >= 5.0
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "volume": current.volume,
-        "average_volume_20d": current.avg_volume_20d,
-        "volume_multiple": multiple,
-        "reason": f"Volume {multiple:.1f}x 20-day average",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "volume": current.volume,
+            "average_volume_20d": current.avg_volume_20d,
+            "volume_multiple": multiple,
+            "reason": f"Volume {multiple:.1f}x 20-day average",
+        },
+    )
 
 
 @ScannerRegistry.register("highest_volume_20d")
-def highest_volume_20d(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def highest_volume_20d(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.volume is None or current.max_volume_20d is None:
         return False, 0.0, {}
     matched = current.volume >= current.max_volume_20d
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "volume": current.volume,
-        "max_volume_20d": current.max_volume_20d,
-        "reason": "Highest volume in last 20 sessions",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "volume": current.volume,
+            "max_volume_20d": current.max_volume_20d,
+            "reason": "Highest volume in last 20 sessions",
+        },
+    )
 
 
 @ScannerRegistry.register("volume_breakout")
-def volume_breakout(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def volume_breakout(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.volume is None or current.max_volume_20d is None:
         return False, 0.0, {}
     matched = current.volume > current.max_volume_20d
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "volume": current.volume,
-        "max_volume_20d": current.max_volume_20d,
-        "breakout_level": current.max_volume_20d,
-        "reason": f"Volume breakout above 20-day max {current.max_volume_20d}",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "volume": current.volume,
+            "max_volume_20d": current.max_volume_20d,
+            "breakout_level": current.max_volume_20d,
+            "reason": f"Volume breakout above 20-day max {current.max_volume_20d}",
+        },
+    )
 
 
 @ScannerRegistry.register("delivery_above_60")
-def delivery_above_60(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def delivery_above_60(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.delivery_percentage is None:
         return False, 0.0, {}
     matched = float(current.delivery_percentage) >= 60.0
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "delivery_percent": current.delivery_percentage,
-        "reason": f"Delivery {current.delivery_percentage:.1f}% >= 60%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "delivery_percent": current.delivery_percentage,
+            "reason": f"Delivery {current.delivery_percentage:.1f}% >= 60%",
+        },
+    )
 
 
 @ScannerRegistry.register("delivery_above_70")
-def delivery_above_70(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def delivery_above_70(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.delivery_percentage is None:
         return False, 0.0, {}
     matched = float(current.delivery_percentage) >= 70.0
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "delivery_percent": current.delivery_percentage,
-        "reason": f"Delivery {current.delivery_percentage:.1f}% >= 70%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "delivery_percent": current.delivery_percentage,
+            "reason": f"Delivery {current.delivery_percentage:.1f}% >= 70%",
+        },
+    )
 
 
 @ScannerRegistry.register("delivery_above_average")
-def delivery_above_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def delivery_above_average(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.delivery_percentage is None or current.avg_delivery_20d is None:
         return False, 0.0, {}
     matched = float(current.delivery_percentage) > current.avg_delivery_20d
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "delivery_percent": current.delivery_percentage,
-        "average_delivery_20d": current.avg_delivery_20d,
-        "reason": f"Delivery {current.delivery_percentage:.1f}% > 20-day avg {current.avg_delivery_20d:.1f}%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "delivery_percent": current.delivery_percentage,
+            "average_delivery_20d": current.avg_delivery_20d,
+            "reason": (
+                f"Delivery {current.delivery_percentage:.1f}% > "
+                f"20-day avg {current.avg_delivery_20d:.1f}%"
+            ),
+        },
+    )
 
 
 @ScannerRegistry.register("delivery_breakout")
-def delivery_breakout(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+def delivery_breakout(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
     if current.delivery_percentage is None or current.max_delivery_20d is None:
         return False, 0.0, {}
     matched = float(current.delivery_percentage) > current.max_delivery_20d
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "delivery_percent": current.delivery_percentage,
-        "max_delivery_20d": current.max_delivery_20d,
-        "breakout_level": current.max_delivery_20d,
-        "reason": f"Delivery breakout above 20-day max {current.max_delivery_20d:.1f}%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "delivery_percent": current.delivery_percentage,
+            "max_delivery_20d": current.max_delivery_20d,
+            "breakout_level": current.max_delivery_20d,
+            "reason": f"Delivery breakout above 20-day max {current.max_delivery_20d:.1f}%",
+        },
+    )
 
 
 @ScannerRegistry.register("high_volume_high_delivery")
-def high_volume_high_delivery(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
-    if current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None:
+def high_volume_high_delivery(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
+    if (
+        current.volume is None
+        or current.avg_volume_20d is None
+        or current.delivery_percentage is None
+    ):
         return False, 0.0, {}
     volume_ok = current.volume >= 2.0 * current.avg_volume_20d
     delivery_ok = float(current.delivery_percentage) >= 60.0
     matched = volume_ok and delivery_ok
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "volume": current.volume,
-        "average_volume_20d": current.avg_volume_20d,
-        "delivery_percent": current.delivery_percentage,
-        "reason": f"Volume {current.volume} >= 2x avg {current.avg_volume_20d:.0f}, Delivery {current.delivery_percentage:.1f}% >= 60%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "volume": current.volume,
+            "average_volume_20d": current.avg_volume_20d,
+            "delivery_percent": current.delivery_percentage,
+            "reason": (
+                f"Volume {current.volume} >= 2x avg {current.avg_volume_20d:.0f}, "
+                f"Delivery {current.delivery_percentage:.1f}% >= 60%"
+            ),
+        },
+    )
 
 
 @ScannerRegistry.register("price_breakout_high_delivery")
-def price_breakout_high_delivery(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
-    if current.close is None or current.high is None or current.max_high_20d is None or current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None:
+def price_breakout_high_delivery(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
+    if (
+        current.close is None
+        or current.high is None
+        or current.max_high_20d is None
+        or current.volume is None
+        or current.avg_volume_20d is None
+        or current.delivery_percentage is None
+    ):
         return False, 0.0, {}
     price_ok = current.close > current.max_high_20d
     volume_ok = current.volume >= current.avg_volume_20d
     delivery_ok = float(current.delivery_percentage) >= 60.0
     matched = price_ok and volume_ok and delivery_ok
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "high": current.high,
-        "max_high_20d": current.max_high_20d,
-        "volume": current.volume,
-        "average_volume_20d": current.avg_volume_20d,
-        "delivery_percent": current.delivery_percentage,
-        "breakout_level": current.max_high_20d,
-        "reason": f"Close {current.close} > 20d high {current.max_high_20d}, Delivery {current.delivery_percentage:.1f}% >= 60%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "high": current.high,
+            "max_high_20d": current.max_high_20d,
+            "volume": current.volume,
+            "average_volume_20d": current.avg_volume_20d,
+            "delivery_percent": current.delivery_percentage,
+            "breakout_level": current.max_high_20d,
+            "reason": (
+                f"Close {current.close} > 20d high {current.max_high_20d}, "
+                f"Delivery {current.delivery_percentage:.1f}% >= 60%"
+            ),
+        },
+    )
 
 
 @ScannerRegistry.register("accumulation")
-def accumulation(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
-    if previous is None or current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None or current.avg_delivery_20d is None:
+def accumulation(
+    current: IndicatorRow, previous: IndicatorRow | None
+) -> tuple[bool, float, dict[str, Any]]:
+    if (
+        previous is None
+        or current.volume is None
+        or current.avg_volume_20d is None
+        or current.delivery_percentage is None
+        or current.avg_delivery_20d is None
+    ):
         return False, 0.0, {}
     price_up = current.close > previous.close
     volume_up = current.volume > current.avg_volume_20d
     delivery_up = float(current.delivery_percentage) > current.avg_delivery_20d
     matched = price_up and volume_up and delivery_up
     score = 1.0 if matched else 0.0
-    return matched, score, {
-        "symbol": current.symbol,
-        "close": current.close,
-        "prev_close": previous.close,
-        "volume": current.volume,
-        "average_volume_20d": current.avg_volume_20d,
-        "delivery_percent": current.delivery_percentage,
-        "average_delivery_20d": current.avg_delivery_20d,
-        "reason": f"Close up, volume {current.volume} > avg {current.avg_volume_20d:.0f}, delivery {current.delivery_percentage:.1f}% > avg {current.avg_delivery_20d:.1f}%",
-    }
+    return (
+        matched,
+        score,
+        {
+            "symbol": current.symbol,
+            "close": current.close,
+            "prev_close": previous.close,
+            "volume": current.volume,
+            "average_volume_20d": current.avg_volume_20d,
+            "delivery_percent": current.delivery_percentage,
+            "average_delivery_20d": current.avg_delivery_20d,
+            "reason": (
+                f"Close up, volume {current.volume} > avg {current.avg_volume_20d:.0f}, "
+                f"delivery {current.delivery_percentage:.1f}% > avg {current.avg_delivery_20d:.1f}%"
+            ),
+        },
+    )
 
 
 class ScanRunner:
@@ -509,7 +697,11 @@ class ScanRunner:
                 Stock.symbol,
             )
             .join(Stock, IndicatorResult.stock_id == Stock.id)
-            .join(DailyPrice, (DailyPrice.stock_id == IndicatorResult.stock_id) & (DailyPrice.trade_date == IndicatorResult.trade_date))
+            .join(
+                DailyPrice,
+                (DailyPrice.stock_id == IndicatorResult.stock_id)
+                & (DailyPrice.trade_date == IndicatorResult.trade_date),
+            )
             .where(IndicatorResult.trade_date == today)
         )
         rows = (await self.session.execute(statement)).fetchall()
@@ -525,7 +717,11 @@ class ScanRunner:
                     Stock.symbol,
                 )
                 .join(Stock, IndicatorResult.stock_id == Stock.id)
-                .join(DailyPrice, (DailyPrice.stock_id == IndicatorResult.stock_id) & (DailyPrice.trade_date == IndicatorResult.trade_date))
+                .join(
+                    DailyPrice,
+                    (DailyPrice.stock_id == IndicatorResult.stock_id)
+                    & (DailyPrice.trade_date == IndicatorResult.trade_date),
+                )
                 .order_by(IndicatorResult.trade_date.desc())
                 .limit(500)
             )
@@ -572,7 +768,11 @@ class ScanRunner:
                 IndicatorResult,
                 DailyPrice.close,
             )
-            .join(DailyPrice, (DailyPrice.stock_id == IndicatorResult.stock_id) & (DailyPrice.trade_date == IndicatorResult.trade_date))
+            .join(
+                DailyPrice,
+                (DailyPrice.stock_id == IndicatorResult.stock_id)
+                & (DailyPrice.trade_date == IndicatorResult.trade_date),
+            )
             .where(IndicatorResult.stock_id.in_(stock_ids))
             .where(IndicatorResult.trade_date < today)
             .order_by(IndicatorResult.trade_date.desc())
@@ -631,7 +831,10 @@ class ScanRunner:
         for stock_id in stock_ids:
             rows_history = history_map.get(stock_id, [])[:20]
             if len(rows_history) >= 20:
-                dp_rows = [type("DP", (), {"volume": v, "delivery_percentage": dp, "high": h}) for v, dp, h in rows_history]
+                dp_rows = [
+                    type("DP", (), {"volume": v, "delivery_percentage": dp, "high": h})
+                    for v, dp, h in rows_history
+                ]
                 aggs = _compute_20d_aggregates(dp_rows)
                 if stock_id in result_map:
                     for key, value in aggs.items():
@@ -658,13 +861,15 @@ class ScanRunner:
             try:
                 matched, score, metrics = scanner_func(current, previous)
                 if matched:
-                    results.append(ScanResultDTO(
-                        scan_definition_id=0,
-                        stock_id=current.stock_id,
-                        scan_date=scan_date,
-                        score=score,
-                        metrics=metrics,
-                    ))
+                    results.append(
+                        ScanResultDTO(
+                            scan_definition_id=0,
+                            stock_id=current.stock_id,
+                            scan_date=scan_date,
+                            score=score,
+                            metrics=metrics,
+                        )
+                    )
             except Exception as exc:
                 logger.warning("Scanner {} failed for {}: {}", scan_code, current.symbol, exc)
 
@@ -684,15 +889,19 @@ class ScanRunner:
                 try:
                     matched, score, metrics = scanner_func(current, previous)
                     if matched:
-                        results.append(ScanResultDTO(
-                            scan_definition_id=scan_def.id,
-                            stock_id=current.stock_id,
-                            scan_date=scan_date,
-                            score=score,
-                            metrics=metrics,
-                        ))
+                        results.append(
+                            ScanResultDTO(
+                                scan_definition_id=scan_def.id,
+                                stock_id=current.stock_id,
+                                scan_date=scan_date,
+                                score=score,
+                                metrics=metrics,
+                            )
+                        )
                 except Exception as exc:
-                    logger.warning("Scanner {} failed for {}: {}", scan_def.code, current.symbol, exc)
+                    logger.warning(
+                        "Scanner {} failed for {}: {}", scan_def.code, current.symbol, exc
+                    )
             output[scan_def.code] = results
         return output
 
@@ -712,17 +921,31 @@ class ScannerService:
         return await self.runner.run_all()
 
     async def persist_results(self, results: dict[str, list[ScanResultDTO]]) -> None:
+        from sqlalchemy.dialects.postgresql import insert as pg_insert
+
         for scan_code, entries in results.items():
             scan_def = await ScanDefinitionRepository(self.session).get_by_code(scan_code)
             if scan_def is None:
                 continue
             for entry in entries:
-                result = ScanResult(
-                    scan_definition_id=scan_def.id,
-                    stock_id=entry.stock_id,
-                    scan_date=entry.scan_date,
-                    score=entry.score,
-                    metrics=entry.metrics,
+                statement = (
+                    pg_insert(ScanResult)
+                    .values(
+                        scan_definition_id=scan_def.id,
+                        stock_id=entry.stock_id,
+                        scan_date=entry.scan_date,
+                        score=entry.score,
+                        metrics=entry.metrics,
+                    )
+                    .on_conflict_do_nothing(constraint="uq_scan_result_scan_stock_date")
                 )
-                self.session.add(result)
-        await self.session.commit()
+                try:
+                    await self.session.execute(statement)
+                except Exception:
+                    await self.session.rollback()
+                    raise
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
