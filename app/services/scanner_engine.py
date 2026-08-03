@@ -42,6 +42,14 @@ class IndicatorRow:
     supertrend_direction: int | None
     vwap: float | None
     obv: float | None
+    volume: int | None = None
+    delivery_percentage: float | None = None
+    high: float | None = None
+    avg_volume_20d: float | None = None
+    max_volume_20d: float | None = None
+    avg_delivery_20d: float | None = None
+    max_delivery_20d: float | None = None
+    max_high_20d: float | None = None
 
 
 @dataclass
@@ -79,6 +87,26 @@ def _to_float(value: Any) -> float | None:
     if value is None:
         return None
     return float(value)
+
+
+def _compute_20d_aggregates(rows: list[Any]) -> dict[str, Any]:
+    volumes: list[int] = []
+    deliveries: list[float] = []
+    highs: list[float] = []
+    for row in rows:
+        if getattr(row, "volume", None) is not None:
+            volumes.append(int(row.volume))
+        if getattr(row, "delivery_percentage", None) is not None:
+            deliveries.append(float(row.delivery_percentage))
+        if getattr(row, "high", None) is not None:
+            highs.append(float(row.high))
+    return {
+        "avg_volume_20d": sum(volumes) / len(volumes) if volumes else None,
+        "max_volume_20d": max(volumes) if volumes else None,
+        "avg_delivery_20d": sum(deliveries) / len(deliveries) if deliveries else None,
+        "max_delivery_20d": max(deliveries) if deliveries else None,
+        "max_high_20d": max(highs) if highs else None,
+    }
 
 
 @ScannerRegistry.register("ema_bullish_crossover")
@@ -280,6 +308,191 @@ def weak_trend_adx(current: IndicatorRow, previous: IndicatorRow | None) -> tupl
     return matched, score, {"adx": current.adx}
 
 
+@ScannerRegistry.register("volume_2x_average")
+def volume_2x_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.volume is None or current.avg_volume_20d is None or current.avg_volume_20d == 0:
+        return False, 0.0, {}
+    multiple = current.volume / current.avg_volume_20d
+    matched = multiple >= 2.0
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "volume": current.volume,
+        "average_volume_20d": current.avg_volume_20d,
+        "volume_multiple": multiple,
+        "reason": f"Volume {multiple:.1f}x 20-day average",
+    }
+
+
+@ScannerRegistry.register("volume_5x_average")
+def volume_5x_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.volume is None or current.avg_volume_20d is None or current.avg_volume_20d == 0:
+        return False, 0.0, {}
+    multiple = current.volume / current.avg_volume_20d
+    matched = multiple >= 5.0
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "volume": current.volume,
+        "average_volume_20d": current.avg_volume_20d,
+        "volume_multiple": multiple,
+        "reason": f"Volume {multiple:.1f}x 20-day average",
+    }
+
+
+@ScannerRegistry.register("highest_volume_20d")
+def highest_volume_20d(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.volume is None or current.max_volume_20d is None:
+        return False, 0.0, {}
+    matched = current.volume >= current.max_volume_20d
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "volume": current.volume,
+        "max_volume_20d": current.max_volume_20d,
+        "reason": "Highest volume in last 20 sessions",
+    }
+
+
+@ScannerRegistry.register("volume_breakout")
+def volume_breakout(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.volume is None or current.max_volume_20d is None:
+        return False, 0.0, {}
+    matched = current.volume > current.max_volume_20d
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "volume": current.volume,
+        "max_volume_20d": current.max_volume_20d,
+        "breakout_level": current.max_volume_20d,
+        "reason": f"Volume breakout above 20-day max {current.max_volume_20d}",
+    }
+
+
+@ScannerRegistry.register("delivery_above_60")
+def delivery_above_60(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.delivery_percentage is None:
+        return False, 0.0, {}
+    matched = float(current.delivery_percentage) >= 60.0
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "delivery_percent": current.delivery_percentage,
+        "reason": f"Delivery {current.delivery_percentage:.1f}% >= 60%",
+    }
+
+
+@ScannerRegistry.register("delivery_above_70")
+def delivery_above_70(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.delivery_percentage is None:
+        return False, 0.0, {}
+    matched = float(current.delivery_percentage) >= 70.0
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "delivery_percent": current.delivery_percentage,
+        "reason": f"Delivery {current.delivery_percentage:.1f}% >= 70%",
+    }
+
+
+@ScannerRegistry.register("delivery_above_average")
+def delivery_above_average(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.delivery_percentage is None or current.avg_delivery_20d is None:
+        return False, 0.0, {}
+    matched = float(current.delivery_percentage) > current.avg_delivery_20d
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "delivery_percent": current.delivery_percentage,
+        "average_delivery_20d": current.avg_delivery_20d,
+        "reason": f"Delivery {current.delivery_percentage:.1f}% > 20-day avg {current.avg_delivery_20d:.1f}%",
+    }
+
+
+@ScannerRegistry.register("delivery_breakout")
+def delivery_breakout(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.delivery_percentage is None or current.max_delivery_20d is None:
+        return False, 0.0, {}
+    matched = float(current.delivery_percentage) > current.max_delivery_20d
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "delivery_percent": current.delivery_percentage,
+        "max_delivery_20d": current.max_delivery_20d,
+        "breakout_level": current.max_delivery_20d,
+        "reason": f"Delivery breakout above 20-day max {current.max_delivery_20d:.1f}%",
+    }
+
+
+@ScannerRegistry.register("high_volume_high_delivery")
+def high_volume_high_delivery(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None:
+        return False, 0.0, {}
+    volume_ok = current.volume >= 2.0 * current.avg_volume_20d
+    delivery_ok = float(current.delivery_percentage) >= 60.0
+    matched = volume_ok and delivery_ok
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "volume": current.volume,
+        "average_volume_20d": current.avg_volume_20d,
+        "delivery_percent": current.delivery_percentage,
+        "reason": f"Volume {current.volume} >= 2x avg {current.avg_volume_20d:.0f}, Delivery {current.delivery_percentage:.1f}% >= 60%",
+    }
+
+
+@ScannerRegistry.register("price_breakout_high_delivery")
+def price_breakout_high_delivery(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if current.close is None or current.high is None or current.max_high_20d is None or current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None:
+        return False, 0.0, {}
+    price_ok = current.close > current.max_high_20d
+    volume_ok = current.volume >= current.avg_volume_20d
+    delivery_ok = float(current.delivery_percentage) >= 60.0
+    matched = price_ok and volume_ok and delivery_ok
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "high": current.high,
+        "max_high_20d": current.max_high_20d,
+        "volume": current.volume,
+        "average_volume_20d": current.avg_volume_20d,
+        "delivery_percent": current.delivery_percentage,
+        "breakout_level": current.max_high_20d,
+        "reason": f"Close {current.close} > 20d high {current.max_high_20d}, Delivery {current.delivery_percentage:.1f}% >= 60%",
+    }
+
+
+@ScannerRegistry.register("accumulation")
+def accumulation(current: IndicatorRow, previous: IndicatorRow | None) -> tuple[bool, float, dict[str, Any]]:
+    if previous is None or current.volume is None or current.avg_volume_20d is None or current.delivery_percentage is None or current.avg_delivery_20d is None:
+        return False, 0.0, {}
+    price_up = current.close > previous.close
+    volume_up = current.volume > current.avg_volume_20d
+    delivery_up = float(current.delivery_percentage) > current.avg_delivery_20d
+    matched = price_up and volume_up and delivery_up
+    score = 1.0 if matched else 0.0
+    return matched, score, {
+        "symbol": current.symbol,
+        "close": current.close,
+        "prev_close": previous.close,
+        "volume": current.volume,
+        "average_volume_20d": current.avg_volume_20d,
+        "delivery_percent": current.delivery_percentage,
+        "average_delivery_20d": current.avg_delivery_20d,
+        "reason": f"Close up, volume {current.volume} > avg {current.avg_volume_20d:.0f}, delivery {current.delivery_percentage:.1f}% > avg {current.avg_delivery_20d:.1f}%",
+    }
+
+
 class ScanRunner:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
@@ -290,6 +503,9 @@ class ScanRunner:
             select(
                 IndicatorResult,
                 DailyPrice.close,
+                DailyPrice.high,
+                DailyPrice.volume,
+                DailyPrice.delivery_percentage,
                 Stock.symbol,
             )
             .join(Stock, IndicatorResult.stock_id == Stock.id)
@@ -303,6 +519,9 @@ class ScanRunner:
                 select(
                     IndicatorResult,
                     DailyPrice.close,
+                    DailyPrice.high,
+                    DailyPrice.volume,
+                    DailyPrice.delivery_percentage,
                     Stock.symbol,
                 )
                 .join(Stock, IndicatorResult.stock_id == Stock.id)
@@ -313,12 +532,15 @@ class ScanRunner:
             rows = (await self.session.execute(statement)).fetchall()
 
         result_map: dict[int, IndicatorRow] = {}
-        for ir, close, symbol in rows:
+        for ir, close, high, volume, delivery_pct, symbol in rows:
             result_map[ir.stock_id] = IndicatorRow(
                 stock_id=ir.stock_id,
                 symbol=symbol,
                 trade_date=ir.trade_date,
                 close=float(close) if close is not None else 0.0,
+                high=float(high) if high is not None else None,
+                volume=int(volume) if volume is not None else None,
+                delivery_percentage=float(delivery_pct) if delivery_pct is not None else None,
                 ema_20=_to_float(ir.ema_20),
                 ema_50=_to_float(ir.ema_50),
                 ema_100=_to_float(ir.ema_100),
@@ -386,6 +608,34 @@ class ScanRunner:
                     vwap=_to_float(ir.vwap),
                     obv=_to_float(ir.obv),
                 )
+
+        history_statement = (
+            select(
+                DailyPrice.stock_id,
+                DailyPrice.volume,
+                DailyPrice.delivery_percentage,
+                DailyPrice.high,
+            )
+            .where(DailyPrice.stock_id.in_(stock_ids))
+            .where(DailyPrice.trade_date < today)
+            .order_by(DailyPrice.stock_id, DailyPrice.trade_date.desc())
+        )
+        history_rows = (await self.session.execute(history_statement)).fetchall()
+
+        history_map: dict[int, list[Any]] = {}
+        for stock_id, volume, delivery_pct, high in history_rows:
+            if stock_id not in history_map:
+                history_map[stock_id] = []
+            history_map[stock_id].append((volume, delivery_pct, high))
+
+        for stock_id in stock_ids:
+            rows_history = history_map.get(stock_id, [])[:20]
+            if len(rows_history) >= 20:
+                dp_rows = [type("DP", (), {"volume": v, "delivery_percentage": dp, "high": h}) for v, dp, h in rows_history]
+                aggs = _compute_20d_aggregates(dp_rows)
+                if stock_id in result_map:
+                    for key, value in aggs.items():
+                        setattr(result_map[stock_id], key, value)
 
         output: list[tuple[IndicatorRow, IndicatorRow | None]] = []
         for stock_id in stock_ids:

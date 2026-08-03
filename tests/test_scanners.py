@@ -9,9 +9,9 @@ from app.models.scan_definition import ScanDefinition
 from app.services.scanner_engine import ScannerRegistry
 
 
-def test_scanner_registry_has_25_scanners() -> None:
+def test_scanner_registry_has_36_scanners() -> None:
     scanners = ScannerRegistry.all()
-    assert len(scanners) == 25
+    assert len(scanners) == 36
 
 
 @pytest.mark.asyncio
@@ -20,7 +20,7 @@ async def test_api_list_scanners() -> None:
         response = await client.get("/api/v1/scanners")
         assert response.status_code == 200
         body = response.json()
-        assert len(body) == 25
+        assert len(body) == 36
         codes = [item["code"] for item in body]
         expected = [
             "ema_bullish_crossover",
@@ -48,6 +48,17 @@ async def test_api_list_scanners() -> None:
             "vwap_bearish",
             "strong_trend_adx",
             "weak_trend_adx",
+            "volume_2x_average",
+            "volume_5x_average",
+            "highest_volume_20d",
+            "volume_breakout",
+            "delivery_above_60",
+            "delivery_above_70",
+            "delivery_above_average",
+            "delivery_breakout",
+            "high_volume_high_delivery",
+            "price_breakout_high_delivery",
+            "accumulation",
         ]
         for code in expected:
             assert code in codes

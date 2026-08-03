@@ -72,6 +72,17 @@ async def _seed_scan_definitions() -> None:
         ("vwap_bearish", "VWAP Bearish", "Close price below VWAP", "Volume"),
         ("strong_trend_adx", "Strong Trend ADX", "ADX above 25", "Trend Strength"),
         ("weak_trend_adx", "Weak Trend ADX", "ADX below 20", "Trend Strength"),
+        ("volume_2x_average", "Volume 2x Average", "Latest volume >= 2x 20-session average", "Volume"),
+        ("volume_5x_average", "Volume 5x Average", "Latest volume >= 5x 20-session average", "Volume"),
+        ("highest_volume_20d", "Highest Volume 20D", "Latest volume is highest in last 20 sessions", "Volume"),
+        ("volume_breakout", "Volume Breakout", "Latest volume > previous 20-session max", "Volume"),
+        ("delivery_above_60", "Delivery Above 60", "Latest delivery >= 60%", "Delivery"),
+        ("delivery_above_70", "Delivery Above 70", "Latest delivery >= 70%", "Delivery"),
+        ("delivery_above_average", "Delivery Above Average", "Latest delivery > 20-session average", "Delivery"),
+        ("delivery_breakout", "Delivery Breakout", "Latest delivery > previous 20-session max", "Delivery"),
+        ("high_volume_high_delivery", "High Volume High Delivery", "Volume >= 2x avg AND delivery >= 60%", "Combined"),
+        ("price_breakout_high_delivery", "Price Breakout High Delivery", "Close > 20d high AND volume >= avg AND delivery >= 60%", "Combined"),
+        ("accumulation", "Accumulation", "Close up, volume > avg, delivery > avg", "Combined"),
     ]
 
     factory = get_session_factory()
