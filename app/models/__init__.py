@@ -1,4 +1,5 @@
 from app.models.daily_price import DailyPrice
+from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
@@ -11,6 +12,7 @@ __all__ = [
     "Stock",
     "DailyPrice",
     "ImportJob",
+    "EODPipelineRun",
     "ScanDefinition",
     "ScanResult",
     "IndicatorResult",

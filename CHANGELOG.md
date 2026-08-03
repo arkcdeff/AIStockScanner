@@ -2,10 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.7.0] - 2026-08-03
+
+### Added
+- Automated EOD processing pipeline (`app/services/eod_pipeline.py`) orchestrating:
+  import NSE EOD file → calculate indicators → run all active scanners → persist results
+- `eod_pipeline_runs` table with metrics, stage tracking, indexes, and `import_job_id` link
+- Manual execution APIs: `POST /api/v1/pipeline/run-file`, `run-date`, `run-latest`;
+  `GET /api/v1/pipeline/runs`, `runs/{id}`, `status`
+- APScheduler-based EOD scheduler (`app/scheduler/eod_scheduler.py`) — disabled by default
+  (`EOD_SCHEDULER_ENABLED=false`), weekdays-only 18:30 Asia/Kolkata, single-instance, coalesced
+- Overlapping-run prevention (409 on conflict), abandoned-run recovery on startup, credential
+  redaction in error messages
+- Pipeline Status card on the dashboard (latest run, trade date, metrics, failed stage)
+- 19 new tests (pipeline service, API, scheduler, dashboard rendering)
+
+### Fixed
+- `IndicatorEngine` never imported `pandas_ta`, so `df.ta` was unavailable — computation now works
+- Indicator calculation failed on `Decimal` columns from the database — numeric columns are cast
+  to float before indicator math
+
 ## [Unreleased]
 
 ### Planned
-- Auto-run IndicatorEngine after NSE import (Sprint 11)
 - Watchlist management
 - Price alerts and notifications
 - Real-time scanner execution

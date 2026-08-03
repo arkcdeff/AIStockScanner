@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     max_upload_size: int = 50 * 1024 * 1024
     base_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[2])
 
+    eod_scheduler_enabled: bool = False
+    eod_scheduler_timezone: str = "Asia/Kolkata"
+    eod_scheduler_hour: int = 18
+    eod_scheduler_minute: int = 30
+    eod_scheduler_max_instances: int = 1
+    eod_scheduler_coalesce: bool = True
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",

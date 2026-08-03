@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import pandas as pd
+import pandas_ta  # noqa: F401  # registers the DataFrame.ta accessor
 from loguru import logger
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -54,6 +55,9 @@ class IndicatorEngine:
             ],
         )
         df["trade_date"] = pd.to_datetime(df["trade_date"])
+        numeric_columns = ["open", "high", "low", "close", "volume", "turnover", "trade_count"]
+        for column in numeric_columns:
+            df[column] = pd.to_numeric(df[column], errors="coerce")
 
         results = self._calculate_indicators(df)
         await self._bulk_upsert(results)

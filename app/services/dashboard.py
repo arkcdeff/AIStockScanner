@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
@@ -102,4 +103,32 @@ class DashboardService:
             "database": db_status,
             "total_stocks": stock_count or 0,
             "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+    async def get_pipeline_status(self) -> dict[str, object]:
+        latest = await self.session.scalar(
+            select(EODPipelineRun).order_by(EODPipelineRun.started_at.desc()).limit(1)
+        )
+        if latest is None:
+            return {
+                "has_run": False,
+                "status": "never",
+                "trade_date": None,
+                "finished_at": None,
+                "imported_rows": 0,
+                "indicators_calculated": 0,
+                "scanner_matches": 0,
+                "failed_stage": None,
+                "duration_ms": None,
+            }
+        return {
+            "has_run": True,
+            "status": latest.status,
+            "trade_date": latest.trade_date,
+            "finished_at": latest.finished_at,
+            "imported_rows": latest.imported_rows,
+            "indicators_calculated": latest.indicators_calculated,
+            "scanner_matches": latest.scanner_matches,
+            "failed_stage": latest.failed_stage,
+            "duration_ms": latest.duration_ms,
         }

@@ -36,6 +36,17 @@ async def root_redirect(request: Request) -> HTMLResponse:
             "scanner_summary": {},
             "top_categories": {},
             "health": {},
+            "pipeline_status": {
+                "has_run": False,
+                "status": "never",
+                "trade_date": None,
+                "finished_at": None,
+                "imported_rows": 0,
+                "indicators_calculated": 0,
+                "scanner_matches": 0,
+                "failed_stage": None,
+                "duration_ms": None,
+            },
         },
     )
     return HTMLResponse(content=html)
@@ -52,6 +63,7 @@ async def dashboard(
     scanner_summary = await service.get_scanner_summary()
     top_categories = await service.get_top_categories()
     health = await service.get_health()
+    pipeline_status = await service.get_pipeline_status()
 
     html = _render(
         "dashboard.html",
@@ -62,6 +74,7 @@ async def dashboard(
             "scanner_summary": scanner_summary,
             "top_categories": top_categories,
             "health": health,
+            "pipeline_status": pipeline_status,
         },
     )
     return HTMLResponse(content=html)
