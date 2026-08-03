@@ -2,9 +2,11 @@ from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from starlette.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from loguru import logger
 
-from app.api.router import api_router
+from app.api.router import api_router, dashboard_router, scanner_workspace_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
@@ -32,6 +34,17 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    app.include_router(dashboard_router)
+    app.include_router(scanner_workspace_router, prefix="/scanner-results")
+
+    templates = Jinja2Templates(directory=str(settings.base_dir / "app" / "templates"))
+    app.state.templates = templates
+
+    app.mount(
+        "/static",
+        StaticFiles(directory=str(settings.base_dir / "app" / "static")),
+        name="static",
+    )
 
     @app.get("/", tags=["Root"])
     async def root() -> dict[str, str]:

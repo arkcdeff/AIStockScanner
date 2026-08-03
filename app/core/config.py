@@ -33,6 +33,7 @@ class Settings(BaseSettings):
     raw_data_dir: Path = Field(default=Path("data/raw/nse"))
     download_timeout: int = 30
     max_upload_size: int = 50 * 1024 * 1024
+    base_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[2])
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",

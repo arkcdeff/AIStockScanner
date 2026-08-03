@@ -1,0 +1,58 @@
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-building me-1"></i> Total Stocks</h6>
+                <h3 class="card-text">{{ summary.total_stocks }}</h3>
+                <small class="text-white-50">Active in database</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-calendar-check me-1"></i> Latest Trading Date</h6>
+                <h3 class="card-text">{{ summary.latest_trade_date or 'N/A' }}</h3>
+                <small class="text-white-50">{{ summary.market_status|title }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-upload me-1"></i> Import Status</h6>
+                <h3 class="card-text text-capitalize">{{ summary.import_status.status or 'Never' }}</h3>
+                <small class="text-white-50">{{ summary.import_status.trade_date or 'No imports yet' }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-bar-chart me-1"></i> Total Indicators</h6>
+                <h3 class="card-text">{{ summary.total_indicators }}</h3>
+                <small class="text-white-50">Calculated rows</small>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-danger h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-search me-1"></i> Scanner Matches</h6>
+                <h3 class="card-text">{{ summary.total_scanner_matches }}</h3>
+                <small class="text-white-50">All-time results</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-database me-1"></i> Daily Prices</h6>
+                <h3 class="card-text">{{ summary.daily_prices }}</h3>
+                <small class="text-white-50">Total records</small>
+            </div>
+        </div>
+    </div>
+</div>

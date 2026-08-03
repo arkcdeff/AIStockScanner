@@ -1,0 +1,17 @@
+<div class="list-group">
+    {% if stocks %}
+        {% for stock in stocks %}
+            <a href="/api/v1/stocks/{{ stock.id }}" class="list-group-item list-group-item-action">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h6 class="mb-0">{{ stock.symbol }}</h6>
+                        <small class="text-muted">{{ stock.company_name }}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">{{ stock.exchange }}</span>
+                </div>
+            </a>
+        {% endfor %}
+    {% elif query %}
+        <div class="text-center text-muted py-3">No stocks found for "{{ query }}"</div>
+    {% endif %}
+</div>

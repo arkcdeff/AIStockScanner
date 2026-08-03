@@ -19,4 +19,5 @@ def test_root_endpoint() -> None:
         response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json()["docs"] == "/docs"
+    assert "text/html" in response.headers["content-type"]
+    assert "AI Stock Scanner" in response.text

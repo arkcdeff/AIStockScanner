@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
-from app.api.routes import health, indicators, market_data, scanners, stocks
+from app.api.routes import dashboard, health, indicators, market_data, scanners, stocks
+from app.api.routes import scanner_workspace as scanner_workspace_module
 
 api_router = APIRouter()
 api_router.include_router(health.router)
@@ -8,4 +9,10 @@ api_router.include_router(stocks.router)
 api_router.include_router(market_data.router)
 api_router.include_router(indicators.router)
 api_router.include_router(scanners.router)
+
+dashboard_router = APIRouter()
+dashboard_router.include_router(dashboard.router)
+
+scanner_workspace_router = APIRouter()
+scanner_workspace_router.include_router(scanner_workspace_module.router)
 

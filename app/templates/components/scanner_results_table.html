@@ -1,0 +1,93 @@
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-table me-2"></i>Results
+            <span class="badge bg-secondary" id="result-count">{{ total }}</span>
+        </h5>
+        <div class="text-muted small">
+            Page {{ page }} of {{ pages }}
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover table-striped mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('symbol', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Symbol</a></th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('company', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Company</a></th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('sector', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Sector</a></th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('price', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Price</a></th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('volume', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Volume</a></th>
+                        <th>20D Avg Volume</th>
+                        <th>Volume Multiple</th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('delivery', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Delivery</a></th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('rsi', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">RSI</a></th>
+                        <th>MACD</th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('adx', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">ADX</a></th>
+                        <th>EMA Trend</th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('scanner_score', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Score</a></th>
+                        <th>Reason</th>
+                        <th><a href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_sort_params('date', request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">Date</a></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if results %}
+                        {% for row in results %}
+                            <tr>
+                                <td class="fw-bold">{{ row.symbol }}</td>
+                                <td>{{ row.company_name }}</td>
+                                <td>{{ row.sector }}</td>
+                                <td>{{ "%.2f"|format(row.price) }}</td>
+                                <td>{{ "{:,}".format(row.volume) }}</td>
+                                <td>{{ "{:,.0f}".format(row.avg_volume_20d) if row.avg_volume_20d else 'N/A' }}</td>
+                                <td>{{ row.volume_multiple if row.volume_multiple else 'N/A' }}</td>
+                                <td>{{ "%.1f"|format(row.delivery) }}%</td>
+                                <td>{{ "%.1f"|format(row.rsi) }}</td>
+                                <td>{{ "%.2f"|format(row.macd) }}</td>
+                                <td>{{ "%.1f"|format(row.adx) }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if row.ema_trend == 'Bullish' else 'danger' if row.ema_trend == 'Bearish' else 'secondary' }}">
+                                        {{ row.ema_trend }}
+                                    </span>
+                                </td>
+                                <td>{{ "%.2f"|format(row.scanner_score) }}</td>
+                                <td class="text-truncate" style="max-width: 200px;" title="{{ row.reason }}">{{ row.reason }}</td>
+                                <td>{{ row.scan_date }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="15" class="text-center text-muted py-4">No results found</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% if pages > 1 %}
+    <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+        <div class="text-muted small">
+            Showing {{ ((page - 1) * page_size) + 1 }} to {{ (page * page_size) if (page * page_size) < total else total }} of {{ total }} results
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                {% if page > 1 %}
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_page_params(page - 1, request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">&laquo;</a>
+                    </li>
+                {% endif %}
+                {% for p in range(max(1, page - 2), min(pages + 1, page + 3)) %}
+                    <li class="page-item {% if p == page %}active{% endif %}">
+                        <a class="page-link" href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_page_params(p, request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">{{ p }}</a>
+                    </li>
+                {% endfor %}
+                {% if page < pages %}
+                    <li class="page-item">
+                        <a class="page-link" href="javascript:void(0)" hx-get="/scanner-results/table?{{ _build_page_params(page + 1, request) }}" hx-target="#scanner-results-container" hx-swap="innerHTML">&raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+</div>

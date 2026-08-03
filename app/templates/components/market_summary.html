@@ -1,0 +1,45 @@
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-table me-2"></i>Market Summary</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td class="text-muted">First Trade Date</td>
+                        <td class="text-end fw-bold">{{ summary.first_trade_date or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Latest Trade Date</td>
+                        <td class="text-end fw-bold">{{ summary.latest_trade_date or 'N/A' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Total Stocks</td>
+                        <td class="text-end fw-bold">{{ summary.total_stocks }}</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <table class="table table-sm table-borderless">
+                    <tr>
+                        <td class="text-muted">Daily Prices</td>
+                        <td class="text-end fw-bold">{{ summary.daily_prices }}</td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Market Status</td>
+                        <td class="text-end">
+                            <span class="badge bg-{{ 'success' if summary.market_status == 'open' else 'secondary' }}">
+                                {{ summary.market_status|title }}
+                            </span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td class="text-muted">Last Import</td>
+                        <td class="text-end fw-bold">{{ summary.import_status.trade_date or 'Never' }}</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>

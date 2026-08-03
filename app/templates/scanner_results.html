@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner Results - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            <!-- Navbar -->
+            {% include "components/navbar.html" %}
+
+            <!-- Page Title -->
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Scanner Results Workspace</h1>
+                <div class="btn-group">
+                    <a href="/scanner-results/export/csv?{{ request.query_params }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-filetype-csv me-1"></i>CSV
+                    </a>
+                    <a href="/scanner-results/export/excel?{{ request.query_params }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-file-earmark-excel me-1"></i>Excel
+                    </a>
+                    <a href="/scanner-results/export/pdf?{{ request.query_params }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="bi bi-file-earmark-pdf me-1"></i>PDF
+                    </a>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form class="row g-2"
+                          hx-get="/scanner-results/table"
+                          hx-target="#scanner-results-container"
+                          hx-swap="innerHTML"
+                          hx-trigger="submit">
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Search</label>
+                            <input type="text" class="form-control form-control-sm" name="search" value="{{ filters.search or '' }}" placeholder="Symbol, company, reason...">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm">Scanner</label>
+                            <select class="form-select form-select-sm" name="scanner">
+                                <option value="">All</option>
+                                {% for code, name in options.scanners.items() %}
+                                    <option value="{{ code }}" {% if filters.scanner == code %}selected{% endif %}>{{ name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm">Sector</label>
+                            <select class="form-select form-select-sm" name="sector">
+                                <option value="">All</option>
+                                {% for s in options.sectors %}
+                                    <option value="{{ s }}" {% if filters.sector == s %}selected{% endif %}>{{ s }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm">Date From</label>
+                            <input type="date" class="form-control form-control-sm" name="date_from" value="{{ filters.date_from or '' }}">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label form-label-sm">Date To</label>
+                            <input type="date" class="form-control form-control-sm" name="date_to" value="{{ filters.date_to or '' }}">
+                        </div>
+                        <div class="col-md-1 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-funnel"></i>
+                            </button>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Min Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" name="min_price" value="{{ filters.min_price or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Max Price</label>
+                            <input type="number" step="0.01" class="form-control form-control-sm" name="max_price" value="{{ filters.max_price or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Min Delivery %</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" name="min_delivery" value="{{ filters.min_delivery or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Max Delivery %</label>
+                            <input type="number" step="0.1" class="form-control form-control-sm" name="max_delivery" value="{{ filters.max_delivery or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Min Volume</label>
+                            <input type="number" class="form-control form-control-sm" name="min_volume" value="{{ filters.min_volume or '' }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label form-label-sm">Max Volume</label>
+                            <input type="number" class="form-control form-control-sm" name="max_volume" value="{{ filters.max_volume or '' }}">
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Results Table -->
+            <div id="scanner-results-container">
+                {% include "components/scanner_results_table.html" %}
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-search me-2"></i>Scanner Results</h5>
+        <button class="btn btn-sm btn-outline-primary" hx-get="/api/v1/scanners/run-all" hx-target="#scanner-results-body" hx-swap="innerHTML">
+            <i class="bi bi-arrow-clockwise me-1"></i>Run All
+        </button>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Scanner</th>
+                        <th>Matches</th>
+                        <th>Category</th>
+                    </tr>
+                </thead>
+                <tbody id="scanner-results-body">
+                    {% if scanner_summary %}
+                        {% for code, count in scanner_summary.items() %}
+                            <tr style="cursor: pointer" 
+                                hx-get="/scanner-results?scanner={{ code }}" 
+                                hx-target="body" 
+                                hx-swap="outerHTML">
+                                <td class="text-capitalize">{{ code.replace('_', ' ') }}</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if count > 0 else 'secondary' }}">
+                                        {{ count }}
+                                    </span>
+                                </td>
+                                <td class="text-capitalize">{{ code.split('_')[0] }}</td>
+                            </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="3" class="text-center text-muted py-4">No scanner results yet</td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
