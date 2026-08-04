@@ -27,7 +27,7 @@ def _clean_test_db() -> None:
     engine = create_engine(os.environ["DATABASE_URL_SYNC"])
     tables = (
         "scan_results, scan_definitions, indicator_results, import_jobs, "
-        "eod_pipeline_runs, daily_prices, stocks, sectors"
+        "eod_pipeline_runs, technical_analysis, daily_prices, stocks, sectors"
     )
     with engine.connect() as conn:
         conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))

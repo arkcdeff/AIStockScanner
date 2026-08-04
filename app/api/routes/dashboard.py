@@ -35,6 +35,7 @@ async def root_redirect(request: Request) -> HTMLResponse:
             "recent_imports": [],
             "scanner_summary": {},
             "top_categories": {},
+            "top_rated": [],
             "health": {},
             "pipeline_status": {
                 "has_run": False,
@@ -44,6 +45,7 @@ async def root_redirect(request: Request) -> HTMLResponse:
                 "imported_rows": 0,
                 "indicators_calculated": 0,
                 "scanner_matches": 0,
+                "analytics_calculated": 0,
                 "failed_stage": None,
                 "duration_ms": None,
             },
@@ -64,6 +66,7 @@ async def dashboard(
     top_categories = await service.get_top_categories()
     health = await service.get_health()
     pipeline_status = await service.get_pipeline_status()
+    top_rated = await service.get_top_rated()
 
     html = _render(
         "dashboard.html",
@@ -75,6 +78,7 @@ async def dashboard(
             "top_categories": top_categories,
             "health": health,
             "pipeline_status": pipeline_status,
+            "top_rated": top_rated,
         },
     )
     return HTMLResponse(content=html)

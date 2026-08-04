@@ -6,6 +6,7 @@ from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
 from app.models.sector import Sector
 from app.models.stock import Stock
+from app.models.technical_analysis import TechnicalAnalysis
 
 __all__ = [
     "Sector",
@@ -16,4 +17,5 @@ __all__ = [
     "ScanDefinition",
     "ScanResult",
     "IndicatorResult",
+    "TechnicalAnalysis",
 ]

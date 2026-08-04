@@ -38,6 +38,59 @@
                 </div>
             </div>
 
+            <!-- Top Rated -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-trophy me-2"></i>Top Rated Stocks</h5>
+                            <a href="/dashboard" class="btn btn-sm btn-outline-primary">Refresh</a>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Company</th>
+                                            <th>Overall</th>
+                                            <th>Trend</th>
+                                            <th>Momentum</th>
+                                            <th>Flags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if top_rated %}
+                                            {% for item in top_rated %}
+                                                <tr>
+                                                    <td><a href="/stocks/{{ item['symbol'] }}">{{ item['symbol'] }}</a></td>
+                                                    <td>{{ item['company_name'] }}</td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if item['overall_score'] >= 70 else 'warning' if item['overall_score'] >= 45 else 'danger' }}">
+                                                            {{ item['overall_score'] }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ item['trend_score'] }}</td>
+                                                    <td>{{ item['momentum_score'] }}</td>
+                                                    <td>
+                                                        {% if item['is_trending'] %}<span class="badge bg-primary">Trending</span>{% endif %}
+                                                        {% if item['is_breakout'] %}<span class="badge bg-danger">Breakout</span>{% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">No analytics computed yet. Run the EOD pipeline.</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recent Imports -->
             <div class="row mt-4">
                 <div class="col-12">
@@ -111,6 +164,10 @@
                                         <tr>
                                             <td class="text-muted">Indicators</td>
                                             <td class="text-end fw-bold">{{ pipeline_status.get('indicators_calculated', 0) }}</td>
+                                        </tr>
+                                        <tr>
+                                            <td class="text-muted">Analytics</td>
+                                            <td class="text-end fw-bold">{{ pipeline_status.get('analytics_calculated', 0) }}</td>
                                         </tr>
                                     </table>
                                 </div>

@@ -40,6 +40,15 @@
                 </div>
             </div>
 
+            <!-- Technical Analytics -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div id="stock-analytics-panel" hx-get="/stocks/{{ stock.symbol }}/analytics" hx-trigger="refresh from:body" hx-swap="innerHTML">
+                        {% include "components/stock_analytics.html" %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Indicator Cards -->
             <div class="row mt-4">
                 <div class="col-12">

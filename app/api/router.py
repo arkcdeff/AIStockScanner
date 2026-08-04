@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    analytics,
     dashboard,
     health,
     indicators,
@@ -19,6 +20,7 @@ api_router.include_router(market_data.router)
 api_router.include_router(indicators.router)
 api_router.include_router(scanners.router)
 api_router.include_router(pipeline.router)
+api_router.include_router(analytics.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)

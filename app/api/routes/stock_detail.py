@@ -131,6 +131,7 @@ async def stock_detail_page(
             "sector_name": overview["sector_name"],
             "overview": response,
             "indicator": indicator,
+            "analytics": overview["latest_analytics"],
             "matches": matches,
         },
     )
@@ -259,6 +260,23 @@ async def stock_scanner_results_partial(
     return HTMLResponse(
         content=_render(
             "components/stock_scanner_matches.html", {"request": request, "matches": matches}
+        )
+    )
+
+
+@router.get("/{symbol}/analytics", response_class=HTMLResponse)
+async def stock_analytics_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    return HTMLResponse(
+        content=_render(
+            "components/stock_analytics.html",
+            {"request": request, "analytics": overview["latest_analytics"]},
         )
     )
 

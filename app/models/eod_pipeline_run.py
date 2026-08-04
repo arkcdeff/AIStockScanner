@@ -27,6 +27,7 @@ class EODPipelineRun(TimestampMixin, Base):
     indicators_calculated: Mapped[int] = mapped_column(Integer, default=0)
     scanners_executed: Mapped[int] = mapped_column(Integer, default=0)
     scanner_matches: Mapped[int] = mapped_column(Integer, default=0)
+    analytics_calculated: Mapped[int] = mapped_column(Integer, default=0)
     failed_stage: Mapped[str | None] = mapped_column(String(40), nullable=True)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
     started_at: Mapped[datetime | None] = mapped_column(

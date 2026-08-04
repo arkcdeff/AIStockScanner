@@ -30,11 +30,13 @@ class StockDetailService:
                 "avg_volume_20d": None,
                 "avg_delivery_20d": None,
                 "latest_indicator": None,
+                "latest_analytics": None,
                 "scanner_matches": [],
             }
 
         averages = await self.repo.get_20d_averages(stock.id, latest_price.trade_date)
         latest_indicator = await self.repo.get_latest_indicator(stock.id)
+        latest_analytics = await self.repo.get_latest_analytics(stock.id)
         scanner_matches = await self.repo.get_scanner_matches(stock.id)
 
         price_change = None
@@ -52,5 +54,6 @@ class StockDetailService:
             "avg_volume_20d": averages.get("avg_volume"),
             "avg_delivery_20d": averages.get("avg_delivery"),
             "latest_indicator": latest_indicator,
+            "latest_analytics": latest_analytics,
             "scanner_matches": scanner_matches,
         }

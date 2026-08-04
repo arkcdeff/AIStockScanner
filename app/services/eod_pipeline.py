@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session_factory
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
+from app.services.analytics_engine import AnalyticsEngine
 from app.services.indicator_engine import IndicatorEngine
 from app.services.nse_downloader import NSEDownloader
 from app.services.nse_import import NSEImportService
@@ -125,6 +126,7 @@ class EODPipelineService:
             "indicators_calculated": 0,
             "scanners_executed": 0,
             "scanner_matches": 0,
+            "analytics_calculated": 0,
         }
         current_stage = "import"
         trade_date: date | None = None
@@ -175,6 +177,15 @@ class EODPipelineService:
                 await service.persist_results(results)
             metrics["scanners_executed"] = len(results)
             metrics["scanner_matches"] = sum(len(entries) for entries in results.values())
+
+            # Stage 4: compute technical analytics for affected stocks
+            current_stage = "analytics"
+            await self._update(run_id, current_stage="analytics")
+            async with get_session_factory()() as session:
+                engine = AnalyticsEngine(session)
+                summary = await engine.calculate_all()
+                await session.commit()
+            metrics["analytics_calculated"] = summary["calculated"]
 
             return await self._complete(run_id, trade_date, metrics)
         except PipelineError:

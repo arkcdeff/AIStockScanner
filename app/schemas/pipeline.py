@@ -20,6 +20,7 @@ class PipelineRunRead(BaseModel):
     indicators_calculated: int
     scanners_executed: int
     scanner_matches: int
+    analytics_calculated: int
     failed_stage: str | None
     error_message: str | None
     started_at: datetime | None

@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from app.models.indicator_result import IndicatorResult
     from app.models.scan_result import ScanResult
     from app.models.sector import Sector
+    from app.models.technical_analysis import TechnicalAnalysis
 
 
 class Stock(TimestampMixin, Base):
@@ -38,5 +39,8 @@ class Stock(TimestampMixin, Base):
         back_populates="stock", cascade="all, delete-orphan"
     )
     indicator_results: Mapped[list[IndicatorResult]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    technical_analysis: Mapped[list[TechnicalAnalysis]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

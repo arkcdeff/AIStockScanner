@@ -9,6 +9,7 @@ from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
 from app.models.stock import Stock
+from app.models.technical_analysis import TechnicalAnalysis
 from app.repositories.market_data import MarketDataRepository
 from app.repositories.scan import ScanDefinitionRepository, ScanResultRepository
 from app.repositories.stock import StockRepository
@@ -105,6 +106,38 @@ class DashboardService:
             "timestamp": datetime.now(UTC).isoformat(),
         }
 
+    async def get_top_rated(self, limit: int = 5) -> list[dict[str, object]]:
+        rows = (
+            await self.session.execute(
+                select(
+                    Stock.symbol,
+                    Stock.company_name,
+                    TechnicalAnalysis.overall_score,
+                    TechnicalAnalysis.trend_score,
+                    TechnicalAnalysis.momentum_score,
+                    TechnicalAnalysis.trade_date,
+                    TechnicalAnalysis.is_trending,
+                    TechnicalAnalysis.is_breakout,
+                )
+                .join(Stock, TechnicalAnalysis.stock_id == Stock.id)
+                .order_by(TechnicalAnalysis.overall_score.desc())
+                .limit(limit)
+            )
+        ).fetchall()
+        return [
+            {
+                "symbol": row.symbol,
+                "company_name": row.company_name,
+                "overall_score": row.overall_score,
+                "trend_score": row.trend_score,
+                "momentum_score": row.momentum_score,
+                "trade_date": row.trade_date,
+                "is_trending": row.is_trending,
+                "is_breakout": row.is_breakout,
+            }
+            for row in rows
+        ]
+
     async def get_pipeline_status(self) -> dict[str, object]:
         latest = await self.session.scalar(
             select(EODPipelineRun).order_by(EODPipelineRun.started_at.desc()).limit(1)
@@ -118,6 +151,7 @@ class DashboardService:
                 "imported_rows": 0,
                 "indicators_calculated": 0,
                 "scanner_matches": 0,
+                "analytics_calculated": 0,
                 "failed_stage": None,
                 "duration_ms": None,
             }
@@ -129,6 +163,7 @@ class DashboardService:
             "imported_rows": latest.imported_rows,
             "indicators_calculated": latest.indicators_calculated,
             "scanner_matches": latest.scanner_matches,
+            "analytics_calculated": latest.analytics_calculated,
             "failed_stage": latest.failed_stage,
             "duration_ms": latest.duration_ms,
         }

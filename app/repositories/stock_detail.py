@@ -9,6 +9,7 @@ from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_result import ScanResult
 from app.models.stock import Stock
+from app.models.technical_analysis import TechnicalAnalysis
 
 
 class StockDetailRepository:
@@ -53,6 +54,15 @@ class StockDetailRepository:
             select(IndicatorResult)
             .where(IndicatorResult.stock_id == stock_id)
             .order_by(IndicatorResult.trade_date.desc())
+            .limit(1)
+        )
+        return await self.session.scalar(statement)
+
+    async def get_latest_analytics(self, stock_id: int) -> TechnicalAnalysis | None:
+        statement = (
+            select(TechnicalAnalysis)
+            .where(TechnicalAnalysis.stock_id == stock_id)
+            .order_by(TechnicalAnalysis.trade_date.desc())
             .limit(1)
         )
         return await self.session.scalar(statement)

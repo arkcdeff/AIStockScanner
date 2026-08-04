@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.0] - 2026-08-04
+
+### Added
+- Technical Analytics Engine (`app/services/analytics_engine.py`) computing deterministic
+  composite scores: trend, momentum, volume, delivery, volatility, and overall (0-100)
+- Support/resistance, classic + Fibonacci pivot points, relative volume, delivery strength,
+  trend/momentum/volatility ratings, and trending/breakout flags
+- `technical_analysis` table (unique per stock/date) + migration `e1f2a3b4c5d6`
+- `analytics_calculated` metric added to `eod_pipeline_runs`
+- Analytics APIs: `GET /api/v1/analytics/{symbol}`, `/top-rated`, `/trending`, `/breakouts`
+- EOD pipeline now runs analytics after scanners (import → indicators → scanners → analytics)
+- Dashboard "Top Rated Stocks" card + analytics metric in pipeline status
+- Stock detail Technical Analytics card with HTMX refresh partial
+- 20 new tests (scoring, pivots, flags, APIs, pipeline integration, UI rendering)
+
 ## [0.7.0] - 2026-08-03
 
 ### Added

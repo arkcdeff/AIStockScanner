@@ -1,0 +1,128 @@
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Technical Analytics</h5>
+        {% if analytics %}
+            <div>
+                {% if analytics.is_trending %}<span class="badge bg-primary me-1">Trending</span>{% endif %}
+                {% if analytics.is_breakout %}<span class="badge bg-danger">Breakout</span>{% endif %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if analytics %}
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">Overall Technical Score</span>
+                        <span class="badge bg-{{ 'success' if analytics.overall_score >= 70 else 'warning' if analytics.overall_score >= 45 else 'danger' }} fs-6">
+                            {{ analytics.overall_score }} / 100
+                        </span>
+                    </div>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar bg-{{ 'success' if analytics.overall_score >= 70 else 'warning' if analytics.overall_score >= 45 else 'danger' }}"
+                             role="progressbar"
+                             style="width: {{ analytics.overall_score }}%"
+                             aria-valuenow="{{ analytics.overall_score }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <span class="text-muted">Trend</span>
+                    <div class="d-flex justify-content-between">
+                        <span>{{ analytics.trend_score }} / 100</span>
+                        <span class="badge bg-{{ 'success' if analytics.trend_score >= 60 else 'danger' if analytics.trend_score < 40 else 'secondary' }}">{{ analytics.trend_rating }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Momentum</span>
+                    <div class="d-flex justify-content-between">
+                        <span>{{ analytics.momentum_score }} / 100</span>
+                        <span class="badge bg-{{ 'success' if analytics.momentum_score >= 60 else 'danger' if analytics.momentum_score < 40 else 'secondary' }}">{{ analytics.momentum_rating }}</span>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <span class="text-muted">Volatility</span>
+                    <div class="d-flex justify-content-between">
+                        <span>{{ analytics.volatility_score }} / 100</span>
+                        <span class="badge bg-{{ 'success' if analytics.volatility_rating == 'Low' else 'warning' if analytics.volatility_rating == 'Moderate' else 'secondary' }}">{{ analytics.volatility_rating }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <span class="text-muted">Volume</span>
+                    <span class="float-end fw-bold">{{ analytics.volume_score }} / 100</span>
+                </div>
+                <div class="col-md-6">
+                    <span class="text-muted">Delivery</span>
+                    <span class="float-end fw-bold">{{ analytics.delivery_score }} / 100</span>
+                </div>
+            </div>
+            <hr>
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="text-muted">Support</div>
+                    <div class="fw-bold">{{ analytics.support or 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Resistance</div>
+                    <div class="fw-bold">{{ analytics.resistance or 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Pivot Point</div>
+                    <div class="fw-bold">{{ analytics.pivot or 'N/A' }}</div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-md-4">
+                    <div class="text-muted">Relative Volume</div>
+                    <div class="fw-bold">{{ analytics.relative_volume or 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Delivery Strength</div>
+                    <div class="fw-bold">{{ analytics.delivery_strength or 'N/A' }}</div>
+                </div>
+                <div class="col-md-4">
+                    <div class="text-muted">Trade Date</div>
+                    <div class="fw-bold">{{ analytics.trade_date }}</div>
+                </div>
+            </div>
+            {% if analytics.pivot_r1 %}
+            <hr>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="text-muted">Resistance Levels</div>
+                    <div class="small">
+                        R1: <span class="fw-bold">{{ analytics.pivot_r1 }}</span> |
+                        R2: <span class="fw-bold">{{ analytics.pivot_r2 }}</span> |
+                        R3: <span class="fw-bold">{{ analytics.pivot_r3 }}</span>
+                    </div>
+                    <div class="text-muted mt-1">Fibonacci Resistance</div>
+                    <div class="small">
+                        R1: <span class="fw-bold">{{ analytics.fib_r1 }}</span> |
+                        R2: <span class="fw-bold">{{ analytics.fib_r2 }}</span> |
+                        R3: <span class="fw-bold">{{ analytics.fib_r3 }}</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted">Support Levels</div>
+                    <div class="small">
+                        S1: <span class="fw-bold">{{ analytics.pivot_s1 }}</span> |
+                        S2: <span class="fw-bold">{{ analytics.pivot_s2 }}</span> |
+                        S3: <span class="fw-bold">{{ analytics.pivot_s3 }}</span>
+                    </div>
+                    <div class="text-muted mt-1">Fibonacci Support</div>
+                    <div class="small">
+                        S1: <span class="fw-bold">{{ analytics.fib_s1 }}</span> |
+                        S2: <span class="fw-bold">{{ analytics.fib_s2 }}</span> |
+                        S3: <span class="fw-bold">{{ analytics.fib_s3 }}</span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        {% else %}
+            <p class="text-muted mb-0">No technical analytics available for this stock yet.</p>
+        {% endif %}
+    </div>
+</div>
