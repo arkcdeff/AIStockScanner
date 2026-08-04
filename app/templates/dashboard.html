@@ -91,6 +91,203 @@
                 </div>
             </div>
 
+            <!-- AI Insights -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0"><i class="bi bi-stars me-2"></i>AI Insights</h5>
+                            {% if ai_status %}
+                                <span class="badge bg-{{ 'success' if ai_status.get('enabled') else 'secondary' }}">
+                                    {{ ai_status.get('provider', 'N/A') }} / {{ ai_status.get('model', 'N/A') }}
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="card-body">
+                            {% if ai_status and ai_status.get('enabled') %}
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tr>
+                                                <td class="text-muted">Provider</td>
+                                                <td class="text-end fw-bold">{{ ai_status.get('provider', 'N/A') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Model</td>
+                                                <td class="text-end fw-bold">{{ ai_status.get('model', 'N/A') }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Total Explanations</td>
+                                                <td class="text-end fw-bold">{{ ai_status.get('explanations_total', 0) }}</td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <table class="table table-sm table-borderless mb-0">
+                                            <tr>
+                                                <td class="text-muted">Explanations for Latest Date</td>
+                                                <td class="text-end fw-bold">{{ ai_status.get('explanations_for_latest_date', 0) }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Latest Explanation Date</td>
+                                                <td class="text-end fw-bold">{{ ai_status.get('explanations_latest_date') or 'N/A' }}</td>
+                                            </tr>
+                                            <tr>
+                                                <td class="text-muted">Pipeline Status</td>
+                                                <td class="text-end">
+                                                    <span class="badge bg-{{ 'success' if ai_status.get('pipeline', {}).get('status') == 'completed' else 'warning' if ai_status.get('pipeline', {}).get('status') == 'running' else 'secondary' }}">
+                                                        {{ ai_status.get('pipeline', {}).get('status', 'never')|title }}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        </table>
+                                    </div>
+                                </div>
+                                <div class="mt-2">
+                                    <a href="/api/v1/ai/market-summary" class="btn btn-sm btn-outline-primary me-1" target="_blank">Market Summary</a>
+                                    <a href="/api/v1/ai/top-rated" class="btn btn-sm btn-outline-primary" target="_blank">Top Rated AI</a>
+                                </div>
+                            {% else %}
+                                <p class="text-muted mb-0">AI features are disabled or unavailable.</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Top Opportunities -->
+            <div class="row mt-4">
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-lightning-charge me-2"></i>Top Opportunities</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Overall</th>
+                                            <th>Trend</th>
+                                            <th>Flags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if ai_opportunities %}
+                                            {% for item in ai_opportunities %}
+                                                <tr>
+                                                    <td><a href="/stocks/{{ item['symbol'] }}">{{ item['symbol'] }}</a></td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if item['overall_score'] >= 70 else 'warning' if item['overall_score'] >= 45 else 'danger' }}">
+                                                            {{ item['overall_score'] }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ item['trend_score'] }}</td>
+                                                    <td>
+                                                        {% if item['is_trending'] %}<span class="badge bg-primary">Trending</span>{% endif %}
+                                                        {% if item['is_breakout'] %}<span class="badge bg-danger">Breakout</span>{% endif %}
+                                                    </td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">No opportunities yet. Run the EOD pipeline.</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="card h-100">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-graph-up-arrow me-2"></i>Highest Confidence</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Confidence</th>
+                                            <th>Date</th>
+                                            <th>Provider</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if ai_highest_confidence %}
+                                            {% for item in ai_highest_confidence %}
+                                                <tr>
+                                                    <td><a href="/stocks/{{ item['symbol'] }}">{{ item['symbol'] }}</a></td>
+                                                    <td>
+                                                        <span class="badge bg-{{ 'success' if item['confidence'] and item['confidence'] >= 70 else 'warning' if item['confidence'] and item['confidence'] >= 45 else 'danger' }}">
+                                                            {{ item['confidence'] or 'N/A' }}
+                                                        </span>
+                                                    </td>
+                                                    <td>{{ item['trade_date'] }}</td>
+                                                    <td>{{ item['provider'] }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="4" class="text-center text-muted py-4">No AI explanations generated yet.</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent AI Explanations -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header bg-white">
+                            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Recent AI Explanations</h5>
+                        </div>
+                        <div class="card-body p-0">
+                            <div class="table-responsive">
+                                <table class="table table-hover mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Trade Date</th>
+                                            <th>Confidence</th>
+                                            <th>Provider / Model</th>
+                                            <th>Generated At</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% if ai_recent %}
+                                            {% for item in ai_recent %}
+                                                <tr>
+                                                    <td><a href="/stocks/{{ item['symbol'] }}">{{ item['symbol'] }}</a></td>
+                                                    <td>{{ item['trade_date'] }}</td>
+                                                    <td>{{ item['confidence'] or 'N/A' }}</td>
+                                                    <td>{{ item['provider'] }} / {{ item['model'] }}</td>
+                                                    <td>{{ item['created_at'].strftime('%Y-%m-%d %H:%M') if item['created_at'] else 'N/A' }}</td>
+                                                </tr>
+                                            {% endfor %}
+                                        {% else %}
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted py-4">No AI explanations generated yet.</td>
+                                            </tr>
+                                        {% endif %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Recent Imports -->
             <div class="row mt-4">
                 <div class="col-12">

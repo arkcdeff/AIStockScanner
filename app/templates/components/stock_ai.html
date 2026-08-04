@@ -1,0 +1,113 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-stars me-2"></i>AI Explanation</h5>
+        {% if explanation %}
+            <div class="d-flex gap-1 flex-wrap">
+                <span class="badge bg-info">{{ explanation.provider }} / {{ explanation.model }}</span>
+                {% if explanation.source == 'generated' %}
+                    <span class="badge bg-success">Generated</span>
+                {% elif explanation.source == 'cache' %}
+                    <span class="badge bg-secondary">Cached</span>
+                {% else %}
+                    <span class="badge bg-warning text-dark">Fallback</span>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if explanation %}
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between align-items-center mb-1">
+                        <span class="fw-bold">AI Confidence</span>
+                        <span class="badge bg-{{ 'success' if explanation.confidence >= 70 else 'warning' if explanation.confidence >= 45 else 'danger' }} fs-6">
+                            {{ explanation.confidence }}%
+                        </span>
+                    </div>
+                    <div class="progress" style="height: 10px;">
+                        <div class="progress-bar bg-{{ 'success' if explanation.confidence >= 70 else 'warning' if explanation.confidence >= 45 else 'danger' }}"
+                             role="progressbar"
+                             style="width: {{ explanation.confidence }}%"
+                             aria-valuenow="{{ explanation.confidence }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+
+            <blockquote class="blockquote mb-3">
+                <p class="mb-1 fs-5">{{ explanation.summary }}</p>
+                {% if explanation.medium_summary %}
+                    <p class="text-muted mb-1">{{ explanation.medium_summary }}</p>
+                {% endif %}
+                {% if explanation.detailed_summary %}
+                    <p class="text-muted small mb-0">{{ explanation.detailed_summary }}</p>
+                {% endif %}
+            </blockquote>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="text-muted small text-uppercase mb-1">Strengths</div>
+                    <ul class="list-unstyled mb-0">
+                        {% for item in explanation.strengths %}
+                            <li><i class="bi bi-check-circle-fill text-success me-1"></i>{{ item }}</li>
+                        {% else %}
+                            <li class="text-muted">No strengths listed.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small text-uppercase mb-1">Risks</div>
+                    <ul class="list-unstyled mb-0">
+                        {% for item in explanation.risks %}
+                            <li><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>{{ item }}</li>
+                        {% else %}
+                            <li class="text-muted">No risks listed.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="text-muted small text-uppercase mb-1">Support</div>
+                    <div>
+                        {% for item in explanation.support %}
+                            <span class="badge bg-light border text-dark me-1">{{ item }}</span>
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="text-muted small text-uppercase mb-1">Resistance</div>
+                    <div>
+                        {% for item in explanation.resistance %}
+                            <span class="badge bg-light border text-dark me-1">{{ item }}</span>
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            {% if explanation.trend_explanation %}
+                <div class="mb-2"><span class="text-muted small text-uppercase">Trend:</span> <span class="small">{{ explanation.trend_explanation }}</span></div>
+            {% endif %}
+            {% if explanation.scanner_explanation %}
+                <div class="mb-2"><span class="text-muted small text-uppercase">Scanner:</span> <span class="small">{{ explanation.scanner_explanation }}</span></div>
+            {% endif %}
+            {% if explanation.risk_explanation %}
+                <div class="mb-2"><span class="text-muted small text-uppercase">Risk:</span> <span class="small">{{ explanation.risk_explanation }}</span></div>
+            {% endif %}
+
+            <div class="text-muted small mt-2">
+                Trade date: <strong>{{ explanation.trade_date }}</strong>
+                {% if explanation.technical_score %} |
+                Overall: <strong>{{ explanation.technical_score.overall_score }}/100</strong> |
+                Trend: <strong>{{ explanation.technical_score.trend_rating or 'N/A' }}</strong> |
+                Momentum: <strong>{{ explanation.technical_score.momentum_rating or 'N/A' }}</strong>{% endif %}
+            </div>
+        {% else %}
+            <p class="text-muted mb-0">No AI explanation available for this stock yet.</p>
+        {% endif %}
+    </div>
+</div>

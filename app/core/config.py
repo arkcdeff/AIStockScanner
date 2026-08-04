@@ -42,6 +42,19 @@ class Settings(BaseSettings):
     eod_scheduler_max_instances: int = 1
     eod_scheduler_coalesce: bool = True
 
+    ai_provider: str = "mock"
+    ai_timeout: int = 60
+    ai_cache_ttl: int = 3600
+    ai_enabled: bool = True
+    ai_ollama_url: str = "http://localhost:11434"
+    ai_ollama_model: str = "llama3.1"
+    ai_deepseek_api_key: str = ""
+    ai_deepseek_model: str = "deepseek-chat"
+    ai_deepseek_base_url: str = "https://api.deepseek.com"
+    ai_openai_api_key: str = ""
+    ai_openai_model: str = "gpt-4o-mini"
+    ai_openai_base_url: str = "https://api.openai.com/v1"
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",

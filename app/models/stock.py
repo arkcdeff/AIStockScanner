@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.ai_explanation import AIExplanation
     from app.models.daily_price import DailyPrice
     from app.models.indicator_result import IndicatorResult
     from app.models.scan_result import ScanResult
@@ -42,5 +43,8 @@ class Stock(TimestampMixin, Base):
         back_populates="stock", cascade="all, delete-orphan"
     )
     technical_analysis: Mapped[list[TechnicalAnalysis]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    ai_explanations: Mapped[list[AIExplanation]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

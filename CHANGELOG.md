@@ -2,6 +2,30 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.9.0] - 2026-08-04
+
+### Added
+- AI Explanation Engine (`app/ai/`) — a provider-abstraction layer that explains the existing
+  deterministic analytics only. AI never computes indicators, scores, or scanner logic;
+  `AnalyticsEngine` remains the single source of truth
+- Provider abstraction: `BaseAIProvider` (`generate`, `health`, `model_name`) with async httpx
+  implementations for Ollama, DeepSeek, OpenAI, plus a deterministic `mock` provider (default,
+  no network). Provider selected from `.env` (`AI_PROVIDER`) via factory
+- `prompt_builder` renders validated Pydantic DTOs into one structured prompt from 4 templates:
+  `stock_summary`, `scanner_summary`, `market_summary`, `watchlist_summary`
+- `response_parser` safely parses/sanitizes AI JSON output; malformed, empty, or non-JSON
+  responses fall back to a deterministic plain-language explanation (never a crash)
+- Two-layer caching: in-memory TTL cache keyed by provider + prompt hash, and persistent
+  `ai_explanations` table unique on `(stock_id, trade_date, provider)`. Cache invalidates
+  automatically when trade date / indicators / analytics / scanner results / pipeline change
+- `ai_explanations` table + migration `f0a1b2c3d4e5`
+- AI APIs: `GET /api/v1/ai/stock/{symbol}`, `/api/v1/ai/top-rated`, `/api/v1/ai/market-summary`
+- Stock detail AI card with HTMX refresh partial (`/stocks/{symbol}/ai`)
+- Dashboard AI sections: Today's AI Insights, Top Opportunities, Highest Confidence,
+  Recent AI Explanations
+- 34 new tests (provider factory, prompt builder, response parser, caching, service fallbacks,
+  API endpoints, UI rendering) — no real AI calls in tests
+
 ## [0.8.0] - 2026-08-04
 
 ### Added

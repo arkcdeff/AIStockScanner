@@ -40,6 +40,15 @@
                 </div>
             </div>
 
+            <!-- AI Explanation -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div id="stock-ai-panel" hx-get="/stocks/{{ stock.symbol }}/ai" hx-trigger="refresh from:body" hx-swap="innerHTML">
+                        {% include "components/stock_ai.html" %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Technical Analytics -->
             <div class="row mt-4">
                 <div class="col-12">

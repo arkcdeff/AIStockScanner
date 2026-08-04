@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 from app.db.session import get_db_session
+from app.services.ai_insights import AIInsightsService
 from app.services.dashboard import DashboardService
 
 router = APIRouter()
@@ -49,6 +50,18 @@ async def root_redirect(request: Request) -> HTMLResponse:
                 "failed_stage": None,
                 "duration_ms": None,
             },
+            "ai_status": {
+                "enabled": settings.ai_enabled,
+                "provider": None,
+                "model": None,
+                "explanations_total": 0,
+                "explanations_latest_date": None,
+                "explanations_for_latest_date": 0,
+                "pipeline": {"status": "never"},
+            },
+            "ai_opportunities": [],
+            "ai_highest_confidence": [],
+            "ai_recent": [],
         },
     )
     return HTMLResponse(content=html)
@@ -68,6 +81,12 @@ async def dashboard(
     pipeline_status = await service.get_pipeline_status()
     top_rated = await service.get_top_rated()
 
+    ai_service = AIInsightsService(session)
+    ai_status = await ai_service.get_ai_status()
+    ai_opportunities = await ai_service.get_top_opportunities()
+    ai_highest_confidence = await ai_service.get_highest_confidence()
+    ai_recent = await ai_service.get_recent_explanations()
+
     html = _render(
         "dashboard.html",
         {
@@ -79,6 +98,10 @@ async def dashboard(
             "health": health,
             "pipeline_status": pipeline_status,
             "top_rated": top_rated,
+            "ai_status": ai_status,
+            "ai_opportunities": ai_opportunities,
+            "ai_highest_confidence": ai_highest_confidence,
+            "ai_recent": ai_recent,
         },
     )
     return HTMLResponse(content=html)

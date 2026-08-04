@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.ai.explanation_service import AIExplanationService, AINotFoundError
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.stock_detail import StockDetailRepository
@@ -75,6 +76,13 @@ async def stock_detail_page(
         avg_delivery_20d=overview["avg_delivery_20d"],
     )
 
+    explanation = None
+    if settings.ai_enabled:
+        try:
+            explanation = await AIExplanationService(session).explain_stock(symbol)
+        except AINotFoundError:
+            explanation = None
+
     indicator = None
     if overview["latest_indicator"]:
         ind = overview["latest_indicator"]
@@ -133,6 +141,7 @@ async def stock_detail_page(
             "indicator": indicator,
             "analytics": overview["latest_analytics"],
             "matches": matches,
+            "explanation": explanation,
         },
     )
     return HTMLResponse(content=html)
@@ -294,5 +303,22 @@ async def stock_prices_partial(
     return HTMLResponse(
         content=_render(
             "components/price_chart.html", {"request": request, "symbol": symbol, "prices": prices}
+        )
+    )
+
+
+@router.get("/{symbol}/ai", response_class=HTMLResponse)
+async def stock_ai_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    explanation = None
+    if settings.ai_enabled:
+        try:
+            explanation = await AIExplanationService(session).explain_stock(symbol)
+        except AINotFoundError:
+            raise HTTPException(status_code=404, detail="Stock not found") from None
+    return HTMLResponse(
+        content=_render(
+            "components/stock_ai.html", {"request": request, "explanation": explanation}
         )
     )

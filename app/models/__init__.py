@@ -1,3 +1,4 @@
+from app.models.ai_explanation import AIExplanation
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
@@ -18,4 +19,5 @@ __all__ = [
     "ScanResult",
     "IndicatorResult",
     "TechnicalAnalysis",
+    "AIExplanation",
 ]

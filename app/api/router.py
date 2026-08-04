@@ -1,6 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.routes import (
+    ai,
     analytics,
     dashboard,
     health,
@@ -21,6 +22,7 @@ api_router.include_router(indicators.router)
 api_router.include_router(scanners.router)
 api_router.include_router(pipeline.router)
 api_router.include_router(analytics.router)
+api_router.include_router(ai.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)
