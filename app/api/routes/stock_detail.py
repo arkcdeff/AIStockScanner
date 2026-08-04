@@ -130,11 +130,41 @@ async def stock_detail_page(
             )
         )
 
+    from app.services.alert import AlertService
+    from app.services.portfolio import PortfolioService
+    from app.services.watchlist import WatchlistService
+
+    symbol = overview["stock"].symbol
+    watchlists = await WatchlistService(session).list()
+    entries_for_symbol = await WatchlistService(session).watchlists_for_symbol(symbol)
+    watchlist_contains = {entry.watchlist_id for entry in entries_for_symbol}
+    watchlist_data = [
+        {
+            "id": wl.id,
+            "name": wl.name,
+            "contains": wl.id in watchlist_contains,
+            "color": wl.color,
+        }
+        for wl in watchlists
+    ]
+
+    positions = await PortfolioService(session).holdings_for_stock(overview["stock"].id)
+    portfolio_positions = await PortfolioService(session).value_holdings(positions)
+
+    alert_service = AlertService(session)
+    alert_events = await alert_service.list_events_for_symbol(symbol, limit=20)
+    all_rules = await alert_service.list_rules(limit=200)
+    alert_rules = [
+        rule
+        for rule in all_rules
+        if rule.stock_id == overview["stock"].id or rule.watchlist_id in watchlist_contains
+    ]
+
     html = _render(
         "stock_detail.html",
         {
             "request": request,
-            "symbol": overview["stock"].symbol,
+            "symbol": symbol,
             "stock": overview["stock"],
             "sector_name": overview["sector_name"],
             "overview": response,
@@ -142,6 +172,10 @@ async def stock_detail_page(
             "analytics": overview["latest_analytics"],
             "matches": matches,
             "explanation": explanation,
+            "watchlists": watchlist_data,
+            "portfolio_positions": portfolio_positions,
+            "alert_events": alert_events,
+            "alert_rules": alert_rules,
         },
     )
     return HTMLResponse(content=html)

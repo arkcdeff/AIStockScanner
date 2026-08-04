@@ -1,0 +1,35 @@
+<div class="card h-100">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-briefcase me-1"></i>Portfolio Position</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if portfolio_positions %}
+        <div class="table-responsive">
+            <table class="table table-sm table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Portfolio</th>
+                        <th class="text-end">Qty</th>
+                        <th class="text-end">Avg</th>
+                        <th class="text-end">Value</th>
+                        <th class="text-end">P/L</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pos in portfolio_positions %}
+                    <tr>
+                        <td>{{ pos.holding.portfolio.account_name or pos.holding.portfolio.broker or ('#' ~ pos.holding.portfolio.id) }}</td>
+                        <td class="text-end">{{ pos.quantity }}</td>
+                        <td class="text-end">{{ '%.2f'|format(pos.average_price) }}</td>
+                        <td class="text-end">{{ '%.2f'|format(pos.current_value) if pos.current_value is not none else 'N/A' }}</td>
+                        <td class="text-end text-{{ 'success' if (pos.pl or 0) >= 0 else 'danger' }}">{{ '%.2f'|format(pos.pl) if pos.pl is not none else 'N/A' }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted small m-3 mb-0">This stock is not held in any portfolio. Add it on the <a href="/portfolio">Portfolio</a> page.</p>
+        {% endif %}
+    </div>
+</div>

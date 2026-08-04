@@ -1,0 +1,70 @@
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-briefcase me-1"></i> Portfolio Value</h6>
+                <h3 class="card-text">{{ portfolio_summary.total_value|round(2) }}</h3>
+                <small class="text-white-50">{{ portfolio_summary.holdings_count }} holdings</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-graph-up-arrow me-1"></i> Today's Profit</h6>
+                <h3 class="card-text {% if portfolio_summary.today_pl < 0 %}text-danger{% else %}text-white{% endif %}">
+                    {{ portfolio_summary.today_pl|round(2) }}
+                </h3>
+                <small class="text-white-50">P/L {{ portfolio_summary.total_pl|round(2) }} ({{ portfolio_summary.total_roi_pct|round(2) }}%)</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-star me-1"></i> Watchlists</h6>
+                <h3 class="card-text">{{ watchlist_summary.total_watchlists }}</h3>
+                <small class="text-white-50">{{ watchlist_summary.total_watchlist_stocks }} stocks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-bell me-1"></i> Alert Rules</h6>
+                <h3 class="card-text">{{ alert_summary.total_rules }}</h3>
+                <small class="text-white-50">{{ alert_summary.enabled_rules }} enabled / {{ alert_summary.pending_events }} pending</small>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="row g-3 mb-4">
+    <div class="col-md-6">
+        <div class="card text-white bg-secondary h-100">
+            <div class="card-body">
+                <h6 class="card-title"><i class="bi bi-stars me-1"></i> Top Watchlist</h6>
+                <h3 class="card-text">{{ watchlist_summary.top_watchlist or 'None' }}</h3>
+                <small class="text-white-50">{{ watchlist_summary.top_watchlist_count }} stocks</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card h-100 border-0">
+            <div class="card-body p-2">
+                <h6 class="card-title text-muted mb-2"><i class="bi bi-bell me-1"></i> Recent Alerts</h6>
+                {% if alert_summary.recent_events %}
+                    <ul class="list-group list-group-flush">
+                        {% for event in alert_summary.recent_events %}
+                            <li class="list-group-item px-0 py-1 d-flex justify-content-between align-items-center">
+                                <span class="text-truncate small">{{ event.message }}</span>
+                                <span class="badge bg-{{ 'success' if event.status == 'triggered' else 'secondary' }} ms-2">{{ event.status }}</span>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                {% else %}
+                    <p class="text-muted small mb-0">No alerts triggered yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

@@ -2,14 +2,17 @@ from fastapi import APIRouter
 
 from app.api.routes import (
     ai,
+    alerts,
     analytics,
     dashboard,
     health,
     indicators,
     market_data,
     pipeline,
+    portfolio,
     scanners,
     stocks,
+    watchlists,
 )
 from app.api.routes import scanner_workspace as scanner_workspace_module
 from app.api.routes import stock_detail as stock_detail_module
@@ -23,6 +26,9 @@ api_router.include_router(scanners.router)
 api_router.include_router(pipeline.router)
 api_router.include_router(analytics.router)
 api_router.include_router(ai.router)
+api_router.include_router(watchlists.router)
+api_router.include_router(portfolio.router)
+api_router.include_router(alerts.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)

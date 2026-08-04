@@ -1,0 +1,73 @@
+{% if selected_watchlist %}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0" style="color: {{ selected_watchlist.color or '#2563eb' }}">
+            <i class="bi bi-{{ selected_watchlist.icon or 'star' }} me-2"></i>{{ selected_watchlist.name }}
+        </h5>
+        <span class="badge bg-light text-dark">{{ stocks|length }} stocks</span>
+    </div>
+    <div class="card-body">
+        {% if selected_watchlist.description %}
+        <p class="text-muted small">{{ selected_watchlist.description }}</p>
+        {% endif %}
+
+        <form method="post" action="/watchlists/{{ selected_watchlist.id }}/stocks" class="row g-2 mb-3">
+            <div class="col-md-5">
+                <input type="text" class="form-control form-control-sm" id="wl-stock-search"
+                       placeholder="Search stock..." hx-get="/watchlists/search" hx-trigger="keyup changed delay:400ms"
+                       hx-target="#wl-stock-options" hx-params="q">
+            </div>
+            <div class="col-md-5">
+                <select name="stock_id" id="wl-stock-options" class="form-select form-select-sm" required>
+                    <option value="">-- select a stock --</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-plus-lg me-1"></i>Add
+                </button>
+            </div>
+        </form>
+
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Symbol</th>
+                        <th>Company</th>
+                        <th>Latest Close</th>
+                        <th>Priority</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in stocks %}
+                    <tr>
+                        <td><a href="/stocks/{{ row.stock.symbol }}">{{ row.stock.symbol }}</a></td>
+                        <td>{{ row.stock.company_name }}</td>
+                        <td>{{ '%.2f'|format(row.latest_price.close) if row.latest_price else 'N/A' }}</td>
+                        <td>{{ row.entry.priority }}</td>
+                        <td class="text-end">
+                            <form method="post" action="/watchlists/{{ selected_watchlist.id }}/stocks/{{ row.stock.id }}/delete">
+                                <button class="btn btn-sm btn-outline-danger" title="Remove">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center text-muted py-4">No stocks in this watchlist yet.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="alert alert-light text-center py-5">
+    <i class="bi bi-star d-block fs-1 mb-2"></i>
+    Select or create a watchlist to manage its stocks.
+</div>
+{% endif %}

@@ -12,6 +12,9 @@ from app.api.router import (
     scanner_workspace_router,
     stock_detail_router,
 )
+from app.api.routes.alert_pages import router as alert_pages_router
+from app.api.routes.portfolio_pages import router as portfolio_pages_router
+from app.api.routes.watchlist_pages import router as watchlist_pages_router
 from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
@@ -57,6 +60,9 @@ def create_app() -> FastAPI:
     app.include_router(dashboard_router)
     app.include_router(scanner_workspace_router, prefix="/scanner-results")
     app.include_router(stock_detail_router, prefix="/stocks")
+    app.include_router(watchlist_pages_router, prefix="/watchlists")
+    app.include_router(portfolio_pages_router, prefix="/portfolio")
+    app.include_router(alert_pages_router, prefix="/alerts")
 
     templates = Jinja2Templates(directory=str(settings.base_dir / "app" / "templates"))
     app.state.templates = templates

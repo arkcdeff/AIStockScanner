@@ -9,11 +9,14 @@ from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
     from app.models.ai_explanation import AIExplanation
+    from app.models.alert import AlertEvent, AlertRule
     from app.models.daily_price import DailyPrice
     from app.models.indicator_result import IndicatorResult
+    from app.models.portfolio import Holding
     from app.models.scan_result import ScanResult
     from app.models.sector import Sector
     from app.models.technical_analysis import TechnicalAnalysis
+    from app.models.watchlist import WatchlistStock
 
 
 class Stock(TimestampMixin, Base):
@@ -46,5 +49,15 @@ class Stock(TimestampMixin, Base):
         back_populates="stock", cascade="all, delete-orphan"
     )
     ai_explanations: Mapped[list[AIExplanation]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    watchlist_entries: Mapped[list[WatchlistStock]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    holdings: Mapped[list[Holding]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    alert_rules: Mapped[list[AlertRule]] = relationship(back_populates="stock")
+    alert_events: Mapped[list[AlertEvent]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

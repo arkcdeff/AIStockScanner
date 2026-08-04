@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.10.0] - 2026-08-04
+
+### Added
+- Watchlist management: `Watchlist` / `WatchlistStock` models, repository, service, schemas,
+  JSON API (`/api/v1/watchlists/...`), HTML page + HTMX partials at `/watchlists`
+- Portfolio tracking: `Portfolio` / `Holding` models, repository, service, schemas,
+  JSON API (`/api/v1/portfolios/...`), HTML page + HTMX partials at `/portfolio`
+- Live holding valuations: invested, current value, P&L, ROI %, today's P&L, allocation;
+  per-portfolio and overall summaries
+- Alert rules engine (`app/services/alert.py`): deterministic evaluation of `overall_score`,
+  `rsi`, `ema_cross`, `delivery`, `volume`, `breakout`, `support_broken`, `resistance_broken`
+  against the latest analytics/indicators/prices; cooldown via `last_triggered`;
+  persisted `AlertEvent` rows (in-app only)
+- Alert APIs: `/api/v1/alerts/rules` CRUD, `/run`, `/events`, `/events/pending`,
+  `/events/symbol/{symbol}`, `PATCH /events/{id}`; HTML page + HTMX partials at `/alerts`
+- EOD pipeline alert stage runs after analytics and records `alerts_triggered`
+- Dashboard portfolio/watchlist/alert summary cards; stock detail watchlist, portfolio
+  position, and matching-alerts panels
+- 6 new tables (`watchlists`, `watchlist_stocks`, `portfolios`, `holdings`, `alert_rules`,
+  `alert_events`) + migration `fd96a19d8b61`
+- 41 new tests (services, APIs, engine rules, cooldown, UI rendering, pipeline integration)
+
 ## [0.9.0] - 2026-08-04
 
 ### Added

@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.models.alert import AlertEvent, AlertRule
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
@@ -13,6 +14,8 @@ from app.models.technical_analysis import TechnicalAnalysis
 from app.repositories.market_data import MarketDataRepository
 from app.repositories.scan import ScanDefinitionRepository, ScanResultRepository
 from app.repositories.stock import StockRepository
+from app.services.portfolio import PortfolioService
+from app.services.watchlist import WatchlistService
 
 
 class DashboardService:
@@ -137,6 +140,59 @@ class DashboardService:
             }
             for row in rows
         ]
+
+    async def get_portfolio_summary(self) -> dict[str, object]:
+        return await PortfolioService(self.session).overall_summary()
+
+    async def get_watchlist_summary(self) -> dict[str, object]:
+        watchlists = await WatchlistService(self.session).list()
+        total_stocks = sum(len(w.stocks) for w in watchlists)
+        top = next((w for w in watchlists if w.is_default), watchlists[0] if watchlists else None)
+        return {
+            "total_watchlists": len(watchlists),
+            "total_watchlist_stocks": total_stocks,
+            "top_watchlist": top.name if top else None,
+            "top_watchlist_count": len(top.stocks) if top else 0,
+        }
+
+    async def get_alert_summary(self) -> dict[str, object]:
+        rules_count = (
+            await self.session.scalar(select(func.count()).select_from(AlertRule)) or 0
+        )
+        enabled_count = (
+            await self.session.scalar(
+                select(func.count()).select_from(AlertRule).where(AlertRule.enabled.is_(True))
+            )
+            or 0
+        )
+        recent_events = (
+            await self.session.scalars(
+                select(AlertEvent).order_by(AlertEvent.created_at.desc()).limit(5)
+            )
+        ).all()
+        pending_count = (
+            await self.session.scalar(
+                select(func.count())
+                .select_from(AlertEvent)
+                .where(AlertEvent.status == "triggered")
+            )
+            or 0
+        )
+        return {
+            "total_rules": int(rules_count),
+            "enabled_rules": int(enabled_count),
+            "pending_events": int(pending_count),
+            "recent_events": [
+                {
+                    "id": event.id,
+                    "message": event.message,
+                    "status": event.status,
+                    "created_at": event.created_at,
+                    "symbol": event.stock.symbol if event.stock else None,
+                }
+                for event in recent_events
+            ],
+        }
 
     async def get_pipeline_status(self) -> dict[str, object]:
         latest = await self.session.scalar(

@@ -1,0 +1,30 @@
+<div class="card h-100">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-star me-1"></i>Add to Watchlist</h6>
+    </div>
+    <div class="card-body">
+        {% if watchlists %}
+            <ul class="list-group list-group-flush">
+                {% for wl in watchlists %}
+                <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                    <span style="color: {{ wl.color or '#2563eb' }}">
+                        <i class="bi bi-star me-1"></i>{{ wl.name }}
+                    </span>
+                    {% if wl.contains %}
+                        <span class="badge bg-success">Added</span>
+                    {% else %}
+                        <form method="post" action="/watchlists/{{ wl.id }}/stocks">
+                            <input type="hidden" name="stock_id" value="{{ stock.id }}">
+                            <button type="submit" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </form>
+                    {% endif %}
+                </li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="text-muted small mb-0">No watchlists yet. Create one on the <a href="/watchlists">Watchlists</a> page.</p>
+        {% endif %}
+    </div>
+</div>

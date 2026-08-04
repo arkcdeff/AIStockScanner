@@ -1,0 +1,30 @@
+<div class="card h-100">
+    <div class="card-header bg-white">
+        <h6 class="mb-0"><i class="bi bi-bell me-1"></i>Matching Alerts</h6>
+    </div>
+    <div class="card-body p-0">
+        {% if alert_rules %}
+        <ul class="list-group list-group-flush border-bottom">
+            {% for rule in alert_rules %}
+            <li class="list-group-item px-3 py-1 small">
+                <span class="badge bg-{{ 'success' if rule.enabled else 'secondary' }} me-1">{{ 'On' if rule.enabled else 'Off' }}</span>
+                {{ rule.name }}
+            </li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if alert_events %}
+        <ul class="list-group list-group-flush">
+            {% for event in alert_events %}
+            <li class="list-group-item px-3 py-1 small">
+                <span class="badge bg-warning text-dark me-1">{{ event.status }}</span>
+                <span class="text-truncate d-block">{{ event.message }}</span>
+                <span class="text-muted">{{ event.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% elif not alert_rules %}
+        <p class="text-muted small m-3 mb-0">No matching alert rules or events. Create one on the <a href="/alerts">Alerts</a> page.</p>
+        {% endif %}
+    </div>
+</div>

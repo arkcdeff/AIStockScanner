@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Watchlists - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-star me-2"></i>Watchlists</h1>
+                <form method="post" action="/watchlists" class="row g-2 align-items-center">
+                    <div class="col-auto">
+                        <input type="text" class="form-control form-control-sm" name="name" placeholder="New watchlist name" required>
+                    </div>
+                    <div class="col-auto">
+                        <input type="text" class="form-control form-control-sm" name="description" placeholder="Description">
+                    </div>
+                    <div class="col-auto">
+                        <select name="color" class="form-select form-select-sm">
+                            <option value="#2563eb">Blue</option>
+                            <option value="#16a34a">Green</option>
+                            <option value="#dc2626">Red</option>
+                            <option value="#d97706">Amber</option>
+                            <option value="#7c3aed">Purple</option>
+                        </select>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="bi bi-plus-lg me-1"></i>Create
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4">
+                    {% for wl in watchlists %}
+                    <div class="card mb-2 {% if selected_watchlist and wl.id == selected_watchlist.id %}border-primary{% endif %}">
+                        <div class="card-body py-2 d-flex align-items-center justify-content-between">
+                            <div>
+                                <a href="/watchlists?selected={{ wl.id }}" class="text-decoration-none fw-bold" style="color: {{ wl.color or '#2563eb' }}">
+                                    <i class="bi bi-{{ wl.icon or 'star' }} me-1"></i>{{ wl.name }}
+                                </a>
+                                <span class="badge bg-light text-dark ms-1">{{ wl.stocks|length }}</span>
+                                {% if wl.is_default %}<span class="badge bg-success ms-1">Default</span>{% endif %}
+                                {% if wl.is_favorite %}<i class="bi bi-star-fill text-warning ms-1"></i>{% endif %}
+                            </div>
+                            <div class="btn-group btn-group-sm">
+                                <form method="post" action="/watchlists/{{ wl.id }}/toggle-favorite">
+                                    <button class="btn btn-outline-warning" title="Favorite">
+                                        <i class="bi bi-star"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="/watchlists/{{ wl.id }}/toggle-default">
+                                    <button class="btn btn-outline-success" title="Default">
+                                        <i class="bi bi-pin-angle"></i>
+                                    </button>
+                                </form>
+                                <form method="post" action="/watchlists/{{ wl.id }}/delete" onsubmit="return confirm('Delete watchlist {{ wl.name }}?');">
+                                    <button class="btn btn-outline-danger" title="Delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="alert alert-light">No watchlists yet. Create one above.</div>
+                    {% endfor %}
+                </div>
+
+                <div class="col-md-8">
+                    {% include "components/watchlist_detail.html" %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,7 @@
+{% if stocks %}
+    {% for stock in stocks %}
+        <option value="{{ stock.id }}">{{ stock.symbol }} - {{ stock.company_name }}</option>
+    {% endfor %}
+{% else %}
+    <option value="">No matches for "{{ query }}"</option>
+{% endif %}

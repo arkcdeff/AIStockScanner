@@ -62,6 +62,26 @@ async def root_redirect(request: Request) -> HTMLResponse:
             "ai_opportunities": [],
             "ai_highest_confidence": [],
             "ai_recent": [],
+            "portfolio_summary": {
+                "holdings_count": 0,
+                "total_invested": 0.0,
+                "total_value": 0.0,
+                "total_pl": 0.0,
+                "total_roi_pct": 0.0,
+                "today_pl": 0.0,
+            },
+            "watchlist_summary": {
+                "total_watchlists": 0,
+                "total_watchlist_stocks": 0,
+                "top_watchlist": None,
+                "top_watchlist_count": 0,
+            },
+            "alert_summary": {
+                "total_rules": 0,
+                "enabled_rules": 0,
+                "pending_events": 0,
+                "recent_events": [],
+            },
         },
     )
     return HTMLResponse(content=html)
@@ -80,6 +100,9 @@ async def dashboard(
     health = await service.get_health()
     pipeline_status = await service.get_pipeline_status()
     top_rated = await service.get_top_rated()
+    portfolio_summary = await service.get_portfolio_summary()
+    watchlist_summary = await service.get_watchlist_summary()
+    alert_summary = await service.get_alert_summary()
 
     ai_service = AIInsightsService(session)
     ai_status = await ai_service.get_ai_status()
@@ -98,6 +121,9 @@ async def dashboard(
             "health": health,
             "pipeline_status": pipeline_status,
             "top_rated": top_rated,
+            "portfolio_summary": portfolio_summary,
+            "watchlist_summary": watchlist_summary,
+            "alert_summary": alert_summary,
             "ai_status": ai_status,
             "ai_opportunities": ai_opportunities,
             "ai_highest_confidence": ai_highest_confidence,
