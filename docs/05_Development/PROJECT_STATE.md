@@ -1,113 +1,135 @@
 # Project State
 
-Snapshot of the AIStockScanner project as of Sprint 14 (Portfolio, Watchlists & Alert Rules).
+Snapshot of AIStockScanner after Sprint 15 (Notification System), prepared for release v0.11.0.
 
 ## Stack
+
 - Python 3.13 (uv-managed), FastAPI, SQLAlchemy 2 async, PostgreSQL, Alembic
-- Jinja2 + HTMX frontend (dashboard, scanner-results workspace, stock detail, watchlists,
-  portfolio, alerts)
-- APScheduler (3.11) for optional scheduled EOD pipeline runs
-- AI Explanation Engine with async httpx providers (Ollama / DeepSeek / OpenAI / mock)
+- Jinja2 + Bootstrap 5 + HTMX frontend
+- One APScheduler 3.11 instance for optional EOD, delivery, and daily-summary jobs
+- AI Explanation Engine with async providers (Ollama, DeepSeek, OpenAI, mock)
 
 ## Data
-- 16 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+
+- 20 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
-  Holding, AlertRule, AlertEvent
+  Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
+  NotificationDelivery, DailySummaryRun
 - 18 indicator series per stock/date stored in `indicator_results`
-- 36 active scanners registered in `app/services/scanner_engine.py`; definitions seeded via
-  migrations `fda0edd539bd` (25) and `bdc596b3589a` (11)
+- 36 active scanners registered in `app/services/scanner_engine.py`
 - `scan_results` is unique on `(scan_definition_id, stock_id, scan_date)`
-  (`uq_scan_result_scan_stock_date`) — persistence is conflict-safe/idempotent
-- `eod_pipeline_runs` tracks every automated/manual pipeline run with per-stage metrics
-  (incl. `alerts_triggered`)
-- `technical_analysis` stores per-stock/date composite scores, pivots, ratings, flags
-- `ai_explanations` stores per-stock/date/provider AI explanations, unique on
-  `(stock_id, trade_date, provider)` (`uq_ai_explanation_stock_date_provider`)
-- `watchlist_stocks` unique on `(watchlist_id, stock_id)`; `holdings` unique on
-  `(portfolio_id, stock_id)`
+- `technical_analysis` stores composite scores, pivots, ratings, and trend/breakout flags
+- `ai_explanations` is unique on `(stock_id, trade_date, provider)`
+- `watchlist_stocks` is unique on `(watchlist_id, stock_id)`
+- `holdings` is unique on `(portfolio_id, stock_id)`
+- Notification channel names and channel/event preferences are unique
+- `daily_summary_runs.summary_date` is unique, preventing duplicate summary execution per date
 
 ## Migrations
-- Alembic current == head == `fd96a19d8b61` (9 revisions)
+
+- Alembic current: `22d886d53759 (head)`
+- Alembic heads: `22d886d53759 (head)`
+- Linear history: 10 revisions
+- Sprint 15 migration: `22d886d53759_add_notification_foundation_tables.py`
 
 ## EOD pipeline
-- `app/services/eod_pipeline.py`: import → indicators → all active scanners → analytics →
-  alerts, one fresh session per stage, single-active-run guard, credential-redacted errors,
-  abandoned-run recovery
+
+- Flow: import -> indicators -> active scanners -> analytics -> alerts
+- One fresh session per stage, single-active-run guard, abandoned-run recovery, and sanitized errors
 - Manual triggers: `/api/v1/pipeline/run-file`, `/run-date`, `/run-latest`
 - Observability: `/api/v1/pipeline/runs`, `/runs/{id}`, `/status`
-- Scheduler (`app/scheduler/eod_scheduler.py`): APScheduler daily job, weekdays 18:30
-  Asia/Kolkata, disabled by default (`EOD_SCHEDULER_ENABLED=false`)
+- Optional weekday EOD job defaults to 18:30 Asia/Kolkata and is disabled by default
+- After successful completion, alert delivery orchestration uses a separate fresh session
+- Notification failures are persisted/logged separately and cannot change a completed pipeline
+- Failed pipelines do not trigger notification delivery
 
 ## Analytics engine
-- `app/services/analytics_engine.py`: trend/momentum/volume/delivery/volatility/overall
-  scores (0-100), support/resistance, classic + Fibonacci pivots, relative volume,
-  delivery strength, ratings, trending/breakout flags
+
+- `app/services/analytics_engine.py` calculates deterministic trend, momentum, volume, delivery,
+  volatility, and overall scores (0-100)
+- Includes support/resistance, classic/Fibonacci pivots, relative volume, delivery strength,
+  ratings, and trend/breakout flags
 - APIs: `/api/v1/analytics/{symbol}`, `/top-rated`, `/trending`, `/breakouts`
-- Surfaced on dashboard (Top Rated card) and stock detail (analytics card + HTMX partial)
+- Surfaced on dashboard and stock detail
 
 ## AI Explanation Engine
-- `app/ai/`: provider abstraction (`BaseAIProvider` + factory), prompt builder (Pydantic DTOs
-  only), response parser with deterministic fallback, TTL + DB caching
-- Providers: `mock` (default, no network), `ollama`, `deepseek`, `openai` — selected via
-  `AI_PROVIDER` env var
-- AI explains existing deterministic analytics only — never computes indicators/scores/scanners
-- `ai_explanations` persistence + cache invalidation via prompt hash (trade date, indicators,
-  analytics, scanner results, pipeline rerun)
-- APIs: `/api/v1/ai/stock/{symbol}`, `/api/v1/ai/top-rated`, `/api/v1/ai/market-summary`
-- Stock detail AI card + HTMX partial (`/stocks/{symbol}/ai`); dashboard AI sections
-  (Today's AI Insights, Top Opportunities, Highest Confidence, Recent AI Explanations)
+
+- Provider abstraction, validated prompt DTOs, safe response parsing, deterministic fallback,
+  in-memory TTL caching, and per-stock persistent caching
+- Providers: mock (default/no network), Ollama, DeepSeek, OpenAI
+- AI only explains deterministic analytics; it never computes indicators, scores, or scanners
+- APIs: `/api/v1/ai/stock/{symbol}`, `/top-rated`, `/market-summary`
+- Daily summaries read cached AI market text only and never force a provider call
 
 ## Watchlists
-- `WatchlistService` (`app/services/watchlist.py`): CRUD, default-singleton handling,
-  add/remove/update stocks, latest-price enrichment, stock search
-- APIs: `/api/v1/watchlists/...` (list/create/get/update/delete, `/search`,
-  `/{id}/stocks`)
-- Page + HTMX partials at `/watchlists`; stock detail "Add to Watchlist" panel;
-  dashboard watchlist summary card
+
+- CRUD, default-list handling, add/remove/update stocks, latest-price enrichment, stock search
+- APIs: `/api/v1/watchlists/...`
+- HTML/HTMX page: `/watchlists`
+- Integrated into stock detail and dashboard
 
 ## Portfolio
-- `PortfolioService` (`app/services/portfolio.py`): portfolio/holding CRUD, valuations
-  (invested, current value, P&L, ROI %, today's P&L, allocation), per-portfolio and overall
-  summaries
-- APIs: `/api/v1/portfolios/...` (list/create/get/update/delete, `/summary`,
-  `/{id}/holdings`)
-- Page + HTMX partials at `/portfolio`; stock detail portfolio position panel;
-  dashboard portfolio value card
+
+- Portfolio/holding CRUD and current/invested value, P&L, ROI, daily P&L, and allocation summaries
+- APIs: `/api/v1/portfolios/...`
+- HTML/HTMX page: `/portfolio`
+- Integrated into stock detail and dashboard
 
 ## Alert rules
-- `AlertService` (`app/services/alert.py`): rule CRUD + deterministic engine
-  (`run_for_trade_date`) evaluating `overall_score`, `rsi`, `ema_cross`, `delivery`,
-  `volume`, `breakout`, `support_broken`, `resistance_broken`; cooldown via
-  `last_triggered`; persisted `AlertEvent` rows (in-app only, no notifications)
-- APIs: `/api/v1/alerts/rules` CRUD, `/run`, `/events`, `/events/pending`,
-  `/events/symbol/{symbol}`, `PATCH /events/{id}`
-- Page + HTMX partials at `/alerts`; stock detail matching-alerts panel; dashboard alert
-  summary card; `alerts_triggered` metric in the EOD pipeline
 
-## API surface
+- Deterministic engine for `overall_score`, `rsi`, `ema_cross`, `delivery`, `volume`, `breakout`,
+  `support_broken`, and `resistance_broken`
+- Rule scope supports one stock, a watchlist, or all active stocks
+- Cooldown is enforced through `last_triggered`; matches persist as `AlertEvent`
+- APIs: `/api/v1/alerts/...`; HTML/HTMX page: `/alerts`
+- The EOD pipeline records `alerts_triggered`
+
+## Notification system
+
+- Models: channel, per-event preference, delivery state/attempts, and one summary run per date
+- Providers: deterministic mock, Telegram, SMTP email, and in-app
+- `NotificationService` centralizes eligibility, quiet hours, rendering, delivery persistence,
+  duplicate prevention, retry, stale recovery, and mark-read behavior
+- Retry engine distinguishes transient/permanent failures and enforces maximum attempts
+- Provider errors are sanitized before persistence, logging, or display
+- Daily summaries read existing pipeline, scanner, analytics, alert, watchlist, and portfolio data;
+  missing sections are safe and cached AI text is optional
+- Existing scheduler supports stable jobs `notification_delivery_interval` and
+  `notification_daily_summary`; both are disabled by default, coalesced, non-overlapping, and use
+  fresh sessions
+- APIs: `/api/v1/notifications/...`
+- Pages: `/notifications`, `/notifications/settings`, `/notifications/history`
+- Dashboard: notification counts, recent rows, latest summary, delivery-scheduler state
+- Stock detail: latest five related delivery rows without N+1 queries
+- Secrets are masked from JSON/HTML and stored message content is escaped
+
+## API and page surface
+
 - `/api/v1`: health, stocks, market-data, indicators, scanners, pipeline, analytics, ai,
-  watchlists, portfolios, alerts, dashboard summary endpoints
-- `/dashboard`: HTML dashboard + `/dashboard/search` HTMX partial + pipeline status +
-  top-rated card + AI insights sections + portfolio/watchlist/alert summary cards
-- `/scanner-results`: HTML workspace + `/table`, `/export/{csv,excel,pdf}`
-- `/stocks/{symbol}`: HTML stock detail page + HTMX partials
-  (`/overview`, `/indicators`, `/analytics`, `/scanner-results`, `/ai`) +
-  `/api/v1/stocks/{symbol}/chart-data`
-- `/watchlists`, `/portfolio`, `/alerts`: HTML pages with HTMX partials
+  watchlists, portfolios, alerts, notifications, dashboard summaries
+- `/dashboard`: pipeline, analytics, AI, portfolio, watchlist, alert, and notification summaries
+- `/scanner-results`: server-rendered workspace with CSV/Excel/PDF export
+- `/stocks/{symbol}`: overview, indicators, analytics, scanners, AI, watchlist, portfolio, alerts,
+  and related notifications
+- `/watchlists`, `/portfolio`, `/alerts`, `/notifications`: HTML/HTMX workspaces
 
 ## Testing
-- Real PostgreSQL `test` database; `tests/conftest.py` truncates (incl. `alert_events`,
-  `alert_rules`, `watchlist_stocks`, `watchlists`, `holdings`, `portfolios`, `ai_explanations`)
-  and seeds 36 scan definitions idempotently per test
-- 170 tests covering stock detail, scanner persistence/idempotency, dashboard, indicators,
-  workspace exports, NSE parsing, market data, volume/delivery scanners, EOD pipeline,
-  the analytics engine, the AI explanation engine, watchlists, portfolios, and the alert
-  engine (rule evaluation, cooldown, APIs, UI rendering) — no real AI calls in tests
-- Target: 3 consecutive green pytest runs + clean ruff
 
-## Known gaps (not part of Sprint 14)
-- `app/scanner/` contains dead duplicate scanner code (kept intentionally)
-- Alert events are in-app only — notification delivery (email/push/webhook) not implemented
-- No authentication / per-user data — the schema is single-user by design
-- `scanner_engine.run_all` re-fetches indicator rows per scanner (perf follow-up)
-- AI collection endpoints (top-rated, market-summary) are memory-cached only, not persisted
+- Real PostgreSQL test persistence with database cleanup between tests
+- Scan definitions are seeded idempotently
+- 279 total tests
+- 109 focused Sprint 15 tests cover notification models, providers, renderer, service/retry,
+  APIs, UI, dashboard/stock integration, summaries, scheduler, security, idempotency, and pipeline
+  isolation
+- External AI, Telegram, and SMTP calls are mocked or replaced by deterministic providers
+- Release gate: Alembic current equals head, Ruff clean, and three consecutive full-suite passes
+
+## Known gaps
+
+- No authentication or per-user ownership; current schema is single-user
+- No application-wide CSRF system; HTMX forms follow existing project conventions
+- No browser push, Redis, Celery, or distributed scheduler
+- Notification jobs and outbound sending remain disabled until explicitly configured
+- `app/scanner/` contains intentionally retained duplicate/dead scanner code
+- `scanner_engine.run_all` re-fetches indicator rows per scanner (performance follow-up)
+- AI collection endpoints are memory-cached only; only per-stock explanations are persisted

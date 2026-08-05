@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+No unreleased changes.
+
+## [0.11.0] - 2026-08-05
+
+### Added
+- Notification persistence for channels, per-event preferences, delivery attempts, and
+  idempotent daily-summary runs via migration `22d886d53759`
+- Provider abstraction for deterministic mock, Telegram, SMTP email, and in-app delivery,
+  including provider health checks and safe configuration validation
+- Notification rendering, channel eligibility, delivery orchestration, retry scheduling,
+  stale-send recovery, permanent-failure handling, and duplicate-delivery prevention
+- Notification JSON APIs for status, channel/preference management, provider tests, alert and
+  pending delivery, delivery history/detail/retry/read state, daily summaries, and scheduler
+  status/manual execution
+- Bootstrap 5 + HTMX notification dashboard, settings, and history pages; notification widgets
+  on the main dashboard and stock detail pages
+- Deterministic daily summaries using existing EOD, scanner, analytics, alert, watchlist, and
+  portfolio data, with cached AI market text only when it already exists
+- Two optional jobs in the existing APScheduler instance: interval delivery processing and a
+  weekday daily summary; both are disabled by default and use fresh database sessions
+- Post-pipeline notification orchestration that cannot change a successfully completed EOD run
+- 109 focused notification tests; full project suite now contains 279 tests
+
+### Security
+- API responses and HTML mask provider recipients and credentials; token/password fields are
+  write-only in the UI and stored message content is HTML-escaped
+- Provider exceptions are sanitized before persistence, logging, or API/UI presentation
+- Scheduler and outbound notification execution remain disabled by default
+
+### Changed
+- Alert events can now be delivered through eligible notification channels after successful EOD
+  processing without sharing the pipeline database session
+- Dashboard and stock detail pages show compact notification state without redesigning their
+  existing layouts
+
+### Migrations
+- `22d886d53759` adds `notification_channels`, `notification_preferences`,
+  `notification_deliveries`, and `daily_summary_runs`
+
 ## [0.10.0] - 2026-08-04
 
 ### Added
@@ -82,13 +123,6 @@ All notable changes to this project will be documented in this file.
 - `IndicatorEngine` never imported `pandas_ta`, so `df.ta` was unavailable — computation now works
 - Indicator calculation failed on `Decimal` columns from the database — numeric columns are cast
   to float before indicator math
-
-## [Unreleased]
-
-### Planned
-- Watchlist management
-- Price alerts and notifications
-- Real-time scanner execution
 
 ## [0.6.1] - 2026-08-03
 
