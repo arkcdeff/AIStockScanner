@@ -9,6 +9,9 @@ from app.notifications.exceptions import (
     NotificationTransientError,
 )
 from app.notifications.factory import get_provider
+from app.notifications.manager import NotificationManager
+from app.notifications.renderer import NotificationRenderer
+from app.notifications.retry import RetryEngine
 
 __all__ = [
     "NotificationMessage",
@@ -22,4 +25,7 @@ __all__ = [
     "NotificationTimeoutError",
     "NotificationTransientError",
     "get_provider",
+    "NotificationManager",
+    "NotificationRenderer",
+    "RetryEngine",
 ]

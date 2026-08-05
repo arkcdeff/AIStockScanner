@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>ALERT: {{ symbol }}</h2>
+    <h3>{{ alert_name }}</h3>
+    <table>
+        <tr><th>Trigger value</th><td>{{ trigger_value }}</td></tr>
+        <tr><th>Latest close</th><td>{{ latest_close }}</td></tr>
+        <tr><th>Technical score</th><td>{{ technical_score }}</td></tr>
+        <tr><th>Trend rating</th><td>{{ trend_rating }}</td></tr>
+        <tr><th>Support</th><td>{{ support }}</td></tr>
+        <tr><th>Resistance</th><td>{{ resistance }}</td></tr>
+        <tr><th>Time</th><td>{{ alert_time }}</td></tr>
+    </table>
+    {% if note %}<p>Note: {{ note }}</p>{% endif %}
+</body>
+</html>

@@ -1,0 +1,12 @@
+ALERT: {{ symbol }}
+{{ alert_name }}
+
+Trigger value: {{ trigger_value }}
+Latest close: {{ latest_close }}
+Technical score: {{ technical_score }}
+Trend rating: {{ trend_rating }}
+Support: {{ support }}
+Resistance: {{ resistance }}
+Time: {{ alert_time }}
+
+{% if note %}Note: {{ note }}{% endif %}

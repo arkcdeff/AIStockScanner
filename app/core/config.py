@@ -58,6 +58,12 @@ class Settings(BaseSettings):
     notification_provider: str = "mock"
     notification_timeout: int = 15
 
+    notifications_enabled: bool = False
+    notification_max_attempts: int = 3
+    notification_retry_minutes: int = 15
+    notification_batch_size: int = 100
+    notification_stale_minutes: int = 30
+
     telegram_bot_token: str = ""
     telegram_default_chat_id: str = ""
     telegram_html_mode: bool = True

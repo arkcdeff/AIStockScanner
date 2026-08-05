@@ -1,0 +1,9 @@
+DAILY SUMMARY - {{ summary_date }}
+
+Alerts triggered: {{ alerts_count }}
+Scanner matches: {{ scanner_matches }}
+Top rated count: {{ top_rated_count }}
+Watchlist changes: {{ watchlist_changes }}
+Portfolio value: {{ portfolio_value }}
+
+{% if note %}Note: {{ note }}{% endif %}

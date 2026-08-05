@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Daily Summary - {{ summary_date }}</h2>
+    <table>
+        <tr><th>Alerts triggered</th><td>{{ alerts_count }}</td></tr>
+        <tr><th>Scanner matches</th><td>{{ scanner_matches }}</td></tr>
+        <tr><th>Top rated count</th><td>{{ top_rated_count }}</td></tr>
+        <tr><th>Watchlist changes</th><td>{{ watchlist_changes }}</td></tr>
+        <tr><th>Portfolio value</th><td>{{ portfolio_value }}</td></tr>
+    </table>
+    {% if note %}<p>Note: {{ note }}</p>{% endif %}
+</body>
+</html>
