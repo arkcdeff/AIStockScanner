@@ -1,5 +1,15 @@
 from app.models.ai_explanation import AIExplanation
 from app.models.alert import AlertEvent, AlertRule
+from app.models.auth import (
+    AuditLog,
+    Permission,
+    Role,
+    RolePermission,
+    User,
+    UserPreference,
+    UserRole,
+    UserSession,
+)
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
@@ -35,6 +45,14 @@ __all__ = [
     "Holding",
     "AlertRule",
     "AlertEvent",
+    "User",
+    "Role",
+    "Permission",
+    "UserRole",
+    "RolePermission",
+    "UserSession",
+    "UserPreference",
+    "AuditLog",
     "NotificationChannel",
     "NotificationPreference",
     "NotificationDelivery",
