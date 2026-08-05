@@ -2,7 +2,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -89,6 +89,13 @@ class Settings(BaseSettings):
     email_use_tls: bool = False
     email_use_starttls: bool = True
     email_timeout: int = 15
+
+    jwt_secret_key: SecretStr = SecretStr("")
+    jwt_algorithm: Literal["HS256", "HS384", "HS512"] = "HS256"
+    access_token_minutes: int = Field(default=15, ge=1, le=1440)
+    refresh_token_days: int = Field(default=30, ge=1, le=365)
+    password_hash_scheme: Literal["argon2id"] = "argon2id"
+    clock_skew_seconds: int = Field(default=30, ge=0, le=300)
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
