@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session_factory
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
+from app.schemas.notification import sanitize_notification_error
 from app.services.alert import AlertService
 from app.services.analytics_engine import AnalyticsEngine
 from app.services.indicator_engine import IndicatorEngine
@@ -38,7 +39,8 @@ _CREDENTIAL_PATTERN = re.compile(r"(://)([^:/\s@]+):([^@/\s]+)@")
 
 
 def _sanitize_error(message: str) -> str:
-    return _CREDENTIAL_PATTERN.sub(r"\1***:***@", message)
+    safe = _CREDENTIAL_PATTERN.sub(r"\1***:***@", message)
+    return sanitize_notification_error(safe) or "Pipeline failure"
 
 
 class EODPipelineService:
@@ -196,7 +198,27 @@ class EODPipelineService:
                 alert_summary = await AlertService(session).run_for_trade_date(trade_date)
             metrics["alerts_triggered"] = alert_summary["triggered"]
 
-            return await self._complete(run_id, trade_date, metrics)
+            completed = await self._complete(run_id, trade_date, metrics)
+            if trade_date is not None:
+                try:
+                    from app.services.notification_jobs import (
+                        deliver_alert_events_for_date,
+                    )
+
+                    notification_result = await deliver_alert_events_for_date(trade_date)
+                    if notification_result.status == "failed":
+                        logger.error(
+                            "Pipeline {} completed but alert notification orchestration failed: {}",
+                            run_id,
+                            notification_result.error or "unknown notification failure",
+                        )
+                except Exception as exc:
+                    logger.error(
+                        "Pipeline {} completed but alert notification orchestration failed: {}",
+                        run_id,
+                        _sanitize_error(str(exc)),
+                    )
+            return completed
         except PipelineError:
             raise
         except Exception as exc:

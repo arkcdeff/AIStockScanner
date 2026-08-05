@@ -8,7 +8,7 @@
         {% include "components/navbar.html" %}
         <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
             <div><h1 class="h2 mb-1">Notification history</h1><p class="text-muted mb-0">Newest deliveries first, with server-side filtering and pagination.</p></div>
-            <a href="/notifications" class="btn btn-outline-primary">Back to notifications</a>
+            <div class="d-flex gap-2"><a href="/notifications/history?notification_type=daily_summary" class="btn btn-outline-secondary">Daily summaries</a><a href="/notifications" class="btn btn-outline-primary">Back to notifications</a></div>
         </div>
         <form id="history-filters" class="card card-body mb-3"
               hx-get="/notifications/history/table" hx-target="#notification-history-table" hx-swap="innerHTML" hx-trigger="submit, change delay:250ms">

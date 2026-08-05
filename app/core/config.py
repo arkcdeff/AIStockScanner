@@ -64,6 +64,18 @@ class Settings(BaseSettings):
     notification_batch_size: int = 100
     notification_stale_minutes: int = 30
 
+    notification_delivery_job_enabled: bool = False
+    notification_delivery_interval_minutes: int = 5
+    notification_delivery_max_instances: int = 1
+    notification_delivery_coalesce: bool = True
+
+    daily_summary_enabled: bool = False
+    daily_summary_hour: int = 20
+    daily_summary_minute: int = 0
+    daily_summary_timezone: str = "Asia/Kolkata"
+    daily_summary_max_instances: int = 1
+    daily_summary_coalesce: bool = True
+
     telegram_bot_token: str = ""
     telegram_default_chat_id: str = ""
     telegram_html_mode: bool = True

@@ -20,7 +20,8 @@ from app.core.config import settings
 from app.core.logging import configure_logging
 from app.core.middleware import RequestContextMiddleware
 from app.db.session import dispose_engine, get_session_factory
-from app.scheduler.eod_scheduler import EODScheduler
+from app.scheduler.eod_scheduler import get_scheduler
+from app.services.daily_summary import DailySummaryService
 from app.services.eod_pipeline import EODPipelineService
 
 
@@ -29,15 +30,20 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     configure_logging()
     logger.info("Starting {} in {} mode", settings.app_name, settings.app_env)
 
-    scheduler = EODScheduler()
+    scheduler = get_scheduler()
     if scheduler.enabled:
-        async with get_session_factory()() as session:
-            recovered = await EODPipelineService(session).recover_abandoned_runs()
+        if settings.eod_scheduler_enabled:
+            recovered = await EODPipelineService().recover_abandoned_runs()
             if recovered:
                 logger.warning("Recovered {} abandoned pipeline run(s)", recovered)
+        if settings.daily_summary_enabled:
+            async with get_session_factory()() as session:
+                recovered = await DailySummaryService(session).recover_abandoned_runs()
+            if recovered:
+                logger.warning("Recovered {} abandoned daily summary run(s)", recovered)
         scheduler.start()
     else:
-        logger.info("EOD scheduler disabled; not starting")
+        logger.info("Application scheduler disabled; not starting")
 
     yield
 

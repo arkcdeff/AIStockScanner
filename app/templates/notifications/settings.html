@@ -13,6 +13,11 @@
 
         <div class="alert alert-secondary small"><i class="bi bi-shield-lock me-1"></i>Tokens and passwords are write-only. Existing secrets are never placed in HTML. This project currently has no CSRF framework; these forms follow the application’s existing same-origin HTMX convention.</div>
 
+        <section id="summary-scheduler-panel" class="mb-4">
+            {% set show_run_action = false %}
+            {% include "notifications/components/summary_scheduler.html" %}
+        </section>
+
         <section class="card mb-4">
             <div class="card-header bg-white"><h2 class="h5 mb-0">Create channel</h2></div>
             <div class="card-body">{% set channel = none %}{% include "notifications/components/channel_form.html" %}</div>

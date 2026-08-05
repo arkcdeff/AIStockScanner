@@ -11,10 +11,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.config import settings
 from app.models.notification import NotificationChannel, NotificationPreference
 from app.repositories.notification import (
+    DailySummaryRunRepository,
     NotificationChannelRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
 )
+from app.scheduler.eod_scheduler import get_scheduler
 from app.schemas.notification import (
     NotificationChannelCreate,
     NotificationChannelUpdate,
@@ -55,6 +57,7 @@ class NotificationUIService:
         self.channel_repo = NotificationChannelRepository(session)
         self.preference_repo = NotificationPreferenceRepository(session)
         self.delivery_repo = NotificationDeliveryRepository(session)
+        self.summary_repo = DailySummaryRunRepository(session)
 
     # --------------------------------------------------------------- status
 
@@ -259,6 +262,7 @@ class NotificationUIService:
     async def get_dashboard_summary(self) -> dict[str, Any]:
         status = await self.get_status()
         recent = await self.get_recent_history(limit=5)
+        summary_schedule = await self.get_summary_schedule()
         if status["failed_count"]:
             overall_status = "attention"
         elif status["pending_count"] or status["retry_scheduled_count"]:
@@ -271,11 +275,45 @@ class NotificationUIService:
             "recent": recent,
             "latest": recent[0] if recent else None,
             "overall_status": overall_status,
+            "daily_summary": summary_schedule["last_summary"],
+            "alert_delivery_scheduler_enabled": summary_schedule[
+                "alert_delivery_enabled"
+            ],
         }
 
     async def get_stock_history(self, symbol: str, *, limit: int = 5) -> list[dict[str, Any]]:
         deliveries = await self.delivery_repo.list_for_stock_symbol(symbol, limit=limit)
         return [self._delivery_row(item) for item in deliveries]
+
+    async def get_summary_schedule(self) -> dict[str, Any]:
+        latest = await self.summary_repo.latest()
+        scheduler = get_scheduler().status()
+        jobs = scheduler["jobs"]
+        delivery_job = jobs["alert_delivery"]
+        summary_job = jobs["daily_summary"]
+        return {
+            "last_summary": (
+                {
+                    "id": latest.id,
+                    "summary_date": latest.summary_date,
+                    "status": latest.status,
+                    "alerts_count": latest.alerts_count,
+                    "scanner_matches": latest.scanner_matches,
+                    "finished_at": latest.finished_at,
+                }
+                if latest is not None
+                else None
+            ),
+            "scheduler_running": scheduler["running"],
+            "alert_delivery_enabled": delivery_job["enabled"],
+            "daily_summary_enabled": summary_job["enabled"],
+            "delivery_next_run": delivery_job["next_run_time"],
+            "summary_next_run": summary_job["next_run_time"],
+            "delivery_interval_minutes": settings.notification_delivery_interval_minutes,
+            "summary_hour": settings.daily_summary_hour,
+            "summary_minute": settings.daily_summary_minute,
+            "summary_timezone": settings.daily_summary_timezone,
+        }
 
     # ------------------------------------------------------------ settings
 

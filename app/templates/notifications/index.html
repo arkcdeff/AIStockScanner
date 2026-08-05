@@ -28,6 +28,11 @@
                 {% include "notifications/components/status_cards.html" %}
             </section>
 
+            <section id="summary-scheduler-panel" class="mb-4">
+                {% set show_run_action = true %}
+                {% include "notifications/components/summary_scheduler.html" %}
+            </section>
+
             <section class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h2 class="h5 mb-0">Providers</h2>

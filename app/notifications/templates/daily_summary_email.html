@@ -1,14 +1,24 @@
 <!DOCTYPE html>
 <html>
+<head><meta charset="utf-8"><title>Daily Summary - {{ summary_date }}</title></head>
 <body>
     <h2>Daily Summary - {{ summary_date }}</h2>
-    <table>
-        <tr><th>Alerts triggered</th><td>{{ alerts_count }}</td></tr>
-        <tr><th>Scanner matches</th><td>{{ scanner_matches }}</td></tr>
-        <tr><th>Top rated count</th><td>{{ top_rated_count }}</td></tr>
-        <tr><th>Watchlist changes</th><td>{{ watchlist_changes }}</td></tr>
-        <tr><th>Portfolio value</th><td>{{ portfolio_value }}</td></tr>
+    <table border="1" cellpadding="6" cellspacing="0">
+        <tr><th align="left">Pipeline status</th><td>{{ pipeline_status }}</td></tr>
+        {% if failed_pipeline_stage != 'N/A' %}<tr><th align="left">Failed stage</th><td>{{ failed_pipeline_stage }}</td></tr>{% endif %}
+        <tr><th align="left">Imported / updated / rejected</th><td>{{ imported_rows }} / {{ updated_rows }} / {{ rejected_rows }}</td></tr>
+        <tr><th align="left">Scanner matches</th><td>{{ scanner_matches }}</td></tr>
+        <tr><th align="left">Alerts triggered</th><td>{{ alerts_count }}</td></tr>
+        <tr><th align="left">Top rated count</th><td>{{ top_rated_count }}</td></tr>
+        <tr><th align="left">Watchlist changes</th><td>{{ watchlist_changes }}</td></tr>
+        <tr><th align="left">Portfolio value</th><td>{{ portfolio_value }}</td></tr>
+        <tr><th align="left">Portfolio daily P/L</th><td>{{ portfolio_daily_pl }}</td></tr>
     </table>
-    {% if note %}<p>Note: {{ note }}</p>{% endif %}
+
+    {% if top_rated %}<h3>Top rated stocks</h3><ul>{% for item in top_rated %}<li><strong>{{ item.symbol }}</strong>: {{ item.score }}</li>{% endfor %}</ul>{% endif %}
+    {% if breakouts %}<h3>Strongest breakouts</h3><ul>{% for item in breakouts %}<li><strong>{{ item.symbol }}</strong>: {{ item.score }}</li>{% endfor %}</ul>{% endif %}
+    {% if alerts %}<h3>Recent high-priority alerts</h3><ul>{% for item in alerts %}<li><strong>{{ item.symbol }}</strong> - {{ item.alert_name }}</li>{% endfor %}</ul>{% endif %}
+    <h3>Market view</h3>
+    <p>{{ market_summary_text }}</p>
 </body>
 </html>

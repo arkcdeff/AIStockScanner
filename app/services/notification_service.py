@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import re
-from datetime import datetime
+from datetime import date, datetime
 
 from loguru import logger
 from sqlalchemy import select
@@ -29,6 +29,7 @@ from app.repositories.notification import (
 )
 
 EVENT_TYPE_ALERT = "alert_triggered"
+EVENT_TYPE_DAILY_SUMMARY = "daily_summary"
 
 STATUS_PENDING = "pending"
 STATUS_SENDING = "sending"
@@ -180,6 +181,33 @@ class NotificationService:
                 return STATUS_SKIPPED, preference
         return STATUS_PENDING, preference
 
+    async def eligible_channels(
+        self,
+        *,
+        event_type: str,
+        priority: int = 0,
+        now: datetime | None = None,
+        require_preference: bool = False,
+    ) -> list[NotificationChannel]:
+        """Return enabled channels whose event preference permits delivery."""
+        channels = await self.channel_repo.list_with_preferences()
+        evaluated_at = now or datetime.now().astimezone()
+        eligible: list[NotificationChannel] = []
+        for channel in channels:
+            if require_preference and not any(
+                preference.event_type == event_type for preference in channel.preferences
+            ):
+                continue
+            decision, _preference = await self._evaluate_channel(
+                channel,
+                event_type=event_type,
+                priority=priority,
+                now=evaluated_at,
+            )
+            if decision == STATUS_PENDING:
+                eligible.append(channel)
+        return eligible
+
     # ---------------------------------------------------------------- deliver
 
     async def deliver_alert(self, alert_event_id: int) -> dict[str, int | list[int]]:
@@ -295,6 +323,63 @@ class NotificationService:
 
         await self._mark_sent(delivery_id, result.external_message_id)
         return {"status": STATUS_SENT, "delivery_id": delivery_id}
+
+    async def deliver_daily_summary(
+        self,
+        channel: NotificationChannel,
+        *,
+        summary_date: date,
+        context: dict,
+    ) -> NotificationDelivery:
+        """Render, persist and send one idempotent daily-summary delivery."""
+        existing = await self.delivery_repo.existing_daily_summary(
+            channel_id=channel.id, summary_date=summary_date
+        )
+        if existing is not None:
+            return existing
+
+        rendered = self.manager.render(
+            notification_type="daily_summary",
+            provider=channel.provider,
+            context=context,
+        )
+        delivery = NotificationDelivery(
+            channel_id=channel.id,
+            notification_type=EVENT_TYPE_DAILY_SUMMARY,
+            subject=rendered["subject"],
+            rendered_body=rendered["text"],
+            status=STATUS_SENDING,
+            attempt_count=1,
+        )
+        self.session.add(delivery)
+        await self.session.commit()
+        delivery_id = delivery.id
+
+        config = channel.config_json or {}
+        recipient = config.get("recipient") or config.get("chat_id") or ""
+        try:
+            provider = self.manager.resolve_provider(provider=channel.provider, config=config)
+            result = await self.manager.send(
+                provider=provider,
+                message=NotificationMessage(
+                    recipient=recipient,
+                    subject=rendered["subject"],
+                    text=rendered["text"],
+                    html=rendered["html"],
+                ),
+            )
+        except NotificationError as exc:
+            await self._mark_failed(
+                delivery_id,
+                retryable=self.retry.is_retryable(exc),
+                error_message=self._sanitize(str(exc), config=config),
+                attempt_count=1,
+            )
+        else:
+            await self._mark_sent(delivery_id, result.external_message_id)
+        refreshed = await self.session.get(NotificationDelivery, delivery_id)
+        assert refreshed is not None
+        return refreshed
 
     async def _mark_sent(self, delivery_id: int, external_message_id: str | None) -> None:
         delivery = await self.session.get(NotificationDelivery, delivery_id)

@@ -20,15 +20,22 @@ from app.notifications.exceptions import (
 )
 from app.notifications.factory import get_provider
 from app.repositories.notification import (
+    DailySummaryRunRepository,
     NotificationChannelRepository,
     NotificationDeliveryRepository,
     NotificationPreferenceRepository,
 )
+from app.scheduler.eod_scheduler import get_scheduler
 from app.schemas.notification import (
     SUPPORTED_DELIVERY_STATUSES,
+    DailySummaryExecutionResponse,
+    DailySummaryHistoryResponse,
+    DailySummaryRunRead,
+    DailySummaryRunRequest,
     DeliverAlertResponse,
     DeliverPendingRequest,
     DeliverPendingResponse,
+    DeliverySchedulerRunResponse,
     NotificationAlertSummary,
     NotificationChannelCreate,
     NotificationChannelRead,
@@ -40,6 +47,7 @@ from app.schemas.notification import (
     NotificationPreferenceRead,
     NotificationPreferenceUpdate,
     NotificationRetryResponse,
+    NotificationSchedulerStatusRead,
     NotificationStatusRead,
     NotificationStockSummary,
     ProviderTestRequest,
@@ -50,6 +58,7 @@ from app.schemas.notification import (
     validate_provider_config,
     validate_quiet_hours,
 )
+from app.services.daily_summary import DailySummaryService, supported_summary_statuses
 from app.services.notification_service import NotificationConflictError, NotificationService
 
 router = APIRouter(prefix="/notifications", tags=["Notifications"])
@@ -109,6 +118,24 @@ def _config_secrets(config: dict[str, Any] | None) -> list[str]:
     return [str(value) for key, value in config.items() if key.lower() in sensitive and value]
 
 
+def _daily_summary_read(run) -> DailySummaryRunRead:
+    return DailySummaryRunRead(
+        id=run.id,
+        summary_date=run.summary_date,
+        status=run.status,
+        alerts_count=run.alerts_count,
+        scanner_matches=run.scanner_matches,
+        top_rated_count=run.top_rated_count,
+        watchlist_changes=run.watchlist_changes,
+        portfolio_value=run.portfolio_value,
+        started_at=run.started_at,
+        finished_at=run.finished_at,
+        error_message=sanitize_notification_error(run.error_message),
+        created_at=run.created_at,
+        updated_at=run.updated_at,
+    )
+
+
 @router.get("/status", response_model=NotificationStatusRead)
 async def notification_status(
     session: AsyncSession = Depends(get_db_session),
@@ -150,6 +177,80 @@ async def notification_status(
         email_enabled="email" in enabled_providers,
         in_app_enabled="in_app" in enabled_providers,
         **counts,
+    )
+
+
+@router.post("/daily-summary/run", response_model=DailySummaryExecutionResponse)
+async def run_daily_summary(
+    payload: DailySummaryRunRequest | None = Body(default=None),
+    session: AsyncSession = Depends(get_db_session),
+) -> DailySummaryExecutionResponse:
+    execution = await DailySummaryService(session).run(
+        payload.summary_date if payload is not None else None
+    )
+    return DailySummaryExecutionResponse(
+        run=_daily_summary_read(execution.run),
+        idempotent=execution.idempotent,
+        delivery_ids=execution.delivery_ids,
+    )
+
+
+@router.get("/daily-summary/history", response_model=DailySummaryHistoryResponse)
+async def daily_summary_history(
+    status: str | None = Query(default=None),
+    date_from: date | None = Query(default=None),
+    date_to: date | None = Query(default=None),
+    limit: int = Query(default=20, ge=1, le=100),
+    offset: int = Query(default=0, ge=0),
+    session: AsyncSession = Depends(get_db_session),
+) -> DailySummaryHistoryResponse:
+    if status is not None and status not in supported_summary_statuses():
+        raise _unprocessable("Unsupported daily summary status")
+    if date_from is not None and date_to is not None and date_from > date_to:
+        raise _unprocessable("date_from must be on or before date_to")
+    repo = DailySummaryRunRepository(session)
+    runs = await repo.list_filtered(
+        status=status,
+        date_from=date_from,
+        date_to=date_to,
+        offset=offset,
+        limit=limit,
+    )
+    total = await repo.count_filtered(status=status, date_from=date_from, date_to=date_to)
+    return DailySummaryHistoryResponse(
+        items=[_daily_summary_read(run) for run in runs],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/daily-summary/{summary_id}", response_model=DailySummaryRunRead)
+async def daily_summary_detail(
+    summary_id: int,
+    session: AsyncSession = Depends(get_db_session),
+) -> DailySummaryRunRead:
+    run = await DailySummaryRunRepository(session).get(summary_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail="Daily summary run not found")
+    return _daily_summary_read(run)
+
+
+@router.post("/scheduler/run-delivery", response_model=DeliverySchedulerRunResponse)
+async def run_notification_delivery_scheduler() -> DeliverySchedulerRunResponse:
+    result = await get_scheduler().run_delivery_now()
+    return DeliverySchedulerRunResponse.model_validate(result)
+
+
+@router.get("/scheduler/status", response_model=NotificationSchedulerStatusRead)
+async def notification_scheduler_status() -> NotificationSchedulerStatusRead:
+    status = get_scheduler().status()
+    return NotificationSchedulerStatusRead(
+        running=bool(status["running"]),
+        alert_delivery_job_enabled=bool(status["alert_delivery_job_enabled"]),
+        daily_summary_job_enabled=bool(status["daily_summary_job_enabled"]),
+        registered_job_ids=list(status["registered_job_ids"]),
+        jobs=status["jobs"],
     )
 
 

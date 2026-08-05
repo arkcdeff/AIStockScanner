@@ -16,6 +16,7 @@ from app.schemas.notification import (
     SUPPORTED_DELIVERY_STATUSES,
     SUPPORTED_NOTIFICATION_PROVIDERS,
 )
+from app.services.daily_summary import DailySummaryService
 from app.services.notification_service import NotificationConflictError, NotificationService
 from app.services.notification_ui import NotificationUIError, NotificationUIService
 
@@ -158,6 +159,7 @@ async def _settings_context(
     return {
         "channels": channels,
         "preferences": await service.get_preferences(channels=channels),
+        "summary_schedule": await service.get_summary_schedule(),
         "flash": flash,
     }
 
@@ -177,6 +179,7 @@ async def notifications_page(
             "status": await service.get_status(channels=channels),
             "providers": await service.get_provider_cards(channels=channels),
             "recent": await service.get_recent_history(limit=10),
+            "summary_schedule": await service.get_summary_schedule(),
         },
     )
     return HTMLResponse(content=html)
@@ -267,6 +270,73 @@ async def recent_notification_partial(
         content=_render(
             "notifications/components/recent_history.html",
             {"request": request, "recent": recent},
+        )
+    )
+
+
+@router.get("/summary-scheduler", response_class=HTMLResponse)
+async def notification_summary_scheduler_partial(
+    request: Request,
+    show_run_action: bool = Query(default=False),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    schedule = await NotificationUIService(session).get_summary_schedule()
+    return HTMLResponse(
+        content=_render(
+            "notifications/components/summary_scheduler.html",
+            {
+                "request": request,
+                "summary_schedule": schedule,
+                "show_run_action": show_run_action,
+                "flash": None,
+            },
+        )
+    )
+
+
+@router.post("/daily-summary/run", response_class=HTMLResponse)
+async def run_notification_daily_summary(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    form = await request.form()
+    requested = _optional(form.get("summary_date"))
+    try:
+        summary_date = date.fromisoformat(requested) if requested else None
+    except ValueError:
+        schedule = await NotificationUIService(session).get_summary_schedule()
+        return HTMLResponse(
+            content=_render(
+                "notifications/components/summary_scheduler.html",
+                {
+                    "request": request,
+                    "summary_schedule": schedule,
+                    "show_run_action": True,
+                    "flash": {"level": "danger", "message": "Invalid summary date."},
+                },
+            )
+        )
+
+    execution = await DailySummaryService(session).run(summary_date)
+    if execution.run.status == "failed":
+        flash = {"level": "danger", "message": "Daily summary failed safely."}
+    elif execution.idempotent:
+        flash = {
+            "level": "info",
+            "message": "Daily summary already exists; no duplicate was sent.",
+        }
+    else:
+        flash = {"level": "success", "message": "Daily summary completed."}
+    schedule = await NotificationUIService(session).get_summary_schedule()
+    return HTMLResponse(
+        content=_render(
+            "notifications/components/summary_scheduler.html",
+            {
+                "request": request,
+                "summary_schedule": schedule,
+                "show_run_action": True,
+                "flash": flash,
+            },
         )
     )
 

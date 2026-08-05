@@ -1,5 +1,6 @@
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
@@ -33,12 +34,16 @@ def _env() -> Environment:
     )
 
 
-def _normalize(value: object) -> str:
+def _normalize(value: object) -> Any:
     if value is None:
         return _NA
+    if isinstance(value, dict):
+        return {key: _normalize(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_normalize(item) for item in value]
     if isinstance(value, bool):
-        return str(value)
-    return str(value)
+        return value
+    return value
 
 
 class NotificationRenderer:
@@ -65,7 +70,9 @@ class NotificationRenderer:
             template_name = template_set["telegram"]
         html_name = template_set.get("email_html") if provider in _HTML_PROVIDERS else None
 
-        safe_context = {key: _normalize(value) for key, value in context.items()}
+        safe_context: dict[str, Any] = {
+            key: _normalize(value) for key, value in context.items()
+        }
 
         subject = self._subject(notification_type, safe_context)
         text = _env().get_template(template_name).render(safe_context)
@@ -75,7 +82,7 @@ class NotificationRenderer:
         return {"subject": subject, "text": text, "html": html}
 
     @staticmethod
-    def _subject(notification_type: str, context: dict) -> str:
+    def _subject(notification_type: str, context: dict[str, Any]) -> str:
         if notification_type == "alert":
             return f"Alert: {context.get('symbol', _NA)} - {context.get('alert_name', _NA)}"
         return f"Daily Summary - {context.get('summary_date', _NA)}"

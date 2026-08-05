@@ -21,6 +21,13 @@
                     Latest: {{ notification_summary.latest.subject if notification_summary.latest else 'No deliveries yet' }} ·
                     Last delivery: {{ notification_summary.last_delivery_at.strftime('%Y-%m-%d %H:%M') if notification_summary.last_delivery_at else 'N/A' }}
                 </div>
+                <div class="d-flex flex-wrap gap-2 mb-3 small">
+                    <span class="badge bg-{{ 'success' if notification_summary.daily_summary and notification_summary.daily_summary.status == 'completed' else 'danger' if notification_summary.daily_summary and notification_summary.daily_summary.status == 'failed' else 'secondary' }}">
+                        Daily summary: {{ notification_summary.daily_summary.status|title if notification_summary.daily_summary else 'Never' }}
+                    </span>
+                    {% if notification_summary.daily_summary %}<span class="text-muted">Summary date: {{ notification_summary.daily_summary.summary_date }}</span>{% endif %}
+                    <span class="badge bg-{{ 'success' if notification_summary.alert_delivery_scheduler_enabled else 'secondary' }}">Alert scheduler {{ 'enabled' if notification_summary.alert_delivery_scheduler_enabled else 'disabled' }}</span>
+                </div>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead><tr><th>Provider</th><th>Subject</th><th>Status</th><th>Created</th></tr></thead>

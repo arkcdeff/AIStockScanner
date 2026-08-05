@@ -374,3 +374,46 @@ class DailySummaryRunRead(BaseModel):
     error_message: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class DailySummaryRunRequest(BaseModel):
+    summary_date: date | None = None
+
+
+class DailySummaryExecutionResponse(BaseModel):
+    run: DailySummaryRunRead
+    idempotent: bool
+    delivery_ids: list[int]
+
+
+class DailySummaryHistoryResponse(BaseModel):
+    items: list[DailySummaryRunRead]
+    total: int
+    limit: int
+    offset: int
+
+
+class SchedulerJobStatusRead(BaseModel):
+    job_id: str
+    enabled: bool
+    registered: bool
+    next_run_time: str | None
+    last_execution: dict[str, Any] | None = None
+
+
+class NotificationSchedulerStatusRead(BaseModel):
+    running: bool
+    alert_delivery_job_enabled: bool
+    daily_summary_job_enabled: bool
+    registered_job_ids: list[str]
+    jobs: dict[str, SchedulerJobStatusRead]
+
+
+class DeliverySchedulerRunResponse(BaseModel):
+    status: str
+    recovered: int = 0
+    dispatched: int = 0
+    events_processed: int = 0
+    duration_ms: float = 0
+    error: str | None = None
+    finished_at: str | None = None

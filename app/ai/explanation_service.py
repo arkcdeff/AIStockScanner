@@ -254,6 +254,20 @@ class AIExplanationService:
         self.memory_cache.set(cache_key, response)
         return response
 
+    async def get_cached_market_summary(
+        self, limit: int = 8
+    ) -> AIMarketSummaryResponse | None:
+        """Return an existing market-summary cache entry without generating one."""
+        rows = await self._top_rated_rows(limit=limit)
+        pipeline = await self._get_pipeline_status()
+        stock_ctxs = await self._build_stock_contexts(rows)
+        prompt = build_market_summary_prompt(stock_ctxs, pipeline, len(rows))
+        cache_key = f"ai:{self.provider.name}:{hash_prompt(prompt)}"
+        cached = self.memory_cache.get(cache_key)
+        if cached is None:
+            return None
+        return cast(AIMarketSummaryResponse, cached).model_copy(update={"source": "cache"})
+
     # ------------------------------------------------------------------ context
 
     def _build_stock_context(

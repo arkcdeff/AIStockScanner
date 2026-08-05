@@ -179,6 +179,37 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
         )
         return await self.session.scalar(statement)
 
+    async def existing_daily_summary(
+        self, *, channel_id: int, summary_date: date
+    ) -> NotificationDelivery | None:
+        statement = (
+            select(NotificationDelivery)
+            .where(
+                NotificationDelivery.alert_event_id.is_(None),
+                NotificationDelivery.channel_id == channel_id,
+                NotificationDelivery.notification_type == "daily_summary",
+                NotificationDelivery.subject == f"Daily Summary - {summary_date.isoformat()}",
+            )
+            .order_by(NotificationDelivery.id)
+            .limit(1)
+        )
+        return await self.session.scalar(statement)
+
+    async def list_daily_summary_deliveries(
+        self, summary_date: date
+    ) -> list[NotificationDelivery]:
+        statement = (
+            select(NotificationDelivery)
+            .where(
+                NotificationDelivery.alert_event_id.is_(None),
+                NotificationDelivery.notification_type == "daily_summary",
+                NotificationDelivery.subject == f"Daily Summary - {summary_date.isoformat()}",
+            )
+            .options(selectinload(NotificationDelivery.channel))
+            .order_by(NotificationDelivery.id)
+        )
+        return list(await self.session.scalars(statement))
+
     async def list_due(
         self, *, limit: int = 100, batch_size: int | None = None
     ) -> list[NotificationDelivery]:
@@ -393,6 +424,45 @@ class DailySummaryRunRepository(BaseRepository[DailySummaryRun]):
             select(DailySummaryRun).order_by(DailySummaryRun.summary_date.desc()).limit(limit)
         )
         return list(await self.session.scalars(statement))
+
+    async def list_filtered(
+        self,
+        *,
+        status: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+        offset: int = 0,
+        limit: int = 20,
+    ) -> list[DailySummaryRun]:
+        statement = select(DailySummaryRun)
+        if status is not None:
+            statement = statement.where(DailySummaryRun.status == status)
+        if date_from is not None:
+            statement = statement.where(DailySummaryRun.summary_date >= date_from)
+        if date_to is not None:
+            statement = statement.where(DailySummaryRun.summary_date <= date_to)
+        statement = (
+            statement.order_by(DailySummaryRun.summary_date.desc(), DailySummaryRun.id.desc())
+            .offset(offset)
+            .limit(limit)
+        )
+        return list(await self.session.scalars(statement))
+
+    async def count_filtered(
+        self,
+        *,
+        status: str | None = None,
+        date_from: date | None = None,
+        date_to: date | None = None,
+    ) -> int:
+        statement = select(func.count()).select_from(DailySummaryRun)
+        if status is not None:
+            statement = statement.where(DailySummaryRun.status == status)
+        if date_from is not None:
+            statement = statement.where(DailySummaryRun.summary_date >= date_from)
+        if date_to is not None:
+            statement = statement.where(DailySummaryRun.summary_date <= date_to)
+        return int(await self.session.scalar(statement) or 0)
 
     async def latest(self) -> DailySummaryRun | None:
         statement = select(DailySummaryRun).order_by(DailySummaryRun.summary_date.desc()).limit(1)

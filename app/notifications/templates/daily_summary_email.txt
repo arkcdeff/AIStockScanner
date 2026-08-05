@@ -1,9 +1,25 @@
 DAILY SUMMARY - {{ summary_date }}
 
-Alerts triggered: {{ alerts_count }}
+Pipeline status: {{ pipeline_status }}
+Failed stage: {{ failed_pipeline_stage }}
+Imported rows: {{ imported_rows }}
+Updated rows: {{ updated_rows }}
+Rejected rows: {{ rejected_rows }}
 Scanner matches: {{ scanner_matches }}
+Alerts triggered: {{ alerts_count }}
 Top rated count: {{ top_rated_count }}
 Watchlist changes: {{ watchlist_changes }}
 Portfolio value: {{ portfolio_value }}
+Portfolio daily P/L: {{ portfolio_daily_pl }}
 
-{% if note %}Note: {{ note }}{% endif %}
+{% if top_rated %}Top rated stocks:
+{% for item in top_rated %}- {{ item.symbol }}: {{ item.score }}
+{% endfor %}
+{% endif %}{% if breakouts %}Strongest breakouts:
+{% for item in breakouts %}- {{ item.symbol }}: {{ item.score }}
+{% endfor %}
+{% endif %}{% if alerts %}Recent alerts:
+{% for item in alerts %}- {{ item.symbol }} / {{ item.alert_name }}
+{% endfor %}
+{% endif %}
+Market view: {{ market_summary_text }}

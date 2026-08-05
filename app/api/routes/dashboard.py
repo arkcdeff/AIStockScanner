@@ -94,6 +94,8 @@ async def root_redirect(request: Request) -> HTMLResponse:
                 "last_delivery_at": None,
                 "recent": [],
                 "overall_status": "healthy",
+                "daily_summary": None,
+                "alert_delivery_scheduler_enabled": False,
             },
         },
     )
