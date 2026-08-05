@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 
 from loguru import logger
@@ -36,6 +37,10 @@ STATUS_FAILED = "failed"
 STATUS_RETRY_SCHEDULED = "retry_scheduled"
 STATUS_SKIPPED = "skipped"
 STATUS_READ = "read"
+
+
+class NotificationConflictError(RuntimeError):
+    """Raised when a requested delivery transition is not allowed."""
 
 
 class NotificationService:
@@ -94,9 +99,7 @@ class NotificationService:
         if stock is not None:
             scan_count = (
                 await self.session.scalar(
-                    select(ScanResult.stock_id)
-                    .where(ScanResult.stock_id == stock.id)
-                    .limit(1)
+                    select(ScanResult.stock_id).where(ScanResult.stock_id == stock.id).limit(1)
                 )
                 is not None
             )
@@ -137,9 +140,7 @@ class NotificationService:
 
     # -------------------------------------------------------- preference eval
 
-    def _in_quiet_hours(
-        self, preference: NotificationPreference, now: datetime
-    ) -> bool:
+    def _in_quiet_hours(self, preference: NotificationPreference, now: datetime) -> bool:
         start = preference.quiet_hours_start
         end = preference.quiet_hours_end
         if start is None or end is None:
@@ -181,9 +182,16 @@ class NotificationService:
 
     # ---------------------------------------------------------------- deliver
 
-    async def deliver_alert(self, alert_event_id: int) -> dict[str, int]:
+    async def deliver_alert(self, alert_event_id: int) -> dict[str, int | list[int]]:
         """Evaluate, render and dispatch an alert to all eligible channels."""
-        summary = {STATUS_SENT: 0, STATUS_FAILED: 0, STATUS_SKIPPED: 0, "total": 0}
+        summary: dict[str, int | list[int]] = {
+            STATUS_SENT: 0,
+            STATUS_FAILED: 0,
+            STATUS_RETRY_SCHEDULED: 0,
+            STATUS_SKIPPED: 0,
+            "total": 0,
+            "delivery_ids": [],
+        }
         payload = await self._load_event_payload(alert_event_id)
         if payload is None:
             logger.warning(f"Notification: alert event {alert_event_id} not found")
@@ -197,24 +205,36 @@ class NotificationService:
             decision, _pref = await self._evaluate_channel(
                 channel, event_type=EVENT_TYPE_ALERT, priority=priority, now=now
             )
-            summary["total"] += 1
+            summary["total"] = int(summary["total"]) + 1
             if decision == STATUS_SKIPPED:
-                await self._record_skipped(alert_event_id, channel)
-                summary[STATUS_SKIPPED] += 1
+                delivery_id = await self._record_skipped(alert_event_id, channel)
+                summary[STATUS_SKIPPED] = int(summary[STATUS_SKIPPED]) + 1
+                delivery_ids = summary["delivery_ids"]
+                assert isinstance(delivery_ids, list)
+                if delivery_id not in delivery_ids:
+                    delivery_ids.append(delivery_id)
                 continue
             out = await self._dispatch(channel, payload)
-            if out["status"] == STATUS_SENT:
-                summary[STATUS_SENT] += 1
-            else:
-                summary[STATUS_FAILED] += 1
+            status = str(out["status"])
+            if status not in {
+                STATUS_SENT,
+                STATUS_FAILED,
+                STATUS_RETRY_SCHEDULED,
+                STATUS_SKIPPED,
+            }:
+                status = STATUS_FAILED
+            summary[status] = int(summary[status]) + 1
+            delivery_ids = summary["delivery_ids"]
+            assert isinstance(delivery_ids, list)
+            delivery_id = int(out["delivery_id"])
+            if delivery_id not in delivery_ids:
+                delivery_ids.append(delivery_id)
         return summary
 
-    async def _record_skipped(
-        self, alert_event_id: int, channel: NotificationChannel
-    ) -> None:
+    async def _record_skipped(self, alert_event_id: int, channel: NotificationChannel) -> int:
         existing = await self.delivery_repo.existing_for_event_channel(alert_event_id, channel.id)
         if existing is not None:
-            return
+            return existing.id
         delivery = NotificationDelivery(
             alert_event_id=alert_event_id,
             channel_id=channel.id,
@@ -223,13 +243,14 @@ class NotificationService:
         )
         self.session.add(delivery)
         await self.session.commit()
+        return delivery.id
 
-    async def _dispatch(self, channel: NotificationChannel, payload: dict) -> dict[str, str]:
+    async def _dispatch(self, channel: NotificationChannel, payload: dict) -> dict[str, int | str]:
         """Short-tx -> provider call -> short-tx update."""
         event_id = payload["event"].id
         existing = await self.delivery_repo.existing_for_event_channel(event_id, channel.id)
         if existing is not None:
-            return {"status": STATUS_SKIPPED, "delivery": existing}
+            return {"status": STATUS_SKIPPED, "delivery_id": existing.id}
 
         context = self._build_alert_context(payload)
         rendered = self.manager.render(
@@ -248,12 +269,11 @@ class NotificationService:
         await self.session.commit()
 
         delivery_id = delivery.id
-        provider = self.manager.resolve_provider(
-            provider=channel.provider, config=channel.config_json or {}
-        )
-        recipient = (channel.config_json or {}).get("recipient", "")
+        config = channel.config_json or {}
+        recipient = config.get("recipient", "")
 
         try:
+            provider = self.manager.resolve_provider(provider=channel.provider, config=config)
             result = await self.manager.send(
                 provider=provider,
                 message=NotificationMessage(
@@ -264,14 +284,14 @@ class NotificationService:
                 ),
             )
         except NotificationError as exc:
-            error_message = self._sanitize(str(exc))
-            await self._mark_failed(
+            error_message = self._sanitize(str(exc), config=config)
+            failed_status = await self._mark_failed(
                 delivery_id,
                 retryable=self.retry.is_retryable(exc),
                 error_message=error_message,
                 attempt_count=1,
             )
-            return {"status": STATUS_FAILED, "delivery_id": delivery_id}
+            return {"status": failed_status, "delivery_id": delivery_id}
 
         await self._mark_sent(delivery_id, result.external_message_id)
         return {"status": STATUS_SENT, "delivery_id": delivery_id}
@@ -292,10 +312,10 @@ class NotificationService:
         retryable: bool,
         error_message: str,
         attempt_count: int,
-    ) -> None:
+    ) -> str:
         delivery = await self.session.get(NotificationDelivery, delivery_id)
         if delivery is None:
-            return
+            return STATUS_FAILED
         delivery.attempt_count = attempt_count
         delivery.error_message = error_message
         if retryable and self.retry.should_retry(attempt_count=attempt_count + 1):
@@ -305,6 +325,7 @@ class NotificationService:
             delivery.status = STATUS_FAILED
             delivery.next_retry_at = None
         await self.session.commit()
+        return delivery.status
 
     # ------------------------------------------------------------ batch / retry
 
@@ -326,10 +347,8 @@ class NotificationService:
             await self.session.commit()
             return
         channel = delivery.channel
-        provider = self.manager.resolve_provider(
-            provider=channel.provider, config=channel.config_json or {}
-        )
-        recipient = (channel.config_json or {}).get("recipient", "")
+        config = channel.config_json or {}
+        recipient = config.get("recipient", "")
         delivery.status = STATUS_SENDING
         delivery.attempt_count += 1
         delivery.error_message = None
@@ -337,6 +356,7 @@ class NotificationService:
         await self.session.commit()
 
         try:
+            provider = self.manager.resolve_provider(provider=channel.provider, config=config)
             result = await self.manager.send(
                 provider=provider,
                 message=NotificationMessage(
@@ -349,17 +369,23 @@ class NotificationService:
             await self._mark_failed(
                 delivery.id,
                 retryable=self.retry.is_retryable(exc),
-                error_message=self._sanitize(str(exc)),
+                error_message=self._sanitize(str(exc), config=config),
                 attempt_count=delivery.attempt_count,
             )
             return
         await self._mark_sent(delivery.id, result.external_message_id)
 
-    async def retry_delivery(self, delivery_id: int) -> NotificationDelivery | None:
+    async def retry_delivery(
+        self, delivery_id: int, *, reject_completed: bool = False
+    ) -> NotificationDelivery | None:
         delivery = await self.delivery_repo.get_with_channel(delivery_id)
         if delivery is None:
             return None
-        if delivery.status == STATUS_SENT:
+        if delivery.status in {STATUS_SENT, STATUS_READ}:
+            if reject_completed:
+                raise NotificationConflictError(
+                    "Completed notification deliveries cannot be retried"
+                )
             return delivery  # never resend a successfully-sent delivery
         await self._resend_delivery(delivery)
         return await self.session.get(NotificationDelivery, delivery_id)
@@ -389,6 +415,17 @@ class NotificationService:
     # ----------------------------------------------------------------- sanity
 
     @staticmethod
-    def _sanitize(message: str) -> str:
+    def _sanitize(message: str, *, config: dict | None = None) -> str:
         """Shorten and strip credentials from provider error messages."""
-        return (message.strip() or "unknown provider error")[:500]
+        safe = (message.strip() or "unknown provider error")[:500]
+        config = config or {}
+        for key in ("api_key", "bot_token", "chat_id", "password", "recipient", "token"):
+            value = config.get(key)
+            if value:
+                safe = safe.replace(str(value), "********")
+        return re.sub(
+            r"(?i)(api[_-]?key|bot[_-]?token|chat[_-]?id|password|recipient|token)"
+            r"\s*[=:]\s*[^\s,;]+",
+            lambda match: f"{match.group(1)}=********",
+            safe,
+        )
