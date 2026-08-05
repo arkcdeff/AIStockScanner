@@ -1,0 +1,21 @@
+{% set form_id = 'preference-form-' ~ (preference.id if preference else 'new') %}
+<form id="{{ form_id }}"
+      hx-post="{{ '/notifications/preferences/' ~ preference.id ~ '/update' if preference else '/notifications/preferences/create' }}"
+      hx-target="#preference-list" hx-swap="innerHTML" class="row g-3">
+    <div class="col-md-3">
+        <label class="form-label">Channel</label>
+        <select class="form-select" name="channel_id" required>
+            <option value="">Select channel</option>
+            {% for channel in channels %}<option value="{{ channel.id }}" {% if preference and preference.channel_id == channel.id %}selected{% endif %}>{{ channel.name }}</option>{% endfor %}
+        </select>
+    </div>
+    <div class="col-md-3"><label class="form-label">Event type</label><input class="form-control" name="event_type" maxlength="40" required value="{{ preference.event_type if preference else 'alert_triggered' }}"></div>
+    <div class="col-md-2"><label class="form-label">Minimum priority</label><input class="form-control" type="number" min="0" max="100" name="minimum_priority" value="{{ preference.minimum_priority if preference and preference.minimum_priority is not none else '' }}"></div>
+    <div class="col-md-2"><label class="form-label">Quiet from</label><input class="form-control" type="time" name="quiet_hours_start" value="{{ preference.quiet_hours_start.strftime('%H:%M') if preference and preference.quiet_hours_start else '' }}"></div>
+    <div class="col-md-2"><label class="form-label">Quiet until</label><input class="form-control" type="time" name="quiet_hours_end" value="{{ preference.quiet_hours_end.strftime('%H:%M') if preference and preference.quiet_hours_end else '' }}"></div>
+    <div class="col-12 d-flex align-items-center gap-3">
+        <div class="form-check form-switch"><input class="form-check-input" type="checkbox" name="enabled" id="{{ form_id }}-enabled" {% if not preference or preference.enabled %}checked{% endif %}><label class="form-check-label" for="{{ form_id }}-enabled">Enabled</label></div>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-save me-1"></i>{{ 'Save changes' if preference else 'Create preference' }}</button>
+        {% if preference %}<button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#preference-edit-{{ preference.id }}">Cancel</button>{% endif %}
+    </div>
+</form>

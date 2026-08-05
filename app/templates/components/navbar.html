@@ -1,3 +1,4 @@
+{% set current_path = request.url.path if request is defined else '' %}
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="/dashboard">
@@ -9,19 +10,27 @@
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
                 <li class="nav-item">
-                    <a class="nav-link active" href="/dashboard">Dashboard</a>
+                    <a class="nav-link {{ 'active' if current_path in ['/', '/dashboard'] else '' }}" href="/dashboard">Dashboard</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/scanner-results">Scanner Results</a>
+                    <a class="nav-link {{ 'active' if current_path.startswith('/scanner-results') else '' }}" href="/scanner-results">Scanner Results</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/watchlists">Watchlists</a>
+                    <a class="nav-link {{ 'active' if current_path.startswith('/watchlists') else '' }}" href="/watchlists">Watchlists</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/portfolio">Portfolio</a>
+                    <a class="nav-link {{ 'active' if current_path.startswith('/portfolio') else '' }}" href="/portfolio">Portfolio</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" href="/alerts">Alerts</a>
+                    <a class="nav-link {{ 'active' if current_path.startswith('/alerts') else '' }}" href="/alerts">Alerts</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/notifications') else '' }}" href="#" role="button" data-bs-toggle="dropdown">Notifications</a>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="/notifications">Overview</a></li>
+                        <li><a class="dropdown-item" href="/notifications/settings">Settings</a></li>
+                        <li><a class="dropdown-item" href="/notifications/history">History</a></li>
+                    </ul>
                 </li>
             </ul>
             <span class="navbar-text text-light">

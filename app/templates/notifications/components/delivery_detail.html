@@ -1,0 +1,14 @@
+<dl class="row mb-0">
+    <dt class="col-sm-4">Delivery</dt><dd class="col-sm-8">#{{ delivery.id }}</dd>
+    <dt class="col-sm-4">Channel</dt><dd class="col-sm-8">{{ delivery.channel_name }} ({{ delivery.provider }})</dd>
+    <dt class="col-sm-4">Status</dt><dd class="col-sm-8">{% include "notifications/components/status_badge.html" %}</dd>
+    <dt class="col-sm-4">Type</dt><dd class="col-sm-8">{{ delivery.notification_type|replace('_', ' ')|title }}</dd>
+    <dt class="col-sm-4">Subject</dt><dd class="col-sm-8">{{ delivery.subject or 'No subject' }}</dd>
+    <dt class="col-sm-4">Attempts</dt><dd class="col-sm-8">{{ delivery.attempts }}</dd>
+    <dt class="col-sm-4">Created</dt><dd class="col-sm-8">{{ delivery.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</dd>
+    <dt class="col-sm-4">Sent</dt><dd class="col-sm-8">{{ delivery.sent_at.strftime('%Y-%m-%d %H:%M:%S') if delivery.sent_at else 'Not sent' }}</dd>
+    {% if delivery.symbol %}<dt class="col-sm-4">Stock</dt><dd class="col-sm-8"><a href="/stocks/{{ delivery.symbol }}">{{ delivery.symbol }}</a></dd>{% endif %}
+    {% if delivery.alert_name %}<dt class="col-sm-4">Alert</dt><dd class="col-sm-8">{{ delivery.alert_name }}</dd>{% endif %}
+    <dt class="col-sm-4">Rendered body</dt><dd class="col-sm-8"><pre class="notification-body-preview mb-0">{{ delivery.rendered_body or 'No rendered body' }}</pre></dd>
+    {% if delivery.sanitized_error %}<dt class="col-sm-4 text-danger">Error</dt><dd class="col-sm-8 text-danger">{{ delivery.sanitized_error }}</dd>{% endif %}
+</dl>

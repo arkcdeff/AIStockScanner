@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Notification History - AI Stock Scanner{% endblock %}
+{% block extra_head %}<link href="/static/css/notifications.css" rel="stylesheet">{% endblock %}
+{% block body %}
+<div class="container-fluid"><div class="row">
+    <nav class="col-md-2 d-md-block bg-light sidebar">{% include "components/sidebar.html" %}</nav>
+    <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+        {% include "components/navbar.html" %}
+        <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <div><h1 class="h2 mb-1">Notification history</h1><p class="text-muted mb-0">Newest deliveries first, with server-side filtering and pagination.</p></div>
+            <a href="/notifications" class="btn btn-outline-primary">Back to notifications</a>
+        </div>
+        <form id="history-filters" class="card card-body mb-3"
+              hx-get="/notifications/history/table" hx-target="#notification-history-table" hx-swap="innerHTML" hx-trigger="submit, change delay:250ms">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-2"><label class="form-label">Status</label><select class="form-select" name="status"><option value="">All statuses</option>{% for value in ['pending','sending','retry_scheduled','failed','sent','read','skipped'] %}<option value="{{ value }}" {% if filter_values.status == value %}selected{% endif %}>{{ value|replace('_',' ')|title }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label">Provider</label><select class="form-select" name="provider"><option value="">All providers</option>{% for value in ['mock','telegram','email','in_app'] %}<option value="{{ value }}" {% if filter_values.provider == value %}selected{% endif %}>{{ value|replace('_',' ')|title }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label">Type</label><input class="form-control" name="notification_type" value="{{ filter_values.notification_type }}" placeholder="alert_triggered"></div>
+                <div class="col-md-2"><label class="form-label">Channel</label><select class="form-select" name="channel_id"><option value="">All channels</option>{% for channel in channels %}<option value="{{ channel.id }}" {% if filter_values.channel_id == channel.id %}selected{% endif %}>{{ channel.name }}</option>{% endfor %}</select></div>
+                <div class="col-md-2"><label class="form-label">Stock symbol</label><input class="form-control" name="stock_symbol" value="{{ filter_values.stock_symbol }}" placeholder="RELIANCE"></div>
+                <div class="col-md-2"><label class="form-label">Rows</label><select class="form-select" name="page_size"><option value="10" {% if page_size == 10 %}selected{% endif %}>10</option><option value="25" {% if page_size == 25 %}selected{% endif %}>25</option><option value="50" {% if page_size == 50 %}selected{% endif %}>50</option></select></div>
+                <div class="col-md-2"><label class="form-label">Date from</label><input class="form-control" type="date" name="date_from" value="{{ filter_values.date_from }}"></div>
+                <div class="col-md-2"><label class="form-label">Date to</label><input class="form-control" type="date" name="date_to" value="{{ filter_values.date_to }}"></div>
+                <div class="col-md-2"><div class="form-check mb-2"><input class="form-check-input" type="checkbox" name="unread_only" id="unread-only" {% if filter_values.unread_only %}checked{% endif %}><label class="form-check-label" for="unread-only">Unread only</label></div></div>
+                <div class="col-md-3 d-flex gap-2"><button class="btn btn-primary" type="submit">Apply filters</button><a class="btn btn-outline-secondary" href="/notifications/history">Clear</a></div>
+            </div>
+        </form>
+        <section class="card"><div id="notification-history-table" aria-live="polite">{% include "notifications/components/history_table.html" %}</div></section>
+    </main>
+</div></div>
+
+<div class="modal fade" id="deliveryDetailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title h5">Delivery details</h2><button class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+        <div class="modal-body" id="delivery-detail-body"><div class="text-center text-muted py-4">Select a delivery to view details.</div></div>
+    </div></div>
+</div>
+{% endblock %}

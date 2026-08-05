@@ -1,0 +1,30 @@
+{% include "notifications/components/flash_message.html" %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Name</th><th>Provider</th><th>State</th><th>Safe configuration</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% if channels %}
+            {% for channel in channels %}
+            <tr>
+                <td class="fw-semibold">{{ channel.name }}</td>
+                <td><span class="badge bg-light text-dark">{{ channel.provider }}</span></td>
+                <td><span class="badge bg-{{ 'success' if channel.enabled else 'secondary' }}">{{ 'Enabled' if channel.enabled else 'Disabled' }}</span></td>
+                <td class="small">
+                    {% if channel.config_summary %}{{ channel.config_summary|join(' · ') }}{% else %}<span class="text-muted">No custom settings</span>{% endif %}
+                </td>
+                <td class="text-nowrap">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#channel-edit-{{ channel.id }}">Edit</button>
+                    <button class="btn btn-sm btn-outline-success" hx-post="/notifications/channels/{{ channel.id }}/test" hx-target="#channel-list" hx-swap="innerHTML">Test</button>
+                    <button class="btn btn-sm btn-outline-danger" hx-post="/notifications/channels/{{ channel.id }}/delete" hx-target="#channel-list" hx-swap="innerHTML" hx-confirm="Delete this channel and its delivery history?">Delete</button>
+                </td>
+            </tr>
+            <tr class="collapse" id="channel-edit-{{ channel.id }}">
+                <td colspan="5" class="bg-light p-3">{% include "notifications/components/channel_form.html" %}</td>
+            </tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="5" class="text-center text-muted py-5">No notification channels configured.</td></tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>

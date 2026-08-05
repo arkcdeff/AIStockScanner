@@ -1,0 +1,4 @@
+{% set status_colors = {'sent': 'success', 'read': 'secondary', 'failed': 'danger', 'retry_scheduled': 'warning', 'sending': 'info', 'pending': 'primary', 'skipped': 'secondary'} %}
+<span class="badge bg-{{ status_colors.get(delivery.status, 'secondary') }}">
+    {{ delivery.status|replace('_', ' ')|title }}
+</span>

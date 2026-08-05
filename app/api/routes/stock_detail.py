@@ -11,6 +11,7 @@ from app.schemas.stock_detail import (
     ScannerMatchResponse,
     StockOverviewResponse,
 )
+from app.services.notification_ui import NotificationUIService
 from app.services.stock_detail import StockDetailService
 
 router = APIRouter()
@@ -20,10 +21,11 @@ env_loader = None
 def _get_env():
     global env_loader
     if env_loader is None:
-        from jinja2 import Environment, FileSystemLoader
+        from jinja2 import Environment, FileSystemLoader, select_autoescape
 
         env_loader = Environment(
-            loader=FileSystemLoader(str(settings.base_dir / "app" / "templates"))
+            loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
+            autoescape=select_autoescape(("html", "htm", "xml")),
         )
     return env_loader
 
@@ -159,6 +161,7 @@ async def stock_detail_page(
         for rule in all_rules
         if rule.stock_id == overview["stock"].id or rule.watchlist_id in watchlist_contains
     ]
+    recent_notifications = await NotificationUIService(session).get_stock_history(symbol, limit=5)
 
     html = _render(
         "stock_detail.html",
@@ -176,9 +179,32 @@ async def stock_detail_page(
             "portfolio_positions": portfolio_positions,
             "alert_events": alert_events,
             "alert_rules": alert_rules,
+            "recent_notifications": recent_notifications,
         },
     )
     return HTMLResponse(content=html)
+
+
+@router.get("/{symbol}/notifications", response_class=HTMLResponse)
+async def stock_notifications_partial(
+    request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
+) -> HTMLResponse:
+    stock = await StockDetailRepository(session).get_stock(symbol)
+    if stock is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+    recent_notifications = await NotificationUIService(session).get_stock_history(
+        stock.symbol, limit=5
+    )
+    return HTMLResponse(
+        content=_render(
+            "components/stock_notifications_panel.html",
+            {
+                "request": request,
+                "stock": stock,
+                "recent_notifications": recent_notifications,
+            },
+        )
+    )
 
 
 @router.get("/{symbol}/overview", response_class=HTMLResponse)

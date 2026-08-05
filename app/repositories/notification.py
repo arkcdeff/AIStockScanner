@@ -273,8 +273,8 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
             joinedload(NotificationDelivery.alert_event).joinedload(AlertEvent.alert_rule),
         )
 
-    async def list_history(
-        self,
+    @staticmethod
+    def _history_statement(
         *,
         status: str | None = None,
         provider: str | None = None,
@@ -284,9 +284,7 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
         date_from: datetime | None = None,
         date_to: datetime | None = None,
         unread_only: bool = False,
-        offset: int = 0,
-        limit: int = 100,
-    ) -> list[NotificationDelivery]:
+    ):
         statement = select(NotificationDelivery)
         if provider is not None:
             statement = statement.join(NotificationChannel).where(
@@ -310,6 +308,32 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
             statement = statement.where(NotificationDelivery.created_at < date_to)
         if unread_only:
             statement = statement.where(NotificationDelivery.status == "sent")
+        return statement
+
+    async def list_history(
+        self,
+        *,
+        status: str | None = None,
+        provider: str | None = None,
+        notification_type: str | None = None,
+        channel_id: int | None = None,
+        stock_symbol: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        unread_only: bool = False,
+        offset: int = 0,
+        limit: int = 100,
+    ) -> list[NotificationDelivery]:
+        statement = self._history_statement(
+            status=status,
+            provider=provider,
+            notification_type=notification_type,
+            channel_id=channel_id,
+            stock_symbol=stock_symbol,
+            date_from=date_from,
+            date_to=date_to,
+            unread_only=unread_only,
+        )
         statement = (
             statement.options(*self._detail_options())
             .order_by(NotificationDelivery.created_at.desc(), NotificationDelivery.id.desc())
@@ -317,6 +341,35 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
             .limit(limit)
         )
         return list(await self.session.scalars(statement))
+
+    async def count_history(
+        self,
+        *,
+        status: str | None = None,
+        provider: str | None = None,
+        notification_type: str | None = None,
+        channel_id: int | None = None,
+        stock_symbol: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        unread_only: bool = False,
+    ) -> int:
+        filtered = self._history_statement(
+            status=status,
+            provider=provider,
+            notification_type=notification_type,
+            channel_id=channel_id,
+            stock_symbol=stock_symbol,
+            date_from=date_from,
+            date_to=date_to,
+            unread_only=unread_only,
+        ).subquery()
+        return int(await self.session.scalar(select(func.count()).select_from(filtered)) or 0)
+
+    async def list_for_stock_symbol(
+        self, symbol: str, *, limit: int = 5
+    ) -> list[NotificationDelivery]:
+        return await self.list_history(stock_symbol=symbol, limit=limit)
 
     async def get_detail(self, delivery_id: int) -> NotificationDelivery | None:
         statement = (

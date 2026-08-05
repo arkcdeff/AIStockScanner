@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -9,7 +9,10 @@ from app.services.ai_insights import AIInsightsService
 from app.services.dashboard import DashboardService
 
 router = APIRouter()
-env = Environment(loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")))
+env = Environment(
+    loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
+    autoescape=select_autoescape(("html", "htm", "xml")),
+)
 
 
 def _render(template_name: str, context: dict) -> str:
@@ -82,6 +85,16 @@ async def root_redirect(request: Request) -> HTMLResponse:
                 "pending_events": 0,
                 "recent_events": [],
             },
+            "notification_summary": {
+                "unread_count": 0,
+                "failed_count": 0,
+                "pending_retry_count": 0,
+                "sent_today": 0,
+                "latest": None,
+                "last_delivery_at": None,
+                "recent": [],
+                "overall_status": "healthy",
+            },
         },
     )
     return HTMLResponse(content=html)
@@ -103,6 +116,7 @@ async def dashboard(
     portfolio_summary = await service.get_portfolio_summary()
     watchlist_summary = await service.get_watchlist_summary()
     alert_summary = await service.get_alert_summary()
+    notification_summary = await service.get_notification_summary()
 
     ai_service = AIInsightsService(session)
     ai_status = await ai_service.get_ai_status()
@@ -124,6 +138,7 @@ async def dashboard(
             "portfolio_summary": portfolio_summary,
             "watchlist_summary": watchlist_summary,
             "alert_summary": alert_summary,
+            "notification_summary": notification_summary,
             "ai_status": ai_status,
             "ai_opportunities": ai_opportunities,
             "ai_highest_confidence": ai_highest_confidence,

@@ -1,0 +1,93 @@
+{% set config = channel.safe_config if channel else {} %}
+{% set form_id = 'channel-form-' ~ (channel.id if channel else 'new') %}
+<form id="{{ form_id }}"
+      hx-post="{{ '/notifications/channels/' ~ channel.id ~ '/update' if channel else '/notifications/channels/create' }}"
+      hx-target="#channel-list" hx-swap="innerHTML" class="row g-3">
+    <div class="col-md-4">
+        <label class="form-label" for="{{ form_id }}-name">Channel name</label>
+        <input class="form-control" id="{{ form_id }}-name" name="name" maxlength="80" required
+               value="{{ channel.name if channel else '' }}">
+    </div>
+    <div class="col-md-4">
+        <label class="form-label" for="{{ form_id }}-provider">Provider</label>
+        <select class="form-select notification-provider-select" id="{{ form_id }}-provider" name="provider" required>
+            {% for value, label in [('mock', 'Mock'), ('telegram', 'Telegram'), ('email', 'Email'), ('in_app', 'In-app')] %}
+            <option value="{{ value }}" {% if channel and channel.provider == value %}selected{% endif %}>{{ label }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-4 d-flex align-items-end">
+        <div class="form-check form-switch mb-2">
+            <input class="form-check-input" type="checkbox" name="enabled" id="{{ form_id }}-enabled"
+                   {% if not channel or channel.enabled %}checked{% endif %}>
+            <label class="form-check-label" for="{{ form_id }}-enabled">Enabled</label>
+        </div>
+    </div>
+
+    <div class="col-12 provider-fields" data-provider-fields="telegram">
+        <div class="row g-3 p-3 bg-light rounded">
+            <div class="col-md-4">
+                <label class="form-label">Chat ID</label>
+                <input class="form-control" name="chat_id" autocomplete="off"
+                       placeholder="{{ 'Configured — leave blank to keep' if config.get('chat_id') else 'Telegram chat ID' }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Bot token</label>
+                <input class="form-control" type="password" name="bot_token" autocomplete="new-password"
+                       placeholder="{{ 'Configured — leave blank to keep' if config.get('bot_token') else 'Write-only token' }}">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Timeout</label>
+                <input class="form-control" type="number" min="1" max="120" name="timeout"
+                       value="{{ config.get('timeout', 15) }}">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="html_mode" id="{{ form_id }}-html"
+                           {% if config.get('html_mode', true) %}checked{% endif %}>
+                    <label class="form-check-label" for="{{ form_id }}-html">HTML parse mode</label>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 provider-fields" data-provider-fields="email">
+        <div class="row g-3 p-3 bg-light rounded">
+            <div class="col-md-4"><label class="form-label">SMTP host</label><input class="form-control" name="host" value="{{ config.get('host', '') }}"></div>
+            <div class="col-md-2"><label class="form-label">Port</label><input class="form-control" type="number" min="1" max="65535" name="port" value="{{ config.get('port', 587) }}"></div>
+            <div class="col-md-3"><label class="form-label">Username</label><input class="form-control" name="username" autocomplete="off" value="{{ config.get('username', '') }}"></div>
+            <div class="col-md-3"><label class="form-label">Password</label><input class="form-control" type="password" name="password" autocomplete="new-password" placeholder="{{ 'Configured — leave blank to keep' if config.get('password') else 'Write-only password' }}"></div>
+            <div class="col-md-4"><label class="form-label">From address</label><input class="form-control" type="email" name="from_address" value="{{ config.get('from', '') }}"></div>
+            <div class="col-md-4"><label class="form-label">To address</label><input class="form-control" type="email" name="to_address" placeholder="{{ 'Configured — leave blank to keep' if config.get('recipient') else 'recipient@example.com' }}"></div>
+            <div class="col-md-2"><label class="form-label">Timeout</label><input class="form-control" type="number" min="1" max="120" name="timeout" value="{{ config.get('timeout', 15) }}"></div>
+            <div class="col-md-2">
+                <div class="form-check"><input class="form-check-input" type="checkbox" name="use_tls" id="{{ form_id }}-tls" {% if config.get('use_tls') %}checked{% endif %}><label class="form-check-label" for="{{ form_id }}-tls">TLS</label></div>
+                <div class="form-check"><input class="form-check-input" type="checkbox" name="use_starttls" id="{{ form_id }}-starttls" {% if config.get('use_starttls', true) %}checked{% endif %}><label class="form-check-label" for="{{ form_id }}-starttls">STARTTLS</label></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 provider-fields" data-provider-fields="mock">
+        <div class="row g-3 p-3 bg-light rounded">
+            <div class="col-md-6"><label class="form-label">Test recipient</label><input class="form-control" name="recipient" value="{{ config.get('recipient', '') }}"></div>
+            <div class="col-md-6">
+                <label class="form-label">Optional test behavior</label>
+                <select class="form-select" name="fail_with">
+                    <option value="">Always succeed</option>
+                    {% for value in ['timeout', 'transient', 'permanent'] %}<option value="{{ value }}" {% if config.get('fail_with') == value %}selected{% endif %}>Simulate {{ value }} failure</option>{% endfor %}
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 provider-fields" data-provider-fields="in_app">
+        <div class="p-3 bg-light rounded text-muted">In-app delivery requires no secret configuration.</div>
+    </div>
+
+    <div class="col-12 d-flex gap-2">
+        <button class="btn btn-primary" type="submit" hx-disabled-elt="this">
+            <i class="bi bi-save me-1"></i>{{ 'Save changes' if channel else 'Create channel' }}
+        </button>
+        {% if channel %}<button class="btn btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#channel-edit-{{ channel.id }}">Cancel</button>{% endif %}
+    </div>
+</form>

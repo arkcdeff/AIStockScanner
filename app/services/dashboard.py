@@ -2,6 +2,7 @@ from datetime import UTC, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import joinedload
 
 from app.models.alert import AlertEvent, AlertRule
 from app.models.eod_pipeline_run import EODPipelineRun
@@ -14,6 +15,7 @@ from app.models.technical_analysis import TechnicalAnalysis
 from app.repositories.market_data import MarketDataRepository
 from app.repositories.scan import ScanDefinitionRepository, ScanResultRepository
 from app.repositories.stock import StockRepository
+from app.services.notification_ui import NotificationUIService
 from app.services.portfolio import PortfolioService
 from app.services.watchlist import WatchlistService
 
@@ -156,9 +158,7 @@ class DashboardService:
         }
 
     async def get_alert_summary(self) -> dict[str, object]:
-        rules_count = (
-            await self.session.scalar(select(func.count()).select_from(AlertRule)) or 0
-        )
+        rules_count = await self.session.scalar(select(func.count()).select_from(AlertRule)) or 0
         enabled_count = (
             await self.session.scalar(
                 select(func.count()).select_from(AlertRule).where(AlertRule.enabled.is_(True))
@@ -167,14 +167,15 @@ class DashboardService:
         )
         recent_events = (
             await self.session.scalars(
-                select(AlertEvent).order_by(AlertEvent.created_at.desc()).limit(5)
+                select(AlertEvent)
+                .options(joinedload(AlertEvent.stock))
+                .order_by(AlertEvent.created_at.desc())
+                .limit(5)
             )
         ).all()
         pending_count = (
             await self.session.scalar(
-                select(func.count())
-                .select_from(AlertEvent)
-                .where(AlertEvent.status == "triggered")
+                select(func.count()).select_from(AlertEvent).where(AlertEvent.status == "triggered")
             )
             or 0
         )
@@ -193,6 +194,9 @@ class DashboardService:
                 for event in recent_events
             ],
         }
+
+    async def get_notification_summary(self) -> dict[str, object]:
+        return await NotificationUIService(self.session).get_dashboard_summary()
 
     async def get_pipeline_status(self) -> dict[str, object]:
         latest = await self.session.scalar(

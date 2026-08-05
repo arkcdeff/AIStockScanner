@@ -1,0 +1,41 @@
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="mb-0"><i class="bi bi-bell me-1"></i>Notifications</h5>
+                    <span class="badge bg-{{ 'danger' if notification_summary.overall_status == 'attention' else 'warning' if notification_summary.overall_status == 'pending' else 'success' }}">
+                        {{ notification_summary.overall_status|title }}
+                    </span>
+                </div>
+                <a href="/notifications" class="btn btn-sm btn-outline-primary">Open notifications</a>
+            </div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3"><div class="p-2 bg-light rounded"><div class="small text-muted">Unread</div><strong>{{ notification_summary.unread_count }}</strong></div></div>
+                    <div class="col-6 col-md-3"><div class="p-2 bg-light rounded"><div class="small text-muted">Failed</div><strong>{{ notification_summary.failed_count }}</strong></div></div>
+                    <div class="col-6 col-md-3"><div class="p-2 bg-light rounded"><div class="small text-muted">Pending / retry</div><strong>{{ notification_summary.pending_retry_count }}</strong></div></div>
+                    <div class="col-6 col-md-3"><div class="p-2 bg-light rounded"><div class="small text-muted">Sent today</div><strong>{{ notification_summary.sent_today }}</strong></div></div>
+                </div>
+                <div class="small text-muted mb-2">
+                    Latest: {{ notification_summary.latest.subject if notification_summary.latest else 'No deliveries yet' }} ·
+                    Last delivery: {{ notification_summary.last_delivery_at.strftime('%Y-%m-%d %H:%M') if notification_summary.last_delivery_at else 'N/A' }}
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead><tr><th>Provider</th><th>Subject</th><th>Status</th><th>Created</th></tr></thead>
+                        <tbody>
+                        {% if notification_summary.recent %}
+                            {% for delivery in notification_summary.recent %}
+                            <tr><td>{{ delivery.provider }}</td><td>{{ delivery.subject or 'No subject' }}</td><td><span class="badge bg-{{ 'success' if delivery.status == 'sent' else 'danger' if delivery.status == 'failed' else 'warning' if delivery.status == 'retry_scheduled' else 'secondary' }}">{{ delivery.status|replace('_',' ')|title }}</span></td><td>{{ delivery.created_at.strftime('%Y-%m-%d %H:%M') }}</td></tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr><td colspan="4" class="text-center text-muted py-3">No notification deliveries yet.</td></tr>
+                        {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

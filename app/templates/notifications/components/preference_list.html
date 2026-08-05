@@ -1,0 +1,26 @@
+{% include "notifications/components/flash_message.html" %}
+<div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+        <thead class="table-light"><tr><th>Channel</th><th>Event</th><th>State</th><th>Minimum priority</th><th>Quiet hours</th><th>Actions</th></tr></thead>
+        <tbody>
+        {% if preferences %}
+            {% for preference in preferences %}
+            <tr>
+                <td>{{ preference.channel_name }}</td>
+                <td><code>{{ preference.event_type }}</code></td>
+                <td><span class="badge bg-{{ 'success' if preference.enabled else 'secondary' }}">{{ 'Enabled' if preference.enabled else 'Disabled' }}</span></td>
+                <td>{{ preference.minimum_priority if preference.minimum_priority is not none else 'Any' }}</td>
+                <td>{{ preference.quiet_hours_start.strftime('%H:%M') if preference.quiet_hours_start else '—' }} – {{ preference.quiet_hours_end.strftime('%H:%M') if preference.quiet_hours_end else '—' }}</td>
+                <td class="text-nowrap">
+                    <button class="btn btn-sm btn-outline-primary" data-bs-toggle="collapse" data-bs-target="#preference-edit-{{ preference.id }}">Edit</button>
+                    <button class="btn btn-sm btn-outline-danger" hx-post="/notifications/preferences/{{ preference.id }}/delete" hx-target="#preference-list" hx-swap="innerHTML" hx-confirm="Delete this preference?">Delete</button>
+                </td>
+            </tr>
+            <tr class="collapse" id="preference-edit-{{ preference.id }}"><td colspan="6" class="bg-light p-3">{% include "notifications/components/preference_form.html" %}</td></tr>
+            {% endfor %}
+        {% else %}
+            <tr><td colspan="6" class="text-center text-muted py-5">No notification preferences configured.</td></tr>
+        {% endif %}
+        </tbody>
+    </table>
+</div>

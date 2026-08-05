@@ -18,7 +18,7 @@ from app.models.notification import (
 from app.models.scan_result import ScanResult
 from app.models.stock import Stock
 from app.models.technical_analysis import TechnicalAnalysis
-from app.notifications.base import NotificationMessage
+from app.notifications.base import NotificationMessage, NotificationResult
 from app.notifications.exceptions import NotificationError
 from app.notifications.manager import NotificationManager
 from app.notifications.retry import RetryEngine
@@ -411,6 +411,28 @@ class NotificationService:
             delivery.status = STATUS_READ
             await self.session.commit()
         return delivery
+
+    async def test_provider(
+        self,
+        *,
+        provider: str,
+        config: dict | None = None,
+        recipient: str = "",
+    ) -> NotificationResult:
+        """Send a safe, non-persistent provider test message."""
+        provider_instance = self.manager.resolve_provider(provider=provider, config=config or {})
+        destination = recipient or (config or {}).get("recipient", "")
+        if not destination and provider in {"mock", "in_app"}:
+            destination = "ui-test"
+        return await self.manager.send(
+            provider=provider_instance,
+            message=NotificationMessage(
+                recipient=destination,
+                subject="AI Stock Scanner notification test",
+                text="This is a safe test notification from AI Stock Scanner.",
+                html="<p>This is a safe test notification from AI Stock Scanner.</p>",
+            ),
+        )
 
     # ----------------------------------------------------------------- sanity
 

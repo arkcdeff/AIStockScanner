@@ -1,0 +1,34 @@
+.notification-stat-card {
+    border-top: 3px solid var(--bs-primary);
+}
+
+.notification-subject {
+    max-width: 280px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.notification-body-preview {
+    max-height: 260px;
+    overflow: auto;
+    padding: .75rem;
+    border-radius: .375rem;
+    background: var(--bs-light);
+    color: var(--bs-body-color);
+    font: inherit;
+    white-space: pre-wrap;
+}
+
+.provider-fields[hidden] {
+    display: none !important;
+}
+
+.htmx-indicator {
+    display: none;
+}
+
+.htmx-request .htmx-indicator,
+.htmx-request.htmx-indicator {
+    display: block;
+}

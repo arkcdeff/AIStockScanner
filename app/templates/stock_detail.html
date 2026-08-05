@@ -88,6 +88,15 @@
                     {% include "components/stock_alerts_panel.html" %}
                 </div>
             </div>
+
+            <!-- Recent Notifications -->
+            <div class="row mt-4">
+                <div class="col-12" id="stock-notifications-panel"
+                     hx-get="/stocks/{{ stock.symbol }}/notifications"
+                     hx-trigger="refresh from:body" hx-swap="innerHTML">
+                    {% include "components/stock_notifications_panel.html" %}
+                </div>
+            </div>
         </main>
     </div>
 </div>
