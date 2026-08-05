@@ -55,6 +55,23 @@ class Settings(BaseSettings):
     ai_openai_model: str = "gpt-4o-mini"
     ai_openai_base_url: str = "https://api.openai.com/v1"
 
+    notification_provider: str = "mock"
+    notification_timeout: int = 15
+
+    telegram_bot_token: str = ""
+    telegram_default_chat_id: str = ""
+    telegram_html_mode: bool = True
+    telegram_max_message_length: int = 4096
+
+    email_host: str = ""
+    email_port: int = 587
+    email_username: str = ""
+    email_password: str = ""
+    email_from: str = ""
+    email_use_tls: bool = False
+    email_use_starttls: bool = True
+    email_timeout: int = 15
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",

@@ -4,6 +4,12 @@ from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
+from app.models.notification import (
+    DailySummaryRun,
+    NotificationChannel,
+    NotificationDelivery,
+    NotificationPreference,
+)
 from app.models.portfolio import Holding, Portfolio
 from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
@@ -29,4 +35,8 @@ __all__ = [
     "Holding",
     "AlertRule",
     "AlertEvent",
+    "NotificationChannel",
+    "NotificationPreference",
+    "NotificationDelivery",
+    "DailySummaryRun",
 ]
