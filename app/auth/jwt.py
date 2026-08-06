@@ -31,6 +31,7 @@ _REQUIRED_CLAIMS = (
     "iss",
     "aud",
     "token_type",
+    "jti",
 )
 
 
@@ -157,8 +158,7 @@ def _create_token(
         "aud": audience,
         "token_type": token_type,
     }
-    if token_type == "refresh":
-        payload["jti"] = secrets.token_urlsafe(32)
+    payload["jti"] = secrets.token_urlsafe(32)
     return pyjwt.encode(
         payload,
         ring.active.secret,
@@ -242,8 +242,8 @@ def _validate_payload(payload: dict[str, Any], expected_type: TokenType) -> Toke
     if token_type != expected_type:
         raise TokenClaimsError(f"Expected a {expected_type} token")
     token_id = payload.get("jti")
-    if expected_type == "refresh" and (not isinstance(token_id, str) or not token_id):
-        raise TokenClaimsError("Refresh token is missing its identifier")
+    if not isinstance(token_id, str) or not token_id:
+        raise TokenClaimsError("Token is missing its identifier")
 
     try:
         issued_at = datetime.fromtimestamp(payload["iat"], UTC)
@@ -269,7 +269,7 @@ def _validate_payload(payload: dict[str, Any], expected_type: TokenType) -> Toke
         issuer=issuer,
         audience=audience,
         token_type=expected_type,
-        token_id=token_id if isinstance(token_id, str) else None,
+        token_id=token_id,
     )
 
 

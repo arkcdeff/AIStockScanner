@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -28,6 +28,33 @@ class UserRepository(BaseRepository[User]):
 
     async def get_by_email(self, email: str) -> User | None:
         return await self.session.scalar(select(User).where(User.email == email))
+
+    async def get_by_email_case_insensitive(self, email: str) -> User | None:
+        statement = select(User).where(func.lower(User.email) == email.lower()).limit(1)
+        return await self.session.scalar(statement)
+
+    async def get_by_identifier_with_access(self, identifier: str) -> User | None:
+        options = (
+            selectinload(User.roles).selectinload(Role.permissions),
+            selectinload(User.preference),
+        )
+        username_statement = (
+            select(User).where(User.username == identifier).options(*options).limit(1)
+        )
+        user = await self.session.scalar(username_statement)
+        if user is not None:
+            return user
+        email_statement = (
+            select(User)
+            .where(func.lower(User.email) == identifier.lower())
+            .options(*options)
+            .limit(1)
+        )
+        return await self.session.scalar(email_statement)
+
+    async def superuser_exists(self) -> bool:
+        statement = select(User.id).where(User.is_superuser.is_(True)).limit(1)
+        return await self.session.scalar(statement) is not None
 
     async def get_with_access(self, user_id: int) -> User | None:
         statement = (
@@ -123,6 +150,17 @@ class UserSessionRepository(BaseRepository[UserSession]):
         statement = select(UserSession).where(UserSession.refresh_token_hash == token_hash)
         return await self.session.scalar(statement)
 
+    async def get_for_update(self, session_id: int) -> UserSession | None:
+        statement = select(UserSession).where(UserSession.id == session_id).with_for_update()
+        return await self.session.scalar(statement)
+
+    async def get_owned(self, user_id: int, session_id: int) -> UserSession | None:
+        statement = select(UserSession).where(
+            UserSession.id == session_id,
+            UserSession.user_id == user_id,
+        )
+        return await self.session.scalar(statement)
+
     async def list_for_user(self, user_id: int) -> list[UserSession]:
         statement = (
             select(UserSession)
@@ -130,6 +168,15 @@ class UserSessionRepository(BaseRepository[UserSession]):
             .order_by(UserSession.expires_at.desc(), UserSession.id.desc())
         )
         return list(await self.session.scalars(statement))
+
+    async def revoke_all_for_user(self, user_id: int, *, revoked_at: datetime) -> int:
+        statement = (
+            update(UserSession)
+            .where(UserSession.user_id == user_id, UserSession.revoked_at.is_(None))
+            .values(revoked_at=revoked_at)
+        )
+        result = await self.session.execute(statement)
+        return int(result.rowcount or 0)
 
     async def list_active_for_user(
         self, user_id: int, *, at: datetime | None = None
@@ -181,3 +228,24 @@ class AuditLogRepository(BaseRepository[AuditLog]):
         statement = statement.order_by(AuditLog.created_at.desc(), AuditLog.id.desc())
         statement = statement.offset(offset).limit(limit)
         return list(await self.session.scalars(statement))
+
+    async def session_created_at_map(
+        self, user_id: int, session_ids: list[int]
+    ) -> dict[int, datetime]:
+        if not session_ids:
+            return {}
+        session_id_expression = AuditLog.metadata_json["session_id"].as_integer()
+        statement = select(AuditLog).where(
+            AuditLog.user_id == user_id,
+            AuditLog.action == "login_success",
+            session_id_expression.in_(session_ids),
+        )
+        rows = await self.session.scalars(statement)
+        created: dict[int, datetime] = {}
+        for row in rows:
+            if not row.metadata_json:
+                continue
+            session_id = row.metadata_json.get("session_id")
+            if isinstance(session_id, int):
+                created.setdefault(session_id, row.created_at)
+        return created

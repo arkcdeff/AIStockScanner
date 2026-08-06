@@ -1,7 +1,7 @@
 from datetime import datetime
-from typing import Any
+from typing import Any, Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
 class UserCreate(BaseModel):
@@ -121,3 +121,102 @@ class AuditLogRead(AuditLogCreate):
 
     id: int
     created_at: datetime
+
+
+class LoginRequest(BaseModel):
+    username_or_email: str = Field(min_length=1, max_length=320)
+    password: str = Field(min_length=1, max_length=1024)
+    remember_me: bool = False
+
+    @field_validator("username_or_email")
+    @classmethod
+    def identifier_must_not_be_blank(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Identifier must not be blank")
+        return normalized
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=8192)
+
+
+class LogoutRequest(BaseModel):
+    refresh_token: str = Field(min_length=1, max_length=8192)
+
+
+class UserSummary(BaseModel):
+    id: int
+    username: str
+    email: str
+    full_name: str | None
+    is_active: bool
+    is_verified: bool
+    is_superuser: bool
+
+
+class TokenPairResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: str = "bearer"
+    access_expires_at: datetime
+    refresh_expires_at: datetime
+    user: UserSummary
+    session_id: int
+
+
+class UserPreferenceSummary(BaseModel):
+    theme: str
+    timezone: str
+    language: str
+
+
+class CurrentUserResponse(UserSummary):
+    roles: list[str]
+    permissions: list[str]
+    preferences: UserPreferenceSummary | None
+    current_session_id: int
+
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str = Field(min_length=1, max_length=1024)
+    new_password: str = Field(min_length=1, max_length=1024)
+    confirm_password: str = Field(min_length=1, max_length=1024)
+
+    @model_validator(mode="after")
+    def passwords_must_match(self) -> Self:
+        if self.new_password != self.confirm_password:
+            raise ValueError("New password and confirmation must match")
+        return self
+
+
+class SessionRead(BaseModel):
+    id: int
+    created_at: datetime | None
+    expires_at: datetime
+    last_seen_at: datetime
+    user_agent: str | None
+    ip_address: str | None
+    revoked: bool
+    current_session: bool
+
+
+class RevokeSessionResponse(BaseModel):
+    session_id: int
+    revoked: bool
+    message: str
+
+
+class LogoutAllResponse(BaseModel):
+    revoked_sessions: int
+    message: str
+
+
+class LogoutResponse(RevokeSessionResponse):
+    pass
+
+
+class ChangePasswordResponse(BaseModel):
+    changed: bool
+    revoked_sessions: int
+    message: str

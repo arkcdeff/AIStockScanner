@@ -9,6 +9,7 @@ if os.name == "nt":
 os.environ["APP_ENV"] = "testing"
 os.environ["DATABASE_URL_ASYNC"] = "postgresql+asyncpg://postgres:ramki12345@localhost/test"
 os.environ["DATABASE_URL_SYNC"] = "postgresql+psycopg://postgres:ramki12345@localhost/test"
+os.environ["JWT_SECRET_KEY"] = "test-only-jwt-signing-key-" + ("x" * 48)
 
 
 @pytest.fixture(autouse=True)

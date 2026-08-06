@@ -4,6 +4,7 @@ from app.api.routes import (
     ai,
     alerts,
     analytics,
+    auth,
     dashboard,
     health,
     indicators,
@@ -20,6 +21,7 @@ from app.api.routes import stock_detail as stock_detail_module
 
 api_router = APIRouter()
 api_router.include_router(health.router)
+api_router.include_router(auth.router)
 api_router.include_router(stocks.router)
 api_router.include_router(market_data.router)
 api_router.include_router(indicators.router)
