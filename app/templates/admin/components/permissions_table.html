@@ -1,0 +1,57 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Code</th>
+                        <th>Description</th>
+                        <th>Roles</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in permissions %}
+                    <tr>
+                        <td><code>{{ p.code }}</code></td>
+                        <td class="text-muted">{{ p.description or '—' }}</td>
+                        <td><span class="badge bg-secondary">{{ p.role_count }}</span></td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-secondary" type="button"
+                                    data-bs-toggle="collapse" data-bs-target="#edit-perm-{{ p.id }}">Edit</button>
+                            <form method="post" action="/admin/permissions/{{ p.id }}/delete" hx-post="/admin/permissions/{{ p.id }}/delete"
+                                  hx-target="#permissions-table" hx-swap="innerHTML" class="d-inline"
+                                  onsubmit="return confirm('Delete this permission?');">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" {{ 'disabled' if p.role_count > 0 else '' }}>Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                    <tr class="collapse" id="edit-perm-{{ p.id }}">
+                        <td colspan="4" class="bg-light">
+                            <form method="post" action="/admin/permissions/{{ p.id }}/edit" hx-post="/admin/permissions/{{ p.id }}/edit"
+                                  hx-target="#permissions-table" hx-swap="innerHTML">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <div class="row g-2">
+                                    <div class="col-md-4">
+                                        <input type="text" class="form-control" name="code" value="{{ p.code }}" maxlength="100">
+                                    </div>
+                                    <div class="col-md-6">
+                                        <input type="text" class="form-control" name="description" value="{{ p.description or '' }}">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <button type="submit" class="btn btn-sm btn-primary w-100">Save</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="text-center text-muted py-4">No permissions found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,41 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Name</th>
+                        <th>Description</th>
+                        <th>Users</th>
+                        <th>Permissions</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in roles %}
+                    <tr>
+                        <td><a href="/admin/roles/{{ item.role.id }}">{{ item.role.name }}</a></td>
+                        <td class="text-muted">{{ item.role.description or '—' }}</td>
+                        <td><span class="badge bg-secondary">{{ item.user_count }}</span></td>
+                        <td><span class="badge bg-light border">{{ item.role.permissions|length }}</span></td>
+                        <td class="text-end">
+                            <a href="/admin/roles/{{ item.role.id }}" class="btn btn-sm btn-outline-primary">Manage</a>
+                            {% if item.role.name not in ['super_admin', 'admin'] %}
+                            <form method="post" action="/admin/roles/{{ item.role.id }}/delete" hx-post="/admin/roles/{{ item.role.id }}/delete"
+                                  hx-target="#roles-table" hx-swap="innerHTML" class="d-inline"
+                                  onsubmit="return confirm('Delete this role?');">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="5" class="text-center text-muted py-4">No roles found.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

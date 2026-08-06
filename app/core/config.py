@@ -97,6 +97,14 @@ class Settings(BaseSettings):
     password_hash_scheme: Literal["argon2id"] = "argon2id"
     clock_skew_seconds: int = Field(default=30, ge=0, le=300)
 
+    auth_cookie_secure: bool = False
+    auth_cookie_samesite: Literal["lax", "strict", "none"] = "lax"
+    access_cookie_name: str = "access_token"
+    refresh_cookie_name: str = "refresh_token"
+    csrf_cookie_name: str = "csrf_token"
+    csrf_header_name: str = "x-csrf-token"
+    csrf_secret_key: SecretStr = SecretStr("")
+
     model_config = SettingsConfigDict(
         env_file=Path(__file__).resolve().parents[2] / ".env",
         env_file_encoding="utf-8",

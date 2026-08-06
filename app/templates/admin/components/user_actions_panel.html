@@ -1,0 +1,90 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">{{ user.username }}</h5>
+        <span>
+            <span class="badge bg-{{ 'success' if user.is_active else 'secondary' }}">Active</span>
+            <span class="badge bg-{{ 'info' if user.is_verified else 'secondary' }}">Verified</span>
+            {% if user.is_superuser %}<span class="badge bg-warning">Superuser</span>{% endif %}
+        </span>
+    </div>
+    <div class="card-body">
+        <ul class="list-group list-group-flush mb-3">
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="text-muted">Email</span><span>{{ user.email }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="text-muted">Full name</span><span>{{ user.full_name or '—' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="text-muted">Last login</span>
+                <span>{{ user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+                <span class="text-muted">Created</span>
+                <span>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span>
+            </li>
+        </ul>
+
+        <div class="btn-group mb-3" role="group">
+            <form method="post" action="/admin/users/{{ user.id }}/activate" hx-post="/admin/users/{{ user.id }}/activate" hx-target="#user-actions-panel" hx-swap="innerHTML" class="me-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-outline-success" {{ 'disabled' if user.is_active else '' }}>Activate</button>
+            </form>
+            <form method="post" action="/admin/users/{{ user.id }}/deactivate" hx-post="/admin/users/{{ user.id }}/deactivate" hx-target="#user-actions-panel" hx-swap="innerHTML" class="me-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-outline-warning" {{ 'disabled' if not user.is_active else '' }}>Deactivate</button>
+            </form>
+            <form method="post" action="/admin/users/{{ user.id }}/verify" hx-post="/admin/users/{{ user.id }}/verify" hx-target="#user-actions-panel" hx-swap="innerHTML" class="me-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-outline-info" {{ 'disabled' if user.is_verified else '' }}>Verify</button>
+            </form>
+            <form method="post" action="/admin/users/{{ user.id }}/unverify" hx-post="/admin/users/{{ user.id }}/unverify" hx-target="#user-actions-panel" hx-swap="innerHTML" class="me-1">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-sm btn-outline-secondary" {{ 'disabled' if not user.is_verified else '' }}>Unverify</button>
+            </form>
+        </div>
+
+        <h6>Edit user</h6>
+        <form method="post" action="/admin/users/{{ user.id }}/edit" hx-post="/admin/users/{{ user.id }}/edit" hx-target="#user-actions-panel" hx-swap="innerHTML">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="mb-2">
+                <label class="form-label">Full name</label>
+                <input type="text" class="form-control" name="full_name" value="{{ user.full_name or '' }}">
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="is_verified" id="edit_verified" value="on" {{ 'checked' if user.is_verified else '' }}>
+                <label class="form-check-label" for="edit_verified">Verified</label>
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="is_superuser" id="edit_super" value="on" {{ 'checked' if user.is_superuser else '' }}>
+                <label class="form-check-label" for="edit_super">Superuser</label>
+            </div>
+            <button type="submit" class="btn btn-sm btn-primary">Save changes</button>
+        </form>
+
+        <hr>
+
+        <h6>Reset password</h6>
+        <form method="post" action="/admin/users/{{ user.id }}/reset-password" hx-post="/admin/users/{{ user.id }}/reset-password" hx-target="#user-actions-panel" hx-swap="innerHTML">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="mb-2">
+                <label class="form-label">New password (optional)</label>
+                <input type="password" class="form-control" name="new_password" autocomplete="new-password">
+            </div>
+            <div class="form-check form-switch mb-2">
+                <input class="form-check-input" type="checkbox" name="generate" id="reset_generate" value="on">
+                <label class="form-check-label" for="reset_generate">Generate a temporary password</label>
+            </div>
+            <button type="submit" class="btn btn-sm btn-warning">Reset password</button>
+        </form>
+
+        <hr>
+
+        <form method="post" action="/admin/users/{{ user.id }}/delete" hx-post="/admin/users/{{ user.id }}/delete" hx-target="#users-table" hx-swap="innerHTML"
+              onsubmit="return confirm('Deactivate and remove this user?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Deactivate &amp; remove user</button>
+        </form>
+    </div>
+</div>

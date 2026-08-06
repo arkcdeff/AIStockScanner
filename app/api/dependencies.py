@@ -23,6 +23,13 @@ def unauthorized_exception() -> HTTPException:
     )
 
 
+def forbidden_exception() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Administrator access required",
+    )
+
+
 async def get_current_authenticated_user(
     credentials: Annotated[
         HTTPAuthorizationCredentials | None,
@@ -41,3 +48,14 @@ async def get_current_authenticated_user(
         ) from exc
     except (AuthenticationError, AuthServiceError) as exc:
         raise unauthorized_exception() from exc
+
+
+def require_admin_user(
+    current: Annotated[AuthenticatedUser, Depends(get_current_authenticated_user)],
+) -> AuthenticatedUser:
+    if not current.user.is_superuser and "super_admin" not in current.roles:
+        raise forbidden_exception()
+    return current
+
+
+CurrentAdminUser = Annotated[AuthenticatedUser, Depends(require_admin_user)]

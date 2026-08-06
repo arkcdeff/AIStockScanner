@@ -1,0 +1,44 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}Role {{ role.name }} - Admin - AI Stock Scanner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Role: {{ role.name }}</h1>
+    <a href="/admin/roles" class="btn btn-sm btn-outline-secondary">&laquo; Back to roles</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0">Details</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">{{ role.description or 'No description.' }}</p>
+                <p><span class="text-muted">Users:</span> <span class="badge bg-secondary">{{ user_count }}</span></p>
+
+                <form method="post" action="/admin/roles/{{ role.id }}/edit" hx-post="/admin/roles/{{ role.id }}/edit" hx-target="#roles-table" hx-swap="innerHTML">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-2">
+                        <label class="form-label">Name</label>
+                        <input type="text" class="form-control" name="name" value="{{ role.name }}" maxlength="64"
+                               {{ 'disabled' if role.name in ['super_admin', 'admin'] else '' }}>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="description" rows="2">{{ role.description or '' }}</textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div id="role-permissions-panel">
+            {% include "admin/components/role_permissions_panel.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

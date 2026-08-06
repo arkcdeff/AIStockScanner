@@ -1,18 +1,24 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from urllib.parse import quote
 
 from fastapi import FastAPI
+from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
+from jinja2 import Environment, FileSystemLoader, select_autoescape
 from loguru import logger
 from starlette.staticfiles import StaticFiles
 
+from app.api.browser_auth import ForbiddenError, LoginRequiredError
 from app.api.router import (
     api_router,
     dashboard_router,
     scanner_workspace_router,
     stock_detail_router,
 )
+from app.api.routes.admin_pages import router as admin_pages_router
 from app.api.routes.alert_pages import router as alert_pages_router
+from app.api.routes.auth_pages import router as auth_pages_router
 from app.api.routes.notification_pages import router as notification_pages_router
 from app.api.routes.portfolio_pages import router as portfolio_pages_router
 from app.api.routes.watchlist_pages import router as watchlist_pages_router
@@ -64,6 +70,8 @@ def create_app() -> FastAPI:
     )
     app.add_middleware(RequestContextMiddleware)
     app.include_router(api_router, prefix=settings.api_v1_prefix)
+    app.include_router(auth_pages_router)
+    app.include_router(admin_pages_router)
     app.include_router(dashboard_router)
     app.include_router(scanner_workspace_router, prefix="/scanner-results")
     app.include_router(stock_detail_router, prefix="/stocks")
@@ -74,6 +82,20 @@ def create_app() -> FastAPI:
 
     templates = Jinja2Templates(directory=str(settings.base_dir / "app" / "templates"))
     app.state.templates = templates
+    error_env = Environment(
+        loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
+        autoescape=select_autoescape(("html", "htm", "xml")),
+    )
+
+    @app.exception_handler(LoginRequiredError)
+    async def _login_required_handler(request, exc: LoginRequiredError) -> RedirectResponse:
+        next_value = quote(exc.next_path or "/dashboard")
+        return RedirectResponse(f"/login?next={next_value}&expired=1", status_code=302)
+
+    @app.exception_handler(ForbiddenError)
+    async def _forbidden_handler(request, exc: ForbiddenError) -> HTMLResponse:
+        html = error_env.get_template("errors/403.html").render(request=request)
+        return HTMLResponse(content=html, status_code=403)
 
     app.mount(
         "/static",

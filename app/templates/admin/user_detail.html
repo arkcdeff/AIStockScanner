@@ -1,0 +1,23 @@
+{% extends "layouts/app.html" %}
+
+{% block title %}User {{ user.username }} - Admin - AI Stock Scanner{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">User: {{ user.username }}</h1>
+    <a href="/admin/users" class="btn btn-sm btn-outline-secondary">&laquo; Back to users</a>
+</div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <div id="user-actions-panel">
+            {% include "admin/components/user_actions_panel.html" %}
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div id="user-roles-panel">
+            {% include "admin/components/user_roles_panel.html" %}
+        </div>
+    </div>
+</div>
+{% endblock %}

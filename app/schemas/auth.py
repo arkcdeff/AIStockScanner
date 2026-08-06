@@ -220,3 +220,22 @@ class ChangePasswordResponse(BaseModel):
     changed: bool
     revoked_sessions: int
     message: str
+
+
+class UserPreferenceUpdate(BaseModel):
+    theme: str | None = Field(default=None, min_length=1, max_length=32)
+    timezone: str | None = Field(default=None, min_length=1, max_length=64)
+    language: str | None = Field(default=None, min_length=1, max_length=16)
+    dashboard_layout: dict[str, Any] | None = None
+    notification_defaults: dict[str, Any] | None = None
+
+
+class ProfileUpdateRequest(BaseModel):
+    full_name: str | None = Field(default=None, max_length=160)
+    email: str | None = Field(default=None, min_length=1, max_length=320)
+    username: str | None = Field(default=None, min_length=3, max_length=64)
+    current_password: str | None = Field(default=None, max_length=1024)
+
+
+class ProfileResponse(UserSummary):
+    pass

@@ -392,17 +392,15 @@ class AuthService:
 
     async def revoke_session(self, user_id: int, session_id: int) -> SessionRevocation:
         revoked_at = datetime.now(UTC)
+        record = await self.sessions.get_for_update(session_id)
+        if record is None or record.user_id != user_id:
+            raise SessionNotFoundError("Session not found")
+        if record.revoked_at is not None:
+            return SessionRevocation(
+                session_id=record.id,
+                newly_revoked=False,
+            )
         try:
-            record = await self.sessions.get_for_update(session_id)
-            if record is None or record.user_id != user_id:
-                raise SessionNotFoundError("Session not found")
-            if record.revoked_at is not None:
-                revoked_session_id = record.id
-                await self.session.rollback()
-                return SessionRevocation(
-                    session_id=revoked_session_id,
-                    newly_revoked=False,
-                )
             record.revoked_at = revoked_at
             await self._audit(
                 "session_revoked",

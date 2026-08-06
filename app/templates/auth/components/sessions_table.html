@@ -1,0 +1,52 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-phone me-2"></i>Sessions</h5>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th>Device</th>
+                        <th>IP</th>
+                        <th>Created</th>
+                        <th>Last seen</th>
+                        <th>Expires</th>
+                        <th>Status</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in sessions %}
+                    <tr>
+                        <td>
+                            {% if s.current_session %}<span class="badge bg-primary me-1">Current</span>{% endif %}
+                            {{ (s.user_agent or 'Unknown device')|truncate(48, True) }}
+                        </td>
+                        <td>{{ s.ip_address or '—' }}</td>
+                        <td>{{ s.created_at.strftime('%Y-%m-%d %H:%M') if s.created_at else '—' }}</td>
+                        <td>{{ s.last_seen_at.strftime('%Y-%m-%d %H:%M') if s.last_seen_at else '—' }}</td>
+                        <td>{{ s.expires_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            {% if s.revoked %}<span class="badge bg-secondary">Revoked</span>
+                            {% else %}<span class="badge bg-success">Active</span>{% endif %}
+                        </td>
+                        <td class="text-end">
+                            {% if not s.revoked %}
+                            <form method="post" action="/sessions/{{ s.id }}/revoke" hx-post="/sessions/{{ s.id }}/revoke"
+                                  hx-target="#sessions-table" hx-swap="innerHTML">
+                                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                                <button type="submit" class="btn btn-sm btn-outline-secondary">Revoke</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="7" class="text-center text-muted py-4">No active sessions.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

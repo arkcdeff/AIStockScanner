@@ -1,0 +1,42 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-key me-2"></i>Permissions</h5>
+    </div>
+    <div class="card-body">
+        <h6 class="text-muted">Granted permissions</h6>
+        {% if role_permissions %}
+            <div class="mb-3">
+                {% for p in role_permissions %}
+                <span class="chip bg-primary-subtle text-primary">
+                    {{ p.code }}
+                    <form method="post" action="/admin/roles/{{ role.id }}/permissions/{{ p.id }}/remove"
+                          hx-post="/admin/roles/{{ role.id }}/permissions/{{ p.id }}/remove"
+                          hx-target="#role-permissions-panel" hx-swap="innerHTML" class="d-inline">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                        <button type="submit" class="btn btn-link btn-sm p-0 ms-1 text-danger" title="Remove">x</button>
+                    </form>
+                </span>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="text-muted">No permissions granted.</p>
+        {% endif %}
+
+        <hr>
+        <h6>Assign permission</h6>
+        <form method="post" action="/admin/roles/{{ role.id }}/permissions/assign"
+              hx-post="/admin/roles/{{ role.id }}/permissions/assign"
+              hx-target="#role-permissions-panel" hx-swap="innerHTML">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="input-group">
+                <select class="form-select" name="permission_id" id="assign_permission_select" required>
+                    {% for p in permissions %}
+                    <option value="{{ p.id }}">{{ p.code }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Assign</button>
+            </div>
+        </form>
+    </div>
+</div>

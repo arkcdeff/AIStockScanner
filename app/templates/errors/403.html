@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block title %}Forbidden - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid min-vh-100 d-flex align-items-center justify-content-center">
+    <div class="text-center">
+        <h1 class="display-4">403</h1>
+        <p class="lead">You do not have permission to view this page.</p>
+        {% if message %}<p class="text-muted">{{ message }}</p>{% endif %}
+        <a href="/dashboard" class="btn btn-primary">Back to dashboard</a>
+    </div>
+</div>
+{% endblock %}

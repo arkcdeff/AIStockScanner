@@ -21,11 +21,14 @@ from app.schemas.auth import (
     LogoutAllResponse,
     LogoutRequest,
     LogoutResponse,
+    ProfileResponse,
+    ProfileUpdateRequest,
     RefreshRequest,
     RevokeSessionResponse,
     SessionRead,
     TokenPairResponse,
     UserPreferenceSummary,
+    UserPreferenceUpdate,
     UserSummary,
 )
 from app.services.auth_service import (
@@ -38,6 +41,15 @@ from app.services.auth_service import (
     SessionNotFoundError,
     TokenPair,
     mask_ip_address,
+)
+from app.services.preference_service import (
+    DuplicateIdentityError as PreferenceDuplicateIdentityError,
+)
+from app.services.preference_service import (
+    InvalidPreferenceError,
+    PasswordConfirmationError,
+    PreferenceService,
+    PreferenceServiceError,
 )
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -226,6 +238,86 @@ async def change_password(
         changed=True,
         revoked_sessions=revoked,
         message="Password changed and all sessions revoked; sign in again",
+    )
+
+
+@router.get("/preferences", response_model=UserPreferenceSummary)
+async def get_preferences(
+    current: CurrentAuthentication,
+    session: DatabaseSession,
+) -> UserPreferenceSummary:
+    preference = await PreferenceService(session).get_preferences(current.user.id)
+    return UserPreferenceSummary(
+        theme=preference.theme,
+        timezone=preference.timezone,
+        language=preference.language,
+    )
+
+
+@router.put("/preferences", response_model=UserPreferenceSummary)
+async def update_preferences(
+    payload: UserPreferenceUpdate,
+    current: CurrentAuthentication,
+    session: DatabaseSession,
+) -> UserPreferenceSummary:
+    try:
+        preference = await PreferenceService(session).update_preferences(
+            current.user.id,
+            theme=payload.theme,
+            timezone=payload.timezone,
+            language=payload.language,
+            dashboard_layout=payload.dashboard_layout,
+            notification_defaults=payload.notification_defaults,
+        )
+    except InvalidPreferenceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+            detail=str(exc),
+        ) from exc
+    return UserPreferenceSummary(
+        theme=preference.theme,
+        timezone=preference.timezone,
+        language=preference.language,
+    )
+
+
+@router.put("/profile", response_model=ProfileResponse)
+async def update_profile(
+    payload: ProfileUpdateRequest,
+    current: CurrentAuthentication,
+    session: DatabaseSession,
+) -> ProfileResponse:
+    try:
+        user = await PreferenceService(session).update_profile(
+            current.user.id,
+            full_name=payload.full_name,
+            email=payload.email,
+            username=payload.username,
+            current_password=payload.current_password,
+        )
+    except PasswordConfirmationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(exc),
+        ) from exc
+    except PreferenceDuplicateIdentityError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=str(exc),
+        ) from exc
+    except PreferenceServiceError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(exc),
+        ) from exc
+    return ProfileResponse(
+        id=user.id,
+        username=user.username,
+        email=user.email,
+        full_name=user.full_name,
+        is_active=user.is_active,
+        is_verified=user.is_verified,
+        is_superuser=user.is_superuser,
     )
 
 

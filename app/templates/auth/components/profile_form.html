@@ -1,0 +1,35 @@
+{% include "components/flash.html" %}
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-person me-2"></i>Account details</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" action="/profile/update" hx-post="/profile/update" hx-target="#profile-form" hx-swap="innerHTML">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="mb-3">
+                <label for="full_name" class="form-label">Full name</label>
+                <input type="text" class="form-control" id="full_name" name="full_name" maxlength="160"
+                       value="{{ user.full_name or '' }}">
+            </div>
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="profile_username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="profile_username" name="username" minlength="3" maxlength="64"
+                           value="{{ user.username }}">
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label for="profile_email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="profile_email" name="email" maxlength="320"
+                           value="{{ user.email }}">
+                </div>
+            </div>
+            <div class="mb-3">
+                <label for="profile_current_password" class="form-label">Current password</label>
+                <input type="password" class="form-control" id="profile_current_password" name="current_password"
+                       autocomplete="current-password">
+                <div class="form-text">Required only when changing your username or email.</div>
+            </div>
+            <button type="submit" class="btn btn-primary">Save profile</button>
+        </form>
+    </div>
+</div>

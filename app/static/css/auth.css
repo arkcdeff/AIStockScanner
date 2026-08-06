@@ -1,0 +1,35 @@
+/* Authentication UI */
+
+.avatar-initials {
+    width: 22px;
+    height: 22px;
+    padding: 2px 0;
+    font-size: 0.75rem;
+    line-height: 1.1;
+    text-align: center;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.auth-card {
+    max-width: 440px;
+}
+
+.chip {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    margin: 0.1rem 0.2rem 0.1rem 0;
+    border-radius: 1rem;
+    font-size: 0.8rem;
+}
+
+.flash-message {
+    margin-top: 1rem;
+}
+
+@media (prefers-color-scheme: dark) {
+    body[data-bs-theme="light"].theme-system-auto,
+    body[data-bs-theme="light"] {
+        color-scheme: light;
+    }
+}

@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.browser_auth import finalize_page_response, get_browser_user, stage_csrf_token
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.ai_insights import AIInsightsService
@@ -21,11 +22,19 @@ def _render(template_name: str, context: dict) -> str:
 
 
 @router.get("/", response_class=HTMLResponse)
-async def root_redirect(request: Request) -> HTMLResponse:
+async def root_redirect(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    browser_user = await get_browser_user(request, session)
+    csrf_token = stage_csrf_token(request)
     html = _render(
         "dashboard.html",
         {
             "request": request,
+            "browser_user": browser_user,
+            "csrf_token": csrf_token,
+            "body_theme": "light",
             "summary": {
                 "total_stocks": 0,
                 "total_indicators": 0,
@@ -99,7 +108,7 @@ async def root_redirect(request: Request) -> HTMLResponse:
             },
         },
     )
-    return HTMLResponse(content=html)
+    return finalize_page_response(request, HTMLResponse(content=html))
 
 
 @router.get("/dashboard", response_class=HTMLResponse)
@@ -107,6 +116,8 @@ async def dashboard(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
+    browser_user = await get_browser_user(request, session)
+    csrf_token = stage_csrf_token(request)
     service = DashboardService(session)
     summary = await service.get_summary()
     recent_imports = await service.get_recent_imports()
@@ -145,9 +156,12 @@ async def dashboard(
             "ai_opportunities": ai_opportunities,
             "ai_highest_confidence": ai_highest_confidence,
             "ai_recent": ai_recent,
+            "browser_user": browser_user,
+            "csrf_token": csrf_token,
+            "body_theme": "light",
         },
     )
-    return HTMLResponse(content=html)
+    return finalize_page_response(request, HTMLResponse(content=html))
 
 
 @router.get("/dashboard/search", response_class=HTMLResponse)
