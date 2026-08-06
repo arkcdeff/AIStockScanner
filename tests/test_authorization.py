@@ -24,7 +24,6 @@ from app.main import app
 from app.models.auth import AuditLog, UserSession
 from app.services.auth_service import AuthenticatedUser
 from tests.auth_helpers import (
-    admin_client,
     analyst_client,
     create_test_user,
     get_bearer_token,

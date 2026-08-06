@@ -2,200 +2,154 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-No unreleased changes.
-
-## [0.11.0] - 2026-08-05
+## [v0.12.0] - 2026-08-06
 
 ### Added
-- Notification persistence for channels, per-event preferences, delivery attempts, and
-  idempotent daily-summary runs via migration `22d886d53759`
-- Provider abstraction for deterministic mock, Telegram, SMTP email, and in-app delivery,
-  including provider health checks and safe configuration validation
-- Notification rendering, channel eligibility, delivery orchestration, retry scheduling,
-  stale-send recovery, permanent-failure handling, and duplicate-delivery prevention
-- Notification JSON APIs for status, channel/preference management, provider tests, alert and
-  pending delivery, delivery history/detail/retry/read state, daily summaries, and scheduler
-  status/manual execution
-- Bootstrap 5 + HTMX notification dashboard, settings, and history pages; notification widgets
-  on the main dashboard and stock detail pages
-- Deterministic daily summaries using existing EOD, scanner, analytics, alert, watchlist, and
-  portfolio data, with cached AI market text only when it already exists
-- Two optional jobs in the existing APScheduler instance: interval delivery processing and a
-  weekday daily summary; both are disabled by default and use fresh database sessions
-- Post-pipeline notification orchestration that cannot change a successfully completed EOD run
-- 109 focused notification tests; full project suite now contains 279 tests
 
-### Security
-- API responses and HTML mask provider recipients and credentials; token/password fields are
-  write-only in the UI and stored message content is HTML-escaped
-- Provider exceptions are sanitized before persistence, logging, or API/UI presentation
-- Scheduler and outbound notification execution remain disabled by default
+- **Authorization Framework** (`app/auth/authorization.py`)
+  - Reusable Bearer helpers: `require_authenticated`, `require_permission`,
+    `require_any_permission`, `require_all_permissions`, `require_role`,
+    `require_admin`, `require_superuser`, `require_owner_or_admin`
+  - Reusable browser helpers: `require_browser_permission`, `require_browser_role`,
+    `enforce_browser_permission`
+  - Pure check functions: `is_superuser`, `user_has_role`, `user_has_permission`
+  - Audit event recorder: `record_authorization_event` (best-effort, cross-loop safe)
+  - Superuser/super_admin bypass; ownership/admin-override with audit
+
+- **Permission catalog** (`app/services/builtin_auth.py`)
+  - 23 permission codes across 7 domains
+  - 4 roles: `super_admin`, `admin`, `analyst`, `viewer`
+  - Role-permission matrix documented in `docs/01_Architecture/Permission_Matrix.md`
+
+- **Auth models & migrations**
+  - `User`, `Role`, `Permission`, `UserRole`, `RolePermission`, `UserSession`,
+    `UserPreference`, `AuditLog`
+  - Alembic migration head: `3f8c1a2b4d6e`
+
+- **Auth REST APIs** (`/api/v1/auth`)
+  - `POST /login` (Bearer + HttpOnly cookies), `POST /refresh`, `POST /logout`,
+    `POST /logout-all`
+  - `GET /me`, `GET/PUT /preferences`, `GET/PUT /profile`
+  - `GET /sessions`, `DELETE /sessions/{id}`, `POST /logout-all`
+  - `POST /change-password`
+  - HttpOnly cookies, CSRF protection, refresh token rotation, session revocation
+
+- **Browser auth UI** (`/login`, `/logout`, `/profile`, `/settings`, `/sessions`,
+  `/password/change`)
+  - `/login` GET/POST with HTMX, CSRF, `next` redirect
+  - Friendly 403 page (no stack traces), unauthenticated redirect to `/login?next=...`
+  - Session management (list, revoke, revoke-all)
+
+- **Admin management**
+  - API: `/api/v1/admin/users` (list, create, get, update, activate/deactivate,
+    verify/unverify, reset-password, role assign/remove, delete)
+  - API: `/api/v1/admin/roles` (list, create, get, edit, delete, permission assign/remove)
+  - API: `/api/v1/admin/permissions` (list, create, edit, delete)
+  - UI: `/admin/users`, `/admin/roles`, `/admin/permissions` with HTMX partials
+  - Requires `super_admin` role or `is_superuser` flag
+
+- **Route protections**
+  - 12 API modules protected: analytics, ai, stocks, market_data, indicators,
+    scanners, pipeline, watchlists, portfolio, alerts, notifications, admin
+  - 9 HTML page modules protected: dashboard, scanner_workspace, stock_detail,
+    watchlists, portfolio, alerts, notifications, admin
+  - Role/permission requirements documented in Permission Matrix
+
+- **Audit events**
+  - `access_denied` (unauthenticated access)
+  - `permission_denied` (authenticated but insufficient permissions)
+  - `admin_override` (admin accessing another user's owned resource)
+  - `session_revoked`, `builtin_auth_seeded`
+  - Best-effort commit (cross-loop safe)
+
+- **Test suite & helpers**
+  - `tests/test_authorization.py`: 15 comprehensive tests (Bearer 401/403/200,
+    browser 302/403/200, ownership+admin_override, audit assertions)
+  - `tests/auth_helpers.py`: `auth_client`, role-specific clients, `create_test_user`,
+    `get_bearer_token`, cookie auth via `extract_cookies`
+  - All existing tests updated to authenticate (no failing tests)
 
 ### Changed
-- Alert events can now be delivered through eligible notification channels after successful EOD
-  processing without sharing the pipeline database session
-- Dashboard and stock detail pages show compact notification state without redesigning their
-  existing layouts
 
-### Migrations
-- `22d886d53759` adds `notification_channels`, `notification_preferences`,
-  `notification_deliveries`, and `daily_summary_runs`
-
-## [0.10.0] - 2026-08-04
-
-### Added
-- Watchlist management: `Watchlist` / `WatchlistStock` models, repository, service, schemas,
-  JSON API (`/api/v1/watchlists/...`), HTML page + HTMX partials at `/watchlists`
-- Portfolio tracking: `Portfolio` / `Holding` models, repository, service, schemas,
-  JSON API (`/api/v1/portfolios/...`), HTML page + HTMX partials at `/portfolio`
-- Live holding valuations: invested, current value, P&L, ROI %, today's P&L, allocation;
-  per-portfolio and overall summaries
-- Alert rules engine (`app/services/alert.py`): deterministic evaluation of `overall_score`,
-  `rsi`, `ema_cross`, `delivery`, `volume`, `breakout`, `support_broken`, `resistance_broken`
-  against the latest analytics/indicators/prices; cooldown via `last_triggered`;
-  persisted `AlertEvent` rows (in-app only)
-- Alert APIs: `/api/v1/alerts/rules` CRUD, `/run`, `/events`, `/events/pending`,
-  `/events/symbol/{symbol}`, `PATCH /events/{id}`; HTML page + HTMX partials at `/alerts`
-- EOD pipeline alert stage runs after analytics and records `alerts_triggered`
-- Dashboard portfolio/watchlist/alert summary cards; stock detail watchlist, portfolio
-  position, and matching-alerts panels
-- 6 new tables (`watchlists`, `watchlist_stocks`, `portfolios`, `holdings`, `alert_rules`,
-  `alert_events`) + migration `fd96a19d8b61`
-- 41 new tests (services, APIs, engine rules, cooldown, UI rendering, pipeline integration)
-
-## [0.9.0] - 2026-08-04
-
-### Added
-- AI Explanation Engine (`app/ai/`) — a provider-abstraction layer that explains the existing
-  deterministic analytics only. AI never computes indicators, scores, or scanner logic;
-  `AnalyticsEngine` remains the single source of truth
-- Provider abstraction: `BaseAIProvider` (`generate`, `health`, `model_name`) with async httpx
-  implementations for Ollama, DeepSeek, OpenAI, plus a deterministic `mock` provider (default,
-  no network). Provider selected from `.env` (`AI_PROVIDER`) via factory
-- `prompt_builder` renders validated Pydantic DTOs into one structured prompt from 4 templates:
-  `stock_summary`, `scanner_summary`, `market_summary`, `watchlist_summary`
-- `response_parser` safely parses/sanitizes AI JSON output; malformed, empty, or non-JSON
-  responses fall back to a deterministic plain-language explanation (never a crash)
-- Two-layer caching: in-memory TTL cache keyed by provider + prompt hash, and persistent
-  `ai_explanations` table unique on `(stock_id, trade_date, provider)`. Cache invalidates
-  automatically when trade date / indicators / analytics / scanner results / pipeline change
-- `ai_explanations` table + migration `f0a1b2c3d4e5`
-- AI APIs: `GET /api/v1/ai/stock/{symbol}`, `/api/v1/ai/top-rated`, `/api/v1/ai/market-summary`
-- Stock detail AI card with HTMX refresh partial (`/stocks/{symbol}/ai`)
-- Dashboard AI sections: Today's AI Insights, Top Opportunities, Highest Confidence,
-  Recent AI Explanations
-- 34 new tests (provider factory, prompt builder, response parser, caching, service fallbacks,
-  API endpoints, UI rendering) — no real AI calls in tests
-
-## [0.8.0] - 2026-08-04
-
-### Added
-- Technical Analytics Engine (`app/services/analytics_engine.py`) computing deterministic
-  composite scores: trend, momentum, volume, delivery, volatility, and overall (0-100)
-- Support/resistance, classic + Fibonacci pivot points, relative volume, delivery strength,
-  trend/momentum/volatility ratings, and trending/breakout flags
-- `technical_analysis` table (unique per stock/date) + migration `e1f2a3b4c5d6`
-- `analytics_calculated` metric added to `eod_pipeline_runs`
-- Analytics APIs: `GET /api/v1/analytics/{symbol}`, `/top-rated`, `/trending`, `/breakouts`
-- EOD pipeline now runs analytics after scanners (import → indicators → scanners → analytics)
-- Dashboard "Top Rated Stocks" card + analytics metric in pipeline status
-- Stock detail Technical Analytics card with HTMX refresh partial
-- 20 new tests (scoring, pivots, flags, APIs, pipeline integration, UI rendering)
-
-## [0.7.0] - 2026-08-03
-
-### Added
-- Automated EOD processing pipeline (`app/services/eod_pipeline.py`) orchestrating:
-  import NSE EOD file → calculate indicators → run all active scanners → persist results
-- `eod_pipeline_runs` table with metrics, stage tracking, indexes, and `import_job_id` link
-- Manual execution APIs: `POST /api/v1/pipeline/run-file`, `run-date`, `run-latest`;
-  `GET /api/v1/pipeline/runs`, `runs/{id}`, `status`
-- APScheduler-based EOD scheduler (`app/scheduler/eod_scheduler.py`) — disabled by default
-  (`EOD_SCHEDULER_ENABLED=false`), weekdays-only 18:30 Asia/Kolkata, single-instance, coalesced
-- Overlapping-run prevention (409 on conflict), abandoned-run recovery on startup, credential
-  redaction in error messages
-- Pipeline Status card on the dashboard (latest run, trade date, metrics, failed stage)
-- 19 new tests (pipeline service, API, scheduler, dashboard rendering)
+- **Version** bumped to `v0.12.0` (`app/main.py`)
+- **PROJECT_STATE.md** updated for Sprint 16
+- **Sprint_16.md** created with full task documentation
+- **Permission Matrix** created at `docs/01_Architecture/Permission_Matrix.md`
+- Updated `tests/test_pipeline.py`, `tests/test_daily_summary.py` for `_client` context manager
+- Updated `tests/test_alerts.py`, `tests/test_watchlists.py`, `tests/test_dashboard.py`
+  for browser authentication
 
 ### Fixed
-- `IndicatorEngine` never imported `pandas_ta`, so `df.ta` was unavailable — computation now works
-- Indicator calculation failed on `Decimal` columns from the database — numeric columns are cast
-  to float before indicator math
 
-## [0.6.1] - 2026-08-03
+- Cross-loop asyncpg crash in sync TestClient by making audit commit best-effort
+- Browser cookie transmission via `extract_cookies` synthesis
+- Seeding after per-test TRUNCATE (removed `_seeded` flag)
+- Pipeline `_client` context manager (switched to `admin_client`)
 
-### Added
-- Stock detail works for stocks without price history (regression tests)
-- Scanner results are persisted by `run` / `run-all` (conflict-safe, idempotent)
-- Regression tests: scanner persistence, idempotency, no-match, no-price stock
-- HTMX refresh wiring for stock detail overview/indicators/scanner-matches partials
+### Documentation
 
-### Fixed
-- `sector_name` KeyError when a stock has no `DailyPrice` rows
-- Flaky conftest scan-definition seeding (`UniqueViolationError`)
-- Chart marker N+1 (`session.get(ScanDefinition)` per marker removed)
-- Dashboard scanner summary now uses a single grouped query instead of 36 counts
-- Indicator status uses aggregate counts instead of loading full result sets
-- fpdf2 `dest="S"` deprecation removed
-- Sidebar/navbar no longer link to JSON endpoints
+- `docs/01_Architecture/Permission_Matrix.md` (full matrix, route protections, audit events)
+- `docs/05_Development/Sprint_16.md` (complete task documentation)
+- `docs/05_Development/PROJECT_STATE.md` updated for Sprint 16
+- `CHANGELOG.md` created
 
-### Changed
-- `IndicatorResult` added to `app/models/__init__.py` `__all__`
-- Removed duplicate `python-multipart` dependency
-- Scanner API docs document persistence and idempotency
-
-### Migrations
-- None (no schema change)
-
-## [0.4.0] - 2026-08-03
+## [v0.11.0] - 2026-08-05
 
 ### Added
-- Dashboard sprint planning
-- Priority task tracking: Dashboard, Charts, AI Explanation, Watchlist, Alerts
 
-### Fixed
-- Project completion updated to 50%
+- **Notification system** (`app/notifications/`)
+  - Models: `NotificationChannel`, `NotificationPreference`, `NotificationDelivery`,
+    `DailySummaryRun`
+  - Provider abstraction: deterministic mock, Telegram, SMTP email, in-app
+  - Templates with HTML escaping and XSS protection
 
-## [0.3.0] - 2026-08-01
+- **Notification service & retry engine**
+  - Centralized eligibility, quiet hours, rendering, delivery persistence
+  - Duplicate prevention, retry with capped attempts, stale-send recovery
+  - Transient vs permanent failure distinction, max attempts enforcement
+  - Provider error sanitization before persistence/logging
 
-### Added
-- NSE EOD bhavcopy downloader and parser
-- Market data APIs: download, import-file, prices, imports, summary
-- Indicator engine with 15 technical indicators
-- Scanner engine with 36 scanners
-- Volume and delivery scanners (11 new)
-- CLI for NSE import
-- Comprehensive test suite (31 tests)
+- **Notification REST APIs** (`/api/v1/notifications`)
+  - Channel CRUD, preference CRUD, delivery history/detail, retry/read
+  - Provider health/test, daily-summary run/history, scheduler run-delivery
 
-### Fixed
-- Async API test failures on Windows
-- Event loop attachment issues with asyncpg
+- **Notification UI** (`/notifications`, `/notifications/settings`, `/notifications/history`)
+  - Bootstrap 5 + HTMX, targeted partial refreshes
+  - Dashboard & stock-detail notification sections
 
-### Migrations
-- 0002_market_data_foundation
-- c64742f7da53_add_indicator_results_table
-- fda0edd539bd_seed_scan_definitions
-- bdc596b3589a_seed_volume_and_delivery_scan_
+- **Daily summary & scheduler**
+  - Deterministic, read-only, idempotent daily summaries
+  - Optional cached AI market text
+  - Delivery and weekday daily-summary jobs on APScheduler
+  - Disabled by default, coalesced, non-overlapping, fresh sessions
 
-## [0.2.0] - 2026-07-30
+- **Migration** `22d886d53759` for notification foundation tables
 
-### Added
-- FastAPI foundation with async PostgreSQL
-- Stock CRUD APIs
-- Scanner registry infrastructure
-- Alembic migrations
-- Docker compose for PostgreSQL
-- Git workflow documentation
-
-### Migration
-- 0001_create_core_tables
-
-## [0.1.0] - 2026-07-29
+## [v0.10.0] - 2026-07-XX
 
 ### Added
-- Project initialization
-- Base models and database session
-- Health check endpoint
-- Basic project structure
+
+- Alert rules engine (8 rule types)
+- Portfolio & holding management
+- Watchlist management
+- AI Explanation Engine (mock, Ollama, DeepSeek, OpenAI)
+- Analytics engine (trend, momentum, volume, delivery, volatility, overall scores)
+- EOD pipeline (import, indicators, scanners, analytics, alerts)
+- Scanner engine (36 scanners across 8 categories)
+
+## [v0.9.0] - 2026-06-XX
+
+### Added
+
+- Core data models (Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, etc.)
+- NSE Bhavcopy import with validation
+- Indicator engine (EMA, RSI, MACD, SuperTrend, Bollinger, ATR, OBV, VWAP, Stochastic, ADX)
+- Scanner engine (36 scanners)
+- Basic FastAPI app with HTML/HTMX frontend
+
+---
+
+**Note**: This changelog started at v0.9.0. Earlier versions were not formally tracked.

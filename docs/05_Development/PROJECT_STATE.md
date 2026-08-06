@@ -1,6 +1,6 @@
 # Project State
 
-Snapshot of AIStockScanner after Sprint 15 (Notification System), prepared for release v0.11.0.
+Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared for release v0.12.0.
 
 ## Stack
 
@@ -11,10 +11,11 @@ Snapshot of AIStockScanner after Sprint 15 (Notification System), prepared for r
 
 ## Data
 
-- 20 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 21 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
-  NotificationDelivery, DailySummaryRun
+  NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
+  UserSession, UserPreference, AuditLog
 - 18 indicator series per stock/date stored in `indicator_results`
 - 36 active scanners registered in `app/services/scanner_engine.py`
 - `scan_results` is unique on `(scan_definition_id, stock_id, scan_date)`
@@ -24,13 +25,16 @@ Snapshot of AIStockScanner after Sprint 15 (Notification System), prepared for r
 - `holdings` is unique on `(portfolio_id, stock_id)`
 - Notification channel names and channel/event preferences are unique
 - `daily_summary_runs.summary_date` is unique, preventing duplicate summary execution per date
+- Auth: `users` with `is_superuser`, `is_active`, `is_verified`; `user_sessions` with revocation;
+  `audit_logs` with JSON metadata
+- Auth: `roles`, `permissions`, `user_roles`, `role_permissions` for RBAC
 
 ## Migrations
 
-- Alembic current: `22d886d53759 (head)`
-- Alembic heads: `22d886d53759 (head)`
-- Linear history: 10 revisions
-- Sprint 15 migration: `22d886d53759_add_notification_foundation_tables.py`
+- Alembic current: `3f8c1a2b4d6e (head)`
+- Alembic heads: `3f8c1a2b4d6e (head)`
+- Linear history: 15 revisions
+- Sprint 16 migrations: auth tables + RBAC + audit_logs
 
 ## EOD pipeline
 
@@ -103,33 +107,48 @@ Snapshot of AIStockScanner after Sprint 15 (Notification System), prepared for r
 - Stock detail: latest five related delivery rows without N+1 queries
 - Secrets are masked from JSON/HTML and stored message content is escaped
 
+## Authorization Framework (Sprint 16)
+
+- Reusable helpers in `app/auth/authorization.py` for both API (Bearer) and browser (cookie) auth
+- 23 permission codes across 4 roles: super_admin, admin, analyst, viewer
+- API modules protected: analytics, ai, stocks, market_data, indicators, scanners, pipeline,
+  watchlists, portfolio, alerts, notifications, admin
+- HTML pages protected: dashboard, scanner-workspace, stock_detail, watchlists, portfolio,
+  alerts, notifications, admin
+- Superuser/super_admin bypass; owner-or-admin with audit on `admin_override`
+- Audit events: `access_denied`, `permission_denied`, `admin_override`, `session_revoked`,
+  `builtin_auth_seeded`
+- Browser auth: `require_browser_permission`, `require_browser_role`, `enforce_browser_permission`
+- Friendly 403 page (no stack traces), unauthenticated redirect to `/login?next=...`
+
 ## API and page surface
 
 - `/api/v1`: health, stocks, market-data, indicators, scanners, pipeline, analytics, ai,
-  watchlists, portfolios, alerts, notifications, dashboard summaries
+  watchlists, portfolios, alerts, notifications, admin
 - `/dashboard`: pipeline, analytics, AI, portfolio, watchlist, alert, and notification summaries
 - `/scanner-results`: server-rendered workspace with CSV/Excel/PDF export
 - `/stocks/{symbol}`: overview, indicators, analytics, scanners, AI, watchlist, portfolio, alerts,
   and related notifications
 - `/watchlists`, `/portfolio`, `/alerts`, `/notifications`: HTML/HTMX workspaces
+- `/admin/users`, `/admin/roles`, `/admin/permissions`: admin management
+- `/login`, `/profile`, `/settings`, `/sessions`, `/password/change`: auth UI
+- `/api/v1/auth`: login, refresh, logout, me, preferences, profile, sessions, change-password
 
 ## Testing
 
 - Real PostgreSQL test persistence with database cleanup between tests
 - Scan definitions are seeded idempotently
-- 279 total tests
-- 109 focused Sprint 15 tests cover notification models, providers, renderer, service/retry,
-  APIs, UI, dashboard/stock integration, summaries, scheduler, security, idempotency, and pipeline
-  isolation
+- 373+ total tests
+- 119 focused Sprint 16 tests cover auth models, providers, authorization helpers, APIs, UI,
+  ownership/admin_override, audit events, and browser cookie auth
 - External AI, Telegram, and SMTP calls are mocked or replaced by deterministic providers
 - Release gate: Alembic current equals head, Ruff clean, and three consecutive full-suite passes
 
 ## Known gaps
 
-- No authentication or per-user ownership; current schema is single-user
-- No application-wide CSRF system; HTMX forms follow existing project conventions
-- No browser push, Redis, Celery, or distributed scheduler
+- No Redis, Celery, or distributed scheduler
 - Notification jobs and outbound sending remain disabled until explicitly configured
 - `app/scanner/` contains intentionally retained duplicate/dead scanner code
 - `scanner_engine.run_all` re-fetches indicator rows per scanner (performance follow-up)
 - AI collection endpoints are memory-cached only; only per-stock explanations are persisted
+- CSRF system follows existing project conventions (HTMX forms)
