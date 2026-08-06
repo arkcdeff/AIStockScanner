@@ -2,11 +2,15 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.watchlist import WatchlistError, WatchlistService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("watchlists.read"))]
+)
+WRITE_DEPENDENCIES = [Depends(require_browser_permission("watchlists.write"))]
 _env = None
 
 
@@ -52,7 +56,7 @@ async def watchlists_page(
     return HTMLResponse(content=html)
 
 
-@router.post("/", response_class=HTMLResponse)
+@router.post("/", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def create_watchlist(
     request: Request,
     name: str = Form(...),
@@ -76,7 +80,11 @@ async def create_watchlist(
     return RedirectResponse(url="/watchlists", status_code=303)
 
 
-@router.post("/{watchlist_id}/toggle-favorite", response_class=HTMLResponse)
+@router.post(
+        "/{watchlist_id}/toggle-favorite",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def toggle_favorite(
     watchlist_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -88,7 +96,11 @@ async def toggle_favorite(
     return RedirectResponse(url="/watchlists", status_code=303)
 
 
-@router.post("/{watchlist_id}/toggle-default", response_class=HTMLResponse)
+@router.post(
+        "/{watchlist_id}/toggle-default",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def toggle_default(
     watchlist_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -100,7 +112,7 @@ async def toggle_default(
     return RedirectResponse(url="/watchlists", status_code=303)
 
 
-@router.post("/{watchlist_id}/delete", response_class=HTMLResponse)
+@router.post("/{watchlist_id}/delete", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def delete_watchlist(
     watchlist_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -113,7 +125,7 @@ async def delete_watchlist(
     return RedirectResponse(url="/watchlists", status_code=303)
 
 
-@router.post("/{watchlist_id}/stocks", response_class=HTMLResponse)
+@router.post("/{watchlist_id}/stocks", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def add_stock_to_watchlist(
     watchlist_id: int,
     request: Request,
@@ -129,7 +141,11 @@ async def add_stock_to_watchlist(
     return RedirectResponse(url=f"/watchlists?selected={watchlist_id}", status_code=303)
 
 
-@router.post("/{watchlist_id}/stocks/{stock_id}/delete", response_class=HTMLResponse)
+@router.post(
+        "/{watchlist_id}/stocks/{stock_id}/delete",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def remove_stock_from_watchlist(
     watchlist_id: int,
     stock_id: int,

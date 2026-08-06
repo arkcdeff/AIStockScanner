@@ -4,17 +4,25 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.models.indicator_result import IndicatorResult
 from app.models.stock import Stock
 from app.schemas.indicator import IndicatorCalculateResponse
 from app.services.indicator_engine import IndicatorEngine, IndicatorEngineError
 
-router = APIRouter(prefix="/indicators", tags=["Indicators"])
+router = APIRouter(
+    prefix="/indicators",
+    tags=["Indicators"],
+    dependencies=[Depends(require_permission("stocks.read"))],
+)
 
 
 @router.post(
-    "/calculate", response_model=IndicatorCalculateResponse, status_code=status.HTTP_202_ACCEPTED
+    "/calculate",
+    response_model=IndicatorCalculateResponse,
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(require_permission("market_data.write"))],
 )
 async def calculate_indicators(
     symbol: str | None = Query(default=None, min_length=1, max_length=32),

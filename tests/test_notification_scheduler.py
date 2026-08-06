@@ -4,11 +4,9 @@ from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.core.config import settings
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.notification import NotificationChannel, NotificationDelivery
 from app.scheduler.eod_scheduler import (
     DAILY_SUMMARY_JOB_ID,
@@ -21,6 +19,7 @@ from app.services.notification_jobs import (
     run_daily_summary_job,
     run_pending_delivery_job,
 )
+from tests.auth_helpers import auth_client
 
 
 def _bhavcopy_bytes(trade_date: date) -> bytes:
@@ -151,7 +150,7 @@ async def test_manual_delivery_scheduler_api_processes_pending(
 ) -> None:
     pending_id, _stale_id = await _seed_delivery_rows()
     monkeypatch.setattr(settings, "notifications_enabled", True)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with auth_client(role="admin") as client:
         response = await client.post("/api/v1/notifications/scheduler/run-delivery")
 
     assert response.status_code == 200
@@ -164,7 +163,7 @@ async def test_manual_delivery_scheduler_api_processes_pending(
 
 @pytest.mark.asyncio
 async def test_scheduler_status_api_has_safe_job_state() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with auth_client(role="admin") as client:
         response = await client.get("/api/v1/notifications/scheduler/status")
 
     assert response.status_code == 200

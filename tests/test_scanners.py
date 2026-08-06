@@ -1,11 +1,10 @@
 from datetime import UTC, datetime
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from app.main import app
 from app.models.scan_definition import ScanDefinition
 from app.services.scanner_engine import ScannerRegistry
+from tests.auth_helpers import analyst_client
 
 
 def test_scanner_registry_has_36_scanners() -> None:
@@ -15,7 +14,7 @@ def test_scanner_registry_has_36_scanners() -> None:
 
 @pytest.mark.asyncio
 async def test_api_list_scanners() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/scanners")
         assert response.status_code == 200
         body = response.json()
@@ -65,14 +64,14 @@ async def test_api_list_scanners() -> None:
 
 @pytest.mark.asyncio
 async def test_api_run_scanner_not_found() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.post("/api/v1/scanners/run?scan_code=nonexistent")
         assert response.status_code == 404
 
 
 @pytest.mark.asyncio
 async def test_api_run_all_scanners() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.post("/api/v1/scanners/run-all")
         assert response.status_code == 200
         body = response.json()
@@ -84,7 +83,7 @@ async def test_api_run_all_scanners() -> None:
 
 @pytest.mark.asyncio
 async def test_api_list_scan_results() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/scanners/results")
         assert response.status_code == 200
         assert isinstance(response.json(), list)
@@ -155,7 +154,7 @@ async def _count_scan_results(scan_code: str) -> int:
 async def test_api_run_scanner_persists_results() -> None:
     stock_id = await _seed_matching_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client() as client:
             response = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
         assert response.status_code == 200
         assert await _count_scan_results("delivery_above_60") >= 1
@@ -167,7 +166,7 @@ async def test_api_run_scanner_persists_results() -> None:
 async def test_api_run_all_persists_results() -> None:
     stock_id = await _seed_matching_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client() as client:
             response = await client.post("/api/v1/scanners/run-all")
         assert response.status_code == 200
         assert await _count_scan_results("delivery_above_60") >= 1
@@ -179,7 +178,7 @@ async def test_api_run_all_persists_results() -> None:
 async def test_api_run_scanner_idempotent() -> None:
     stock_id = await _seed_matching_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client() as client:
             response1 = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
             assert response1.status_code == 200
             count1 = await _count_scan_results("delivery_above_60")
@@ -194,7 +193,7 @@ async def test_api_run_scanner_idempotent() -> None:
 
 @pytest.mark.asyncio
 async def test_api_run_no_match_creates_no_rows() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
     assert response.status_code == 200
     assert await _count_scan_results("delivery_above_60") == 0

@@ -3,14 +3,12 @@ from datetime import UTC, date, datetime
 from io import BytesIO
 
 import pytest
-from fastapi.testclient import TestClient
-from httpx import ASGITransport, AsyncClient
 
 from app.core.config import settings
 from app.data.nse_parser import NSEParseError, parse_bhavcopy
 from app.db.session import get_session_factory
-from app.main import app
 from app.services.nse_import import NSEImportService
+from tests.auth_helpers import analyst_client
 
 
 def test_parse_invalid_rows() -> None:
@@ -61,35 +59,38 @@ RELIANCE,EQ,1500,1530,1490,1520,1519,1498,100000,152000000,{trade_date},5000,INE
         assert job2.rows_updated == 1
 
 
-def test_api_download_returns_422_for_weekend() -> None:
-    client = TestClient(app)
-    saturday = date(2026, 8, 1)
-    response = client.post("/api/v1/market-data/download", json={"trade_date": str(saturday)})
-    assert response.status_code == 422
+@pytest.mark.asyncio
+async def test_api_download_returns_422_for_weekend() -> None:
+    async with analyst_client() as client:
+        saturday = date(2026, 8, 1)
+        response = await client.post("/api/v1/market-data/download", json={"trade_date": str(saturday)})
+        assert response.status_code == 422
 
 
-def test_api_import_file_empty() -> None:
-    client = TestClient(app)
-    response = client.post(
-        "/api/v1/market-data/import-file",
-        files={"file": ("test.csv", BytesIO(b""), "text/csv")},
-    )
-    assert response.status_code == 400
+@pytest.mark.asyncio
+async def test_api_import_file_empty() -> None:
+    async with analyst_client() as client:
+        response = await client.post(
+            "/api/v1/market-data/import-file",
+            files={"file": ("test.csv", BytesIO(b""), "text/csv")},
+        )
+        assert response.status_code == 400
 
 
-def test_api_import_file_too_large() -> None:
-    client = TestClient(app)
-    huge = b"x" * (settings.max_upload_size + 1)
-    response = client.post(
-        "/api/v1/market-data/import-file",
-        files={"file": ("huge.csv", BytesIO(huge), "text/csv")},
-    )
-    assert response.status_code == 413
+@pytest.mark.asyncio
+async def test_api_import_file_too_large() -> None:
+    async with analyst_client() as client:
+        huge = b"x" * (settings.max_upload_size + 1)
+        response = await client.post(
+            "/api/v1/market-data/import-file",
+            files={"file": ("huge.csv", BytesIO(huge), "text/csv")},
+        )
+        assert response.status_code == 413
 
 
 @pytest.mark.asyncio
 async def test_api_imports_and_summary() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/market-data/imports")
         assert response.status_code == 200
         assert isinstance(response.json(), list)

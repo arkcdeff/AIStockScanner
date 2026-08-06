@@ -3,6 +3,7 @@ from datetime import UTC, datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.schemas.portfolio import (
     HoldingCreate,
@@ -17,7 +18,12 @@ from app.schemas.portfolio import (
 )
 from app.services.portfolio import PortfolioError, PortfolioService
 
-router = APIRouter(prefix="/portfolios", tags=["Portfolio"])
+router = APIRouter(
+    prefix="/portfolios",
+    tags=["Portfolio"],
+    dependencies=[Depends(require_permission("portfolio.read"))],
+)
+WRITE_DEPENDENCIES = [Depends(require_permission("portfolio.write"))]
 
 
 @router.get("/summary", response_model=PortfolioSummaryRead)
@@ -56,7 +62,7 @@ async def list_portfolios(
     return items
 
 
-@router.post("/", response_model=PortfolioRead)
+@router.post("/", response_model=PortfolioRead, dependencies=WRITE_DEPENDENCIES)
 async def create_portfolio(
     payload: PortfolioCreate,
     session: AsyncSession = Depends(get_db_session),
@@ -125,7 +131,7 @@ async def get_portfolio(
     return item
 
 
-@router.put("/{portfolio_id}", response_model=PortfolioRead)
+@router.put("/{portfolio_id}", response_model=PortfolioRead, dependencies=WRITE_DEPENDENCIES)
 async def update_portfolio(
     portfolio_id: int,
     payload: PortfolioUpdate,
@@ -139,7 +145,7 @@ async def update_portfolio(
     return PortfolioRead.model_validate(portfolio)
 
 
-@router.delete("/{portfolio_id}", status_code=204)
+@router.delete("/{portfolio_id}", status_code=204, dependencies=WRITE_DEPENDENCIES)
 async def delete_portfolio(
     portfolio_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -188,7 +194,9 @@ async def list_holdings(
     ]
 
 
-@router.post("/{portfolio_id}/holdings", response_model=HoldingRead)
+@router.post(
+    "/{portfolio_id}/holdings", response_model=HoldingRead, dependencies=WRITE_DEPENDENCIES
+)
 async def add_holding(
     portfolio_id: int,
     payload: HoldingCreate,
@@ -202,7 +210,11 @@ async def add_holding(
     return HoldingRead.model_validate(holding)
 
 
-@router.put("/{portfolio_id}/holdings/{holding_id}", response_model=HoldingRead)
+@router.put(
+    "/{portfolio_id}/holdings/{holding_id}",
+    response_model=HoldingRead,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def update_holding(
     portfolio_id: int,
     holding_id: int,
@@ -219,7 +231,11 @@ async def update_holding(
     return HoldingRead.model_validate(holding)
 
 
-@router.delete("/{portfolio_id}/holdings/{holding_id}", status_code=204)
+@router.delete(
+    "/{portfolio_id}/holdings/{holding_id}",
+    status_code=204,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def remove_holding(
     portfolio_id: int,
     holding_id: int,

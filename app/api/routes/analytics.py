@@ -2,13 +2,18 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.models.daily_price import DailyPrice
 from app.models.technical_analysis import TechnicalAnalysis
 from app.schemas.analytics import AnalyticsListItemRead, TechnicalAnalysisRead
 from app.services.analytics_engine import AnalyticsEngine
 
-router = APIRouter(prefix="/analytics", tags=["Analytics"])
+router = APIRouter(
+    prefix="/analytics",
+    tags=["Analytics"],
+    dependencies=[Depends(require_permission("analytics.read"))],
+)
 
 
 async def _enrich(

@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.explanation_service import AIExplanationService, AINotFoundError
+from app.auth.authorization import require_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.schemas.ai import (
@@ -10,7 +11,11 @@ from app.schemas.ai import (
     AIStockExplanationResponse,
 )
 
-router = APIRouter(prefix="/ai", tags=["AI"])
+router = APIRouter(
+    prefix="/ai",
+    tags=["AI"],
+    dependencies=[Depends(require_permission("ai.read"))],
+)
 
 
 def _require_enabled() -> None:

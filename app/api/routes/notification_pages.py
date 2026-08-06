@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.notifications.exceptions import NotificationError
@@ -20,7 +21,11 @@ from app.services.daily_summary import DailySummaryService
 from app.services.notification_service import NotificationConflictError, NotificationService
 from app.services.notification_ui import NotificationUIError, NotificationUIService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("notifications.read"))]
+)
+WRITE_DEPENDENCIES = [Depends(require_browser_permission("notifications.write"))]
+SUMMARY_RUN_DEPENDENCIES = [Depends(require_browser_permission("daily_summary.run"))]
 env = Environment(
     loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
     autoescape=select_autoescape(("html", "htm", "xml")),
@@ -294,7 +299,11 @@ async def notification_summary_scheduler_partial(
     )
 
 
-@router.post("/daily-summary/run", response_class=HTMLResponse)
+@router.post(
+        "/daily-summary/run",
+        response_class=HTMLResponse,
+        dependencies=SUMMARY_RUN_DEPENDENCIES,
+    )
 async def run_notification_daily_summary(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
@@ -341,7 +350,11 @@ async def run_notification_daily_summary(
     )
 
 
-@router.post("/providers/{provider}/test", response_class=HTMLResponse)
+@router.post(
+        "/providers/{provider}/test",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def test_notification_provider_card(
     provider: str,
     request: Request,
@@ -491,7 +504,7 @@ async def _channel_action_response(
     )
 
 
-@router.post("/channels/create", response_class=HTMLResponse)
+@router.post("/channels/create", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def create_notification_channel(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
@@ -505,7 +518,11 @@ async def create_notification_channel(
     return await _channel_action_response(request, service, message="Notification channel created.")
 
 
-@router.post("/channels/{channel_id}/update", response_class=HTMLResponse)
+@router.post(
+        "/channels/{channel_id}/update",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def update_notification_channel(
     channel_id: int,
     request: Request,
@@ -522,7 +539,11 @@ async def update_notification_channel(
     return await _channel_action_response(request, service, message="Notification channel updated.")
 
 
-@router.post("/channels/{channel_id}/delete", response_class=HTMLResponse)
+@router.post(
+        "/channels/{channel_id}/delete",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def delete_notification_channel(
     channel_id: int,
     request: Request,
@@ -536,7 +557,11 @@ async def delete_notification_channel(
     return await _channel_action_response(request, service, message="Notification channel deleted.")
 
 
-@router.post("/channels/{channel_id}/test", response_class=HTMLResponse)
+@router.post(
+        "/channels/{channel_id}/test",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def test_notification_channel(
     channel_id: int,
     request: Request,
@@ -601,7 +626,7 @@ async def _preference_action_response(
     )
 
 
-@router.post("/preferences/create", response_class=HTMLResponse)
+@router.post("/preferences/create", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def create_notification_preference(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
@@ -616,7 +641,11 @@ async def create_notification_preference(
     )
 
 
-@router.post("/preferences/{preference_id}/update", response_class=HTMLResponse)
+@router.post(
+        "/preferences/{preference_id}/update",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def update_notification_preference(
     preference_id: int,
     request: Request,
@@ -634,7 +663,11 @@ async def update_notification_preference(
     )
 
 
-@router.post("/preferences/{preference_id}/delete", response_class=HTMLResponse)
+@router.post(
+        "/preferences/{preference_id}/delete",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def delete_notification_preference(
     preference_id: int,
     request: Request,
@@ -676,7 +709,11 @@ async def notification_delivery_detail(
     )
 
 
-@router.post("/history/{delivery_id}/retry", response_class=HTMLResponse)
+@router.post(
+        "/history/{delivery_id}/retry",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def retry_notification_delivery(
     delivery_id: int,
     request: Request,
@@ -712,7 +749,11 @@ async def retry_notification_delivery(
     return HTMLResponse(content=_render("notifications/components/history_table.html", context))
 
 
-@router.post("/history/{delivery_id}/mark-read", response_class=HTMLResponse)
+@router.post(
+        "/history/{delivery_id}/mark-read",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def mark_notification_read(
     delivery_id: int,
     request: Request,

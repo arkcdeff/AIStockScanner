@@ -8,6 +8,7 @@ from fastapi import status as http_status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.models.alert import AlertEvent
@@ -61,7 +62,14 @@ from app.schemas.notification import (
 from app.services.daily_summary import DailySummaryService, supported_summary_statuses
 from app.services.notification_service import NotificationConflictError, NotificationService
 
-router = APIRouter(prefix="/notifications", tags=["Notifications"])
+router = APIRouter(
+    prefix="/notifications",
+    tags=["Notifications"],
+    dependencies=[Depends(require_permission("notifications.read"))],
+)
+WRITE_DEPENDENCIES = [Depends(require_permission("notifications.write"))]
+SUMMARY_RUN_DEPENDENCIES = [Depends(require_permission("daily_summary.run"))]
+SCHEDULER_RUN_DEPENDENCIES = [Depends(require_permission("scheduler.run"))]
 
 
 def _unprocessable(detail: str) -> HTTPException:
@@ -180,7 +188,11 @@ async def notification_status(
     )
 
 
-@router.post("/daily-summary/run", response_model=DailySummaryExecutionResponse)
+@router.post(
+    "/daily-summary/run",
+    response_model=DailySummaryExecutionResponse,
+    dependencies=SUMMARY_RUN_DEPENDENCIES,
+)
 async def run_daily_summary(
     payload: DailySummaryRunRequest | None = Body(default=None),
     session: AsyncSession = Depends(get_db_session),
@@ -236,7 +248,11 @@ async def daily_summary_detail(
     return _daily_summary_read(run)
 
 
-@router.post("/scheduler/run-delivery", response_model=DeliverySchedulerRunResponse)
+@router.post(
+    "/scheduler/run-delivery",
+    response_model=DeliverySchedulerRunResponse,
+    dependencies=SCHEDULER_RUN_DEPENDENCIES,
+)
 async def run_notification_delivery_scheduler() -> DeliverySchedulerRunResponse:
     result = await get_scheduler().run_delivery_now()
     return DeliverySchedulerRunResponse.model_validate(result)
@@ -276,6 +292,7 @@ async def list_channels(
     "/channels",
     response_model=NotificationChannelRead,
     status_code=http_status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPENDENCIES,
 )
 async def create_channel(
     payload: NotificationChannelCreate,
@@ -301,7 +318,11 @@ async def create_channel(
     return _channel_read(channel)
 
 
-@router.put("/channels/{channel_id}", response_model=NotificationChannelRead)
+@router.put(
+    "/channels/{channel_id}",
+    response_model=NotificationChannelRead,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def update_channel(
     channel_id: int,
     payload: NotificationChannelUpdate,
@@ -350,7 +371,11 @@ async def update_channel(
     return _channel_read(channel)
 
 
-@router.delete("/channels/{channel_id}", status_code=http_status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/channels/{channel_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def delete_channel(
     channel_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -394,6 +419,7 @@ async def list_preferences(
     "/preferences",
     response_model=NotificationPreferenceRead,
     status_code=http_status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPENDENCIES,
 )
 async def create_preference(
     payload: NotificationPreferenceCreate,
@@ -416,7 +442,11 @@ async def create_preference(
     return NotificationPreferenceRead.model_validate(preference)
 
 
-@router.put("/preferences/{preference_id}", response_model=NotificationPreferenceRead)
+@router.put(
+    "/preferences/{preference_id}",
+    response_model=NotificationPreferenceRead,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def update_preference(
     preference_id: int,
     payload: NotificationPreferenceUpdate,
@@ -457,7 +487,11 @@ async def update_preference(
     return NotificationPreferenceRead.model_validate(preference)
 
 
-@router.delete("/preferences/{preference_id}", status_code=http_status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/preferences/{preference_id}",
+    status_code=http_status.HTTP_204_NO_CONTENT,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def delete_preference(
     preference_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -469,7 +503,11 @@ async def delete_preference(
     await session.commit()
 
 
-@router.post("/deliver-alert/{alert_event_id}", response_model=DeliverAlertResponse)
+@router.post(
+    "/deliver-alert/{alert_event_id}",
+    response_model=DeliverAlertResponse,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def deliver_alert(
     alert_event_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -488,7 +526,9 @@ async def deliver_alert(
     )
 
 
-@router.post("/deliver-pending", response_model=DeliverPendingResponse)
+@router.post(
+    "/deliver-pending", response_model=DeliverPendingResponse, dependencies=WRITE_DEPENDENCIES
+)
 async def deliver_pending(
     payload: DeliverPendingRequest | None = Body(default=None),
     batch_size: int | None = Query(default=None, ge=1),
@@ -504,7 +544,11 @@ async def deliver_pending(
     return DeliverPendingResponse(batch_size=effective, dispatched=dispatched)
 
 
-@router.post("/history/{delivery_id}/retry", response_model=NotificationRetryResponse)
+@router.post(
+    "/history/{delivery_id}/retry",
+    response_model=NotificationRetryResponse,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def retry_delivery(
     delivery_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -526,7 +570,11 @@ async def retry_delivery(
     )
 
 
-@router.post("/history/{delivery_id}/mark-read", response_model=NotificationMarkReadResponse)
+@router.post(
+    "/history/{delivery_id}/mark-read",
+    response_model=NotificationMarkReadResponse,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def mark_delivery_read(
     delivery_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -625,7 +673,9 @@ async def delivery_detail(
     )
 
 
-@router.post("/test/{provider}", response_model=ProviderTestResponse)
+@router.post(
+    "/test/{provider}", response_model=ProviderTestResponse, dependencies=WRITE_DEPENDENCIES
+)
 async def test_provider(
     provider: str,
     payload: ProviderTestRequest | None = Body(default=None),

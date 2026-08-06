@@ -4,12 +4,15 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.browser_auth import finalize_page_response, get_browser_user, stage_csrf_token
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.ai_insights import AIInsightsService
 from app.services.dashboard import DashboardService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("dashboard.read"))]
+)
 env = Environment(
     loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
     autoescape=select_autoescape(("html", "htm", "xml")),

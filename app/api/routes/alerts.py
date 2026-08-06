@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.schemas.alert import (
     AlertEventRead,
@@ -12,7 +13,12 @@ from app.schemas.alert import (
 )
 from app.services.alert import AlertEngineError, AlertService
 
-router = APIRouter(prefix="/alerts", tags=["Alerts"])
+router = APIRouter(
+    prefix="/alerts",
+    tags=["Alerts"],
+    dependencies=[Depends(require_permission("alerts.read"))],
+)
+WRITE_DEPENDENCIES = [Depends(require_permission("alerts.write"))]
 
 
 def _rule_to_read(rule) -> AlertRuleRead:
@@ -31,7 +37,7 @@ async def list_rules(
     return [_rule_to_read(rule) for rule in rules]
 
 
-@router.post("/rules", response_model=AlertRuleRead)
+@router.post("/rules", response_model=AlertRuleRead, dependencies=WRITE_DEPENDENCIES)
 async def create_rule(
     payload: AlertRuleCreate,
     session: AsyncSession = Depends(get_db_session),
@@ -56,7 +62,7 @@ async def get_rule(
     return _rule_to_read(rule)
 
 
-@router.put("/rules/{rule_id}", response_model=AlertRuleRead)
+@router.put("/rules/{rule_id}", response_model=AlertRuleRead, dependencies=WRITE_DEPENDENCIES)
 async def update_rule(
     rule_id: int,
     payload: AlertRuleUpdate,
@@ -70,7 +76,9 @@ async def update_rule(
     return _rule_to_read(rule)
 
 
-@router.delete("/rules/{rule_id}", status_code=204)
+@router.delete(
+    "/rules/{rule_id}", status_code=204, dependencies=WRITE_DEPENDENCIES
+)
 async def delete_rule(
     rule_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -82,7 +90,7 @@ async def delete_rule(
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
 
-@router.post("/run", response_model=AlertRunResult)
+@router.post("/run", response_model=AlertRunResult, dependencies=WRITE_DEPENDENCIES)
 async def run_alert_engine(
     session: AsyncSession = Depends(get_db_session),
 ) -> AlertRunResult:
@@ -124,7 +132,11 @@ async def list_events_for_symbol(
     return [_event_to_read(event) for event in events]
 
 
-@router.patch("/events/{event_id}", response_model=AlertEventRead)
+@router.patch(
+    "/events/{event_id}",
+    response_model=AlertEventRead,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def update_event_status(
     event_id: int,
     payload: AlertEventUpdate,

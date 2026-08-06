@@ -1,14 +1,14 @@
+from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.core.config import settings
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.scheduler.eod_scheduler import EODScheduler
 from app.services.eod_pipeline import EODPipelineService, PipelineOverlapError
+from tests.auth_helpers import admin_client
 
 
 def _bhavcopy_bytes(trade_date: date, rows: int = 1) -> bytes:
@@ -48,8 +48,17 @@ async def _insert_running_run() -> EODPipelineRun:
         return run
 
 
-async def _client() -> AsyncClient:
-    return AsyncClient(transport=ASGITransport(app=app), base_url="http://test")
+@asynccontextmanager
+async def _client():
+    """Async context manager yielding an authenticated admin browser client.
+
+    The pipeline tests previously used ``async with await _client() as client``
+    against a fresh ``AsyncClient``; that pattern is incompatible with an
+    already-authenticated (and therefore already-open) httpx client, so we
+    delegate to the shared ``admin_client`` context manager instead.
+    """
+    async with admin_client(browser=True) as client:
+        yield client
 
 
 # ---------------------------------------------------------------- service
@@ -186,7 +195,7 @@ async def test_error_message_does_not_expose_credentials() -> None:
 
 @pytest.mark.asyncio
 async def test_pipeline_run_status_api() -> None:
-    async with await _client() as client:
+    async with _client() as client:
         response = await client.get("/api/v1/pipeline/status")
         assert response.status_code == 200
         body = response.json()
@@ -205,7 +214,7 @@ async def test_pipeline_history_api() -> None:
     )
     assert run.status == "completed"
 
-    async with await _client() as client:
+    async with _client() as client:
         response = await client.get("/api/v1/pipeline/runs")
         assert response.status_code == 200
         body = response.json()
@@ -223,7 +232,7 @@ async def test_pipeline_history_api() -> None:
 
 @pytest.mark.asyncio
 async def test_pipeline_run_file_api() -> None:
-    async with await _client() as client:
+    async with _client() as client:
         files = {"file": ("eod.csv", _bhavcopy_bytes(date.today(), rows=1), "text/csv")}
         response = await client.post("/api/v1/pipeline/run-file", files=files)
         assert response.status_code == 200
@@ -234,7 +243,7 @@ async def test_pipeline_run_file_api() -> None:
 
 @pytest.mark.asyncio
 async def test_pipeline_run_file_empty_rejected() -> None:
-    async with await _client() as client:
+    async with _client() as client:
         files = {"file": ("empty.csv", b"", "text/csv")}
         response = await client.post("/api/v1/pipeline/run-file", files=files)
         assert response.status_code == 400
@@ -243,7 +252,7 @@ async def test_pipeline_run_file_empty_rejected() -> None:
 @pytest.mark.asyncio
 async def test_pipeline_run_api_overlap_returns_409() -> None:
     await _insert_running_run()
-    async with await _client() as client:
+    async with _client() as client:
         files = {"file": ("eod.csv", _bhavcopy_bytes(date.today(), rows=1), "text/csv")}
         response = await client.post("/api/v1/pipeline/run-file", files=files)
         assert response.status_code == 409
@@ -252,7 +261,7 @@ async def test_pipeline_run_api_overlap_returns_409() -> None:
 @pytest.mark.asyncio
 async def test_pipeline_run_date_weekend_rejected() -> None:
     saturday = date(2026, 8, 1)
-    async with await _client() as client:
+    async with _client() as client:
         response = await client.post(
             "/api/v1/pipeline/run-date", json={"trade_date": str(saturday)}
         )
@@ -317,7 +326,7 @@ async def test_dashboard_pipeline_status_rendering() -> None:
     )
     assert run.status == "completed"
 
-    async with await _client() as client:
+    async with _client() as client:
         response = await client.get("/dashboard")
         assert response.status_code == 200
         assert "Pipeline Status" in response.text
@@ -326,7 +335,7 @@ async def test_dashboard_pipeline_status_rendering() -> None:
 
 @pytest.mark.asyncio
 async def test_dashboard_pipeline_status_never() -> None:
-    async with await _client() as client:
+    async with _client() as client:
         response = await client.get("/dashboard")
         assert response.status_code == 200
         assert "Pipeline Status" in response.text

@@ -4,14 +4,12 @@ from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from app.ai.cache import clear_memory_cache
 from app.ai.explanation_service import AIExplanationService
 from app.core.config import settings
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.notification import (
     DailySummaryRun,
@@ -21,6 +19,7 @@ from app.models.notification import (
 )
 from app.notifications.renderer import NotificationRenderer
 from app.services.daily_summary import DailySummaryService
+from tests.auth_helpers import admin_client
 from tests.seed_helpers import seed_stock
 
 
@@ -33,7 +32,7 @@ def _clear_summary_ai_cache() -> None:
 
 @asynccontextmanager
 async def _client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with admin_client(browser=True) as client:
         yield client
 
 

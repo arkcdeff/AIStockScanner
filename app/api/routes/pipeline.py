@@ -1,5 +1,6 @@
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 
+from app.auth.authorization import require_permission
 from app.core.config import settings
 from app.schemas.pipeline import (
     PipelineRunDateRequest,
@@ -9,7 +10,12 @@ from app.schemas.pipeline import (
 )
 from app.services.eod_pipeline import EODPipelineService, PipelineError, PipelineOverlapError
 
-router = APIRouter(prefix="/pipeline", tags=["Pipeline"])
+router = APIRouter(
+    prefix="/pipeline",
+    tags=["Pipeline"],
+    dependencies=[Depends(require_permission("stocks.read"))],
+)
+RUN_DEPENDENCIES = [Depends(require_permission("pipeline.run"))]
 
 
 def _overlap_error(exc: PipelineOverlapError) -> HTTPException:
@@ -20,6 +26,7 @@ def _overlap_error(exc: PipelineOverlapError) -> HTTPException:
     "/run-file",
     response_model=PipelineRunResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=RUN_DEPENDENCIES,
 )
 async def run_pipeline_from_file(
     file: UploadFile = File(...),
@@ -53,6 +60,7 @@ async def run_pipeline_from_file(
     "/run-date",
     response_model=PipelineRunResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=RUN_DEPENDENCIES,
 )
 async def run_pipeline_for_date(
     payload: PipelineRunDateRequest,
@@ -76,6 +84,7 @@ async def run_pipeline_for_date(
     "/run-latest",
     response_model=PipelineRunResponse,
     status_code=status.HTTP_200_OK,
+    dependencies=RUN_DEPENDENCIES,
 )
 async def run_pipeline_latest() -> PipelineRunResponse:
     """Download the latest available NSE bhavcopy and run the full pipeline.

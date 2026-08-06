@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.schemas.watchlist import (
     WatchlistCreate,
@@ -14,7 +15,12 @@ from app.schemas.watchlist import (
 )
 from app.services.watchlist import WatchlistError, WatchlistService
 
-router = APIRouter(prefix="/watchlists", tags=["Watchlists"])
+router = APIRouter(
+    prefix="/watchlists",
+    tags=["Watchlists"],
+    dependencies=[Depends(require_permission("watchlists.read"))],
+)
+WRITE_DEPENDENCIES = [Depends(require_permission("watchlists.write"))]
 
 
 @router.get("/", response_model=list[WatchlistRead])
@@ -30,7 +36,9 @@ async def list_watchlists(
     return items
 
 
-@router.post("/", response_model=WatchlistRead)
+@router.post(
+    "/", response_model=WatchlistRead, dependencies=WRITE_DEPENDENCIES
+)
 async def create_watchlist(
     payload: WatchlistCreate,
     session: AsyncSession = Depends(get_db_session),
@@ -103,7 +111,9 @@ async def get_watchlist(
     return item
 
 
-@router.put("/{watchlist_id}", response_model=WatchlistRead)
+@router.put(
+    "/{watchlist_id}", response_model=WatchlistRead, dependencies=WRITE_DEPENDENCIES
+)
 async def update_watchlist(
     watchlist_id: int,
     payload: WatchlistUpdate,
@@ -117,7 +127,7 @@ async def update_watchlist(
     return WatchlistRead.model_validate(watchlist)
 
 
-@router.delete("/{watchlist_id}", status_code=204)
+@router.delete("/{watchlist_id}", status_code=204, dependencies=WRITE_DEPENDENCIES)
 async def delete_watchlist(
     watchlist_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -157,7 +167,9 @@ async def list_watchlist_stocks(
     ]
 
 
-@router.post("/{watchlist_id}/stocks", response_model=WatchlistStockRead)
+@router.post(
+    "/{watchlist_id}/stocks", response_model=WatchlistStockRead, dependencies=WRITE_DEPENDENCIES
+)
 async def add_watchlist_stock(
     watchlist_id: int,
     payload: WatchlistStockCreate,
@@ -173,7 +185,11 @@ async def add_watchlist_stock(
     return WatchlistStockRead.model_validate(entry)
 
 
-@router.patch("/{watchlist_id}/stocks/{stock_id}", response_model=WatchlistStockRead)
+@router.patch(
+    "/{watchlist_id}/stocks/{stock_id}",
+    response_model=WatchlistStockRead,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def update_watchlist_stock(
     watchlist_id: int,
     stock_id: int,
@@ -190,7 +206,11 @@ async def update_watchlist_stock(
     return WatchlistStockRead.model_validate(entry)
 
 
-@router.delete("/{watchlist_id}/stocks/{stock_id}", status_code=204)
+@router.delete(
+    "/{watchlist_id}/stocks/{stock_id}",
+    status_code=204,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def remove_watchlist_stock(
     watchlist_id: int,
     stock_id: int,

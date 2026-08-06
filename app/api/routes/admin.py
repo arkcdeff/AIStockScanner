@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.dependencies import CurrentAdminUser, require_admin_user
+from app.auth.authorization import require_permission
 from app.auth.password import PasswordHashError, PasswordPolicyError
 from app.db.session import get_db_session
 from app.schemas.admin import (
@@ -91,10 +92,14 @@ def _forbidden(detail: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
 
+_users_read = [Depends(require_permission("users.read"))]
+_users_write = [Depends(require_permission("users.write"))]
+_roles_read = [Depends(require_permission("roles.read"))]
+_roles_write = [Depends(require_permission("roles.write"))]
 # --------------------------------------------------------------------------- users
 
 
-@router.get("/users", response_model=UserListResponse)
+@router.get("/users", response_model=UserListResponse, dependencies=_users_read)
 async def list_users(
     search: str | None = None,
     is_active: bool | None = None,
@@ -141,7 +146,12 @@ def _user_read(user) -> AdminUserRead:
     )
 
 
-@router.post("/users", response_model=AdminUserDetail, status_code=status.HTTP_201_CREATED)
+@router.post(
+        "/users",
+        response_model=AdminUserDetail,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=_users_write,
+    )
 async def create_user(
     payload: AdminUserCreate,
     session: DatabaseSession,
@@ -170,7 +180,7 @@ async def create_user(
     return _detail(user)
 
 
-@router.get("/users/{user_id}", response_model=AdminUserDetail)
+@router.get("/users/{user_id}", response_model=AdminUserDetail, dependencies=_users_read)
 async def get_user(user_id: int, session: DatabaseSession) -> AdminUserDetail:
     try:
         user = await UserAdminService(session).get_user(user_id)
@@ -179,7 +189,7 @@ async def get_user(user_id: int, session: DatabaseSession) -> AdminUserDetail:
     return _detail(user)
 
 
-@router.put("/users/{user_id}", response_model=AdminUserDetail)
+@router.put("/users/{user_id}", response_model=AdminUserDetail, dependencies=_users_write)
 async def update_user(
     user_id: int,
     payload: AdminUserUpdate,
@@ -203,7 +213,7 @@ async def update_user(
     return _detail(user)
 
 
-@router.post("/users/{user_id}/activate", response_model=AdminUserDetail)
+@router.post("/users/{user_id}/activate", response_model=AdminUserDetail, dependencies=_users_write)
 async def activate_user(
     user_id: int, session: DatabaseSession, admin: CurrentAdminUser
 ) -> AdminUserDetail:
@@ -216,7 +226,11 @@ async def activate_user(
     return _detail(user)
 
 
-@router.post("/users/{user_id}/deactivate", response_model=AdminUserDetail)
+@router.post(
+        "/users/{user_id}/deactivate",
+        response_model=AdminUserDetail,
+        dependencies=_users_write,
+    )
 async def deactivate_user(
     user_id: int, session: DatabaseSession, admin: CurrentAdminUser
 ) -> AdminUserDetail:
@@ -231,7 +245,7 @@ async def deactivate_user(
     return _detail(user)
 
 
-@router.post("/users/{user_id}/verify", response_model=AdminUserDetail)
+@router.post("/users/{user_id}/verify", response_model=AdminUserDetail, dependencies=_users_write)
 async def verify_user(
     user_id: int, session: DatabaseSession, admin: CurrentAdminUser
 ) -> AdminUserDetail:
@@ -244,7 +258,7 @@ async def verify_user(
     return _detail(user)
 
 
-@router.post("/users/{user_id}/unverify", response_model=AdminUserDetail)
+@router.post("/users/{user_id}/unverify", response_model=AdminUserDetail, dependencies=_users_write)
 async def unverify_user(
     user_id: int, session: DatabaseSession, admin: CurrentAdminUser
 ) -> AdminUserDetail:
@@ -257,7 +271,11 @@ async def unverify_user(
     return _detail(user)
 
 
-@router.post("/users/{user_id}/reset-password", response_model=AdminPasswordResetResponse)
+@router.post(
+        "/users/{user_id}/reset-password",
+        response_model=AdminPasswordResetResponse,
+        dependencies=_users_write,
+    )
 async def reset_password(
     user_id: int,
     payload: AdminPasswordResetRequest,
@@ -291,7 +309,11 @@ async def reset_password(
     )
 
 
-@router.delete("/users/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+        "/users/{user_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=_users_write,
+    )
 async def delete_user(user_id: int, session: DatabaseSession, admin: CurrentAdminUser) -> None:
     try:
         await UserAdminService(session).delete_user(user_id, actor_user_id=admin.user.id)
@@ -318,7 +340,11 @@ def _service_unavailable(exc: Exception) -> HTTPException:
 # --------------------------------------------------------------------------- role assignment
 
 
-@router.post("/users/{user_id}/roles/{role_id}", response_model=AssignmentResponse)
+@router.post(
+        "/users/{user_id}/roles/{role_id}",
+        response_model=AssignmentResponse,
+        dependencies=_roles_write,
+    )
 async def assign_role(
     user_id: int,
     role_id: int,
@@ -334,7 +360,11 @@ async def assign_role(
     return AssignmentResponse(assigned=True, message="Role assigned")
 
 
-@router.delete("/users/{user_id}/roles/{role_id}", response_model=AssignmentResponse)
+@router.delete(
+        "/users/{user_id}/roles/{role_id}",
+        response_model=AssignmentResponse,
+        dependencies=_roles_write,
+    )
 async def remove_role(
     user_id: int,
     role_id: int,
@@ -355,7 +385,7 @@ async def remove_role(
 # --------------------------------------------------------------------------- roles
 
 
-@router.get("/roles", response_model=list[RoleDetail])
+@router.get("/roles", response_model=list[RoleDetail], dependencies=_roles_read)
 async def list_roles(session: DatabaseSession) -> list[RoleDetail]:
     results = await RoleService(session).list_roles()
     return [
@@ -381,7 +411,12 @@ def _permission_schema(permission, role_count: int) -> PermissionSchema:
     )
 
 
-@router.post("/roles", response_model=RoleDetail, status_code=status.HTTP_201_CREATED)
+@router.post(
+        "/roles",
+        response_model=RoleDetail,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=_roles_write,
+    )
 async def create_role(
     payload: RoleCreate,
     session: DatabaseSession,
@@ -409,7 +444,7 @@ def _role_detail(result) -> RoleDetail:
     )
 
 
-@router.get("/roles/{role_id}", response_model=RoleDetail)
+@router.get("/roles/{role_id}", response_model=RoleDetail, dependencies=_roles_read)
 async def get_role(role_id: int, session: DatabaseSession) -> RoleDetail:
     try:
         result = await RoleService(session).get_role(role_id)
@@ -418,7 +453,7 @@ async def get_role(role_id: int, session: DatabaseSession) -> RoleDetail:
     return _role_detail(result)
 
 
-@router.put("/roles/{role_id}", response_model=RoleDetail)
+@router.put("/roles/{role_id}", response_model=RoleDetail, dependencies=_roles_write)
 async def update_role(
     role_id: int,
     payload: RoleUpdate,
@@ -442,7 +477,11 @@ async def update_role(
     return _role_detail(result)
 
 
-@router.delete("/roles/{role_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+        "/roles/{role_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=_roles_write,
+    )
 async def delete_role(role_id: int, session: DatabaseSession, admin: CurrentAdminUser) -> None:
     try:
         await RoleService(session).delete_role(role_id, actor_user_id=admin.user.id)
@@ -452,7 +491,11 @@ async def delete_role(role_id: int, session: DatabaseSession, admin: CurrentAdmi
         raise _conflict(str(exc)) from exc
 
 
-@router.post("/roles/{role_id}/permissions/{permission_id}", response_model=AssignmentResponse)
+@router.post(
+        "/roles/{role_id}/permissions/{permission_id}",
+        response_model=AssignmentResponse,
+        dependencies=_roles_write,
+    )
 async def assign_permission(
     role_id: int,
     permission_id: int,
@@ -468,7 +511,11 @@ async def assign_permission(
     return AssignmentResponse(assigned=True, message="Permission assigned")
 
 
-@router.delete("/roles/{role_id}/permissions/{permission_id}", response_model=AssignmentResponse)
+@router.delete(
+        "/roles/{role_id}/permissions/{permission_id}",
+        response_model=AssignmentResponse,
+        dependencies=_roles_write,
+    )
 async def remove_permission(
     role_id: int,
     permission_id: int,
@@ -487,7 +534,7 @@ async def remove_permission(
 # --------------------------------------------------------------------------- permissions
 
 
-@router.get("/permissions", response_model=list[PermissionSchema])
+@router.get("/permissions", response_model=list[PermissionSchema], dependencies=_roles_read)
 async def list_permissions(session: DatabaseSession) -> list[PermissionSchema]:
     service = RoleService(session)
     permissions = await service.list_permissions()
@@ -502,7 +549,12 @@ async def list_permissions(session: DatabaseSession) -> list[PermissionSchema]:
     ]
 
 
-@router.post("/permissions", response_model=PermissionSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+        "/permissions",
+        response_model=PermissionSchema,
+        status_code=status.HTTP_201_CREATED,
+        dependencies=_roles_write,
+    )
 async def create_permission(
     payload: PermissionCreate,
     session: DatabaseSession,
@@ -519,7 +571,11 @@ async def create_permission(
     return _permission_schema(permission, 0)
 
 
-@router.get("/permissions/{permission_id}", response_model=PermissionSchema)
+@router.get(
+        "/permissions/{permission_id}",
+        response_model=PermissionSchema,
+        dependencies=_roles_read,
+    )
 async def get_permission(permission_id: int, session: DatabaseSession) -> PermissionSchema:
     try:
         permission = await RoleService(session).get_permission(permission_id)
@@ -529,7 +585,11 @@ async def get_permission(permission_id: int, session: DatabaseSession) -> Permis
     return _permission_schema(permission, role_count)
 
 
-@router.put("/permissions/{permission_id}", response_model=PermissionSchema)
+@router.put(
+        "/permissions/{permission_id}",
+        response_model=PermissionSchema,
+        dependencies=_roles_write,
+    )
 async def update_permission(
     permission_id: int,
     payload: PermissionUpdate,
@@ -552,7 +612,11 @@ async def update_permission(
     return _permission_schema(permission, role_count)
 
 
-@router.delete("/permissions/{permission_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+        "/permissions/{permission_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        dependencies=_roles_write,
+    )
 async def delete_permission(
     permission_id: int, session: DatabaseSession, admin: CurrentAdminUser
 ) -> None:
@@ -569,7 +633,7 @@ async def delete_permission(
 # --------------------------------------------------------------------------- seed
 
 
-@router.post("/seed", response_model=dict)
+@router.post("/seed", response_model=dict, dependencies=_roles_write)
 async def seed_builtins(session: DatabaseSession, admin: CurrentAdminUser) -> dict:
     result = await RoleService(session).seed_builtins(actor_user_id=admin.user.id)
     return result

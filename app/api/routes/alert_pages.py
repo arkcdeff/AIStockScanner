@@ -3,12 +3,16 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.models.watchlist import Watchlist
 from app.services.alert import AlertEngineError, AlertService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("alerts.read"))]
+)
+WRITE_DEPENDENCIES = [Depends(require_browser_permission("alerts.write"))]
 _env = None
 
 
@@ -54,7 +58,7 @@ async def alerts_page(
     return HTMLResponse(content=html)
 
 
-@router.post("/rules", response_class=HTMLResponse)
+@router.post("/rules", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def create_rule(
     request: Request,
     name: str = Form(...),
@@ -84,7 +88,11 @@ async def create_rule(
     return RedirectResponse(url="/alerts", status_code=303)
 
 
-@router.post("/rules/{rule_id}/toggle", response_class=HTMLResponse)
+@router.post(
+        "/rules/{rule_id}/toggle",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def toggle_rule(
     rule_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -99,7 +107,11 @@ async def toggle_rule(
     return RedirectResponse(url="/alerts", status_code=303)
 
 
-@router.post("/rules/{rule_id}/delete", response_class=HTMLResponse)
+@router.post(
+        "/rules/{rule_id}/delete",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def delete_rule(
     rule_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -112,7 +124,7 @@ async def delete_rule(
     return RedirectResponse(url="/alerts", status_code=303)
 
 
-@router.post("/run", response_class=HTMLResponse)
+@router.post("/run", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def run_alerts(
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:

@@ -1,9 +1,8 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.services.watchlist import WatchlistError, WatchlistService
+from tests.auth_helpers import analyst_client
 from tests.seed_helpers import seed_stock
 
 
@@ -130,7 +129,7 @@ async def test_search_stocks() -> None:
 
 @pytest.mark.asyncio
 async def test_watchlist_api_crud() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         created = await client.post(
             "/api/v1/watchlists/", json={"name": "API Watchlist", "color": "#16a34a"}
         )
@@ -156,7 +155,7 @@ async def test_watchlist_api_crud() -> None:
 @pytest.mark.asyncio
 async def test_watchlist_api_add_and_list_stocks() -> None:
     stock_id = await seed_stock(symbol="WLAPI")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         created = await client.post("/api/v1/watchlists/", json={"name": "API"})
         watchlist_id = created.json()["id"]
 
@@ -187,7 +186,7 @@ async def test_watchlist_api_add_and_list_stocks() -> None:
 
 @pytest.mark.asyncio
 async def test_watchlist_api_404() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/watchlists/999999")
         assert response.status_code == 404
 
@@ -202,7 +201,7 @@ async def test_watchlists_page_renders() -> None:
         await service.create({"name": "UI Watchlist"})
     finally:
         await _cleanup(service)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/watchlists")
         assert response.status_code == 200
         assert "Watchlists" in response.text
@@ -217,7 +216,7 @@ async def test_dashboard_shows_watchlist_cards() -> None:
         await service.create({"name": "Dash Watchlist"})
     finally:
         await _cleanup(service)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/dashboard")
         assert response.status_code == 200
         assert "Watchlists" in response.text
@@ -226,7 +225,7 @@ async def test_dashboard_shows_watchlist_cards() -> None:
 @pytest.mark.asyncio
 async def test_stock_detail_shows_watchlist_panel() -> None:
     await seed_stock(symbol="WLPANEL")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/WLPANEL")
         assert response.status_code == 200
         assert "Add to Watchlist" in response.text

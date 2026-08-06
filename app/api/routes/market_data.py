@@ -3,6 +3,7 @@ from datetime import date
 from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.market_data import MarketDataRepository
@@ -16,10 +17,20 @@ from app.schemas.market_data import (
 from app.services.nse_downloader import NSEDownloader, NSEDownloadError
 from app.services.nse_import import NSEImportService
 
-router = APIRouter(prefix="/market-data", tags=["Market Data"])
+router = APIRouter(
+    prefix="/market-data",
+    tags=["Market Data"],
+    dependencies=[Depends(require_permission("stocks.read"))],
+)
+WRITE_DEPENDENCIES = [Depends(require_permission("market_data.write"))]
 
 
-@router.post("/download", response_model=DownloadResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/download",
+    response_model=DownloadResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def download_bhavcopy(
     payload: DownloadRequest,
 ) -> DownloadResponse:
@@ -37,7 +48,12 @@ async def download_bhavcopy(
     )
 
 
-@router.post("/download/latest", response_model=DownloadResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/download/latest",
+    response_model=DownloadResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def download_latest_bhavcopy() -> DownloadResponse:
     try:
         with NSEDownloader() as downloader:
@@ -53,7 +69,12 @@ async def download_latest_bhavcopy() -> DownloadResponse:
     )
 
 
-@router.post("/import-file", response_model=ImportJobRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/import-file",
+    response_model=ImportJobRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def import_file(
     file: UploadFile = File(...),
     session: AsyncSession = Depends(get_db_session),
@@ -77,7 +98,12 @@ async def import_file(
     return ImportJobRead.model_validate(job)
 
 
-@router.post("/import/nse", response_model=ImportJobRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/import/nse",
+    response_model=ImportJobRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=WRITE_DEPENDENCIES,
+)
 async def import_nse_files(
     bhavcopy: UploadFile = File(...),
     delivery: UploadFile | None = File(default=None),

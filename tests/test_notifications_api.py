@@ -4,11 +4,9 @@ from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.alert import AlertEvent, AlertRule
 from app.models.notification import (
     NotificationChannel,
@@ -18,6 +16,7 @@ from app.models.notification import (
 from app.notifications.base import NotificationMessage, NotificationProvider, NotificationResult
 from app.notifications.exceptions import NotificationPermanentError
 from app.services.notification_service import EVENT_TYPE_ALERT
+from tests.auth_helpers import auth_client
 from tests.seed_helpers import seed_stock
 
 API = "/api/v1/notifications"
@@ -25,7 +24,7 @@ API = "/api/v1/notifications"
 
 @asynccontextmanager
 async def _client():
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with auth_client(role="admin") as client:
         yield client
 
 

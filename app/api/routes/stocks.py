@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.repositories.stock import StockRepository
 from app.repositories.stock_detail import StockDetailRepository
@@ -8,7 +9,11 @@ from app.schemas.stock import StockCreate, StockRead
 from app.schemas.stock_detail import ChartDataResponse
 from app.services.stock import StockService
 
-router = APIRouter(prefix="/stocks", tags=["Stocks"])
+router = APIRouter(
+    prefix="/stocks",
+    tags=["Stocks"],
+    dependencies=[Depends(require_permission("stocks.read"))],
+)
 
 
 @router.get("", response_model=list[StockRead])
@@ -21,7 +26,12 @@ async def list_stocks(
     return [StockRead.model_validate(stock) for stock in stocks]
 
 
-@router.post("", response_model=StockRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=StockRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[Depends(require_permission("stocks.write"))],
+)
 async def create_stock(
     payload: StockCreate,
     session: AsyncSession = Depends(get_db_session),

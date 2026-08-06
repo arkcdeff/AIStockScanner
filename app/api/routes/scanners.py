@@ -2,13 +2,19 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_permission
 from app.db.session import get_db_session
 from app.models.stock import Stock
 from app.repositories.scan import ScanDefinitionRepository, ScanResultRepository
 from app.schemas.scanner import ScanAllResponse, ScanDefinitionRead, ScanResultRead, ScanRunResponse
 from app.services.scanner_engine import ScannerService
 
-router = APIRouter(prefix="/scanners", tags=["Scanners"])
+router = APIRouter(
+    prefix="/scanners",
+    tags=["Scanners"],
+    dependencies=[Depends(require_permission("scanners.read"))],
+)
+RUN_DEPENDENCIES = [Depends(require_permission("scanners.run"))]
 
 
 @router.get("", response_model=list[ScanDefinitionRead])
@@ -19,7 +25,12 @@ async def list_scanners(
     return [ScanDefinitionRead.model_validate(sd) for sd in scan_defs]
 
 
-@router.post("/run", response_model=ScanRunResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/run",
+    response_model=ScanRunResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=RUN_DEPENDENCIES,
+)
 async def run_scanner(
     scan_code: str = Query(..., min_length=1, max_length=80),
     session: AsyncSession = Depends(get_db_session),
@@ -64,7 +75,12 @@ async def run_scanner(
     )
 
 
-@router.post("/run-all", response_model=ScanAllResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/run-all",
+    response_model=ScanAllResponse,
+    status_code=status.HTTP_200_OK,
+    dependencies=RUN_DEPENDENCIES,
+)
 async def run_all_scanners(
     session: AsyncSession = Depends(get_db_session),
 ) -> ScanAllResponse:

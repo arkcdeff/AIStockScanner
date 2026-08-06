@@ -1,11 +1,9 @@
 from datetime import date, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.sector import Sector
@@ -13,6 +11,7 @@ from app.models.stock import Stock
 from app.models.technical_analysis import TechnicalAnalysis
 from app.services.analytics_engine import AnalyticsEngine, AnalyticsEngineError
 from app.services.eod_pipeline import EODPipelineService
+from tests.auth_helpers import analyst_client
 
 
 async def _seed_stock(
@@ -283,7 +282,7 @@ async def test_analytics_api_symbol() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/analytics/ANALYTX")
     assert response.status_code == 200
     body = response.json()
@@ -296,7 +295,7 @@ async def test_analytics_api_symbol() -> None:
 
 @pytest.mark.asyncio
 async def test_analytics_api_symbol_404() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/analytics/NOPE123")
     assert response.status_code == 404
 
@@ -306,7 +305,7 @@ async def test_analytics_api_top_rated() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/analytics/top-rated")
     assert response.status_code == 200
     body = response.json()
@@ -320,7 +319,7 @@ async def test_analytics_api_trending_and_breakouts() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         trending_response = await client.get("/api/v1/analytics/trending")
         breakout_response = await client.get("/api/v1/analytics/breakouts")
     assert trending_response.status_code == 200
@@ -364,7 +363,7 @@ async def test_dashboard_shows_top_rated() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/dashboard")
     assert response.status_code == 200
     assert "Top Rated Stocks" in response.text
@@ -376,7 +375,7 @@ async def test_stock_detail_shows_analytics() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/ANALYTX")
         partial = await client.get("/stocks/ANALYTX/analytics")
     assert response.status_code == 200

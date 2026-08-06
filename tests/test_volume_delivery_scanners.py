@@ -1,12 +1,11 @@
 from datetime import UTC, datetime
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.stock import Stock
 from app.repositories.stock import StockRepository
+from tests.auth_helpers import analyst_client
 
 
 @pytest.mark.asyncio
@@ -152,7 +151,7 @@ async def test_null_delivery_handled() -> None:
 
 @pytest.mark.asyncio
 async def test_duplicate_execution_persists_results() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response1 = await client.post("/api/v1/scanners/run?scan_code=delivery_above_60")
         assert response1.status_code == 200
         body1 = response1.json()

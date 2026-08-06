@@ -2,13 +2,12 @@ from datetime import date, timedelta
 from decimal import Decimal
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.daily_price import DailyPrice
 from app.models.stock import Stock
 from app.services.portfolio import PortfolioError, PortfolioService
+from tests.auth_helpers import analyst_client
 from tests.seed_helpers import seed_stock
 
 
@@ -160,7 +159,7 @@ async def test_todays_profit_uses_previous_close() -> None:
 @pytest.mark.asyncio
 async def test_portfolio_api_crud_and_holdings() -> None:
     stock_id = await seed_stock(symbol="PFAPI")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         created = await client.post(
             "/api/v1/portfolios/", json={"broker": "Zerodha", "account_name": "Main"}
         )
@@ -196,7 +195,7 @@ async def test_portfolio_api_crud_and_holdings() -> None:
 
 @pytest.mark.asyncio
 async def test_portfolio_api_404_and_validation() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/api/v1/portfolios/999999")
         assert response.status_code == 404
         created = await client.post("/api/v1/portfolios/", json={})
@@ -214,7 +213,7 @@ async def test_portfolio_page_renders() -> None:
         await service.create({"broker": "Zerodha", "account_name": "UI Portfolio"})
     finally:
         await _cleanup(service)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/portfolio")
         assert response.status_code == 200
         assert "Portfolio" in response.text
@@ -225,7 +224,7 @@ async def test_portfolio_page_renders() -> None:
 @pytest.mark.asyncio
 async def test_dashboard_shows_portfolio_card() -> None:
     await seed_stock(symbol="PFDASH")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/dashboard")
         assert response.status_code == 200
         assert "Portfolio Value" in response.text
@@ -242,7 +241,7 @@ async def test_stock_detail_shows_portfolio_position() -> None:
         )
     finally:
         await _cleanup(service)
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/PFPOS")
         assert response.status_code == 200
         assert "Portfolio Position" in response.text

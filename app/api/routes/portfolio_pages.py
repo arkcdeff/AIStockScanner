@@ -4,11 +4,15 @@ from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.portfolio import PortfolioError, PortfolioService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("portfolio.read"))]
+)
+WRITE_DEPENDENCIES = [Depends(require_browser_permission("portfolio.write"))]
 _env = None
 
 
@@ -61,7 +65,7 @@ async def portfolio_page(
     return HTMLResponse(content=html)
 
 
-@router.post("/", response_class=HTMLResponse)
+@router.post("/", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def create_portfolio(
     request: Request,
     broker: str | None = Form(default=None),
@@ -79,7 +83,7 @@ async def create_portfolio(
     return RedirectResponse(url=f"/portfolio?selected={portfolio.id}", status_code=303)
 
 
-@router.post("/{portfolio_id}/delete", response_class=HTMLResponse)
+@router.post("/{portfolio_id}/delete", response_class=HTMLResponse, dependencies=WRITE_DEPENDENCIES)
 async def delete_portfolio(
     portfolio_id: int,
     session: AsyncSession = Depends(get_db_session),
@@ -92,7 +96,11 @@ async def delete_portfolio(
     return RedirectResponse(url="/portfolio", status_code=303)
 
 
-@router.post("/{portfolio_id}/holdings", response_class=HTMLResponse)
+@router.post(
+        "/{portfolio_id}/holdings",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def add_holding(
     portfolio_id: int,
     request: Request,
@@ -120,7 +128,11 @@ async def add_holding(
     return RedirectResponse(url=f"/portfolio?selected={portfolio_id}", status_code=303)
 
 
-@router.post("/{portfolio_id}/holdings/{holding_id}/delete", response_class=HTMLResponse)
+@router.post(
+        "/{portfolio_id}/holdings/{holding_id}/delete",
+        response_class=HTMLResponse,
+        dependencies=WRITE_DEPENDENCIES,
+    )
 async def remove_holding(
     portfolio_id: int,
     holding_id: int,

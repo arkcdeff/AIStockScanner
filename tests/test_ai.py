@@ -1,7 +1,6 @@
 from datetime import date, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from app.ai.base import AIProviderError, BaseAIProvider
@@ -26,7 +25,6 @@ from app.ai.response_parser import (
 )
 from app.core.config import settings
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.ai_explanation import AIExplanation
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
@@ -37,6 +35,7 @@ from app.schemas.ai import (
     AIStockContext,
 )
 from app.services.analytics_engine import AnalyticsEngine
+from tests.auth_helpers import analyst_client
 
 
 @pytest.fixture(autouse=True)
@@ -503,7 +502,7 @@ async def test_ai_api_stock_explanation() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/ai/stock/AITEST")
     assert response.status_code == 200
     body = response.json()
@@ -516,7 +515,7 @@ async def test_ai_api_stock_explanation() -> None:
 
 @pytest.mark.asyncio
 async def test_ai_api_stock_explanation_404() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/ai/stock/NOPE123")
     assert response.status_code == 404
 
@@ -526,7 +525,7 @@ async def test_ai_api_top_rated() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/ai/top-rated")
     assert response.status_code == 200
     body = response.json()
@@ -539,7 +538,7 @@ async def test_ai_api_market_summary() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/ai/market-summary")
     assert response.status_code == 200
     body = response.json()
@@ -555,7 +554,7 @@ async def test_stock_detail_shows_ai_card() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/AITEST")
         partial = await client.get("/stocks/AITEST/ai")
     assert response.status_code == 200
@@ -570,7 +569,7 @@ async def test_dashboard_shows_ai_sections() -> None:
     await _seed_stock()
     await _calculate()
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/dashboard")
     assert response.status_code == 200
     assert "AI Insights" in response.text

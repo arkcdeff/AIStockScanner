@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.explanation_service import AIExplanationService, AINotFoundError
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.stock_detail import StockDetailRepository
@@ -14,7 +15,9 @@ from app.schemas.stock_detail import (
 from app.services.notification_ui import NotificationUIService
 from app.services.stock_detail import StockDetailService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("stocks.read"))]
+)
 env_loader = None
 
 
@@ -300,7 +303,11 @@ async def stock_indicators_partial(
     )
 
 
-@router.get("/{symbol}/scanner-results", response_class=HTMLResponse)
+@router.get(
+    "/{symbol}/scanner-results",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_browser_permission("scanners.read"))],
+)
 async def stock_scanner_results_partial(
     request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
 ) -> HTMLResponse:
@@ -333,7 +340,11 @@ async def stock_scanner_results_partial(
     )
 
 
-@router.get("/{symbol}/analytics", response_class=HTMLResponse)
+@router.get(
+    "/{symbol}/analytics",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_browser_permission("analytics.read"))],
+)
 async def stock_analytics_partial(
     request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
 ) -> HTMLResponse:
@@ -367,7 +378,11 @@ async def stock_prices_partial(
     )
 
 
-@router.get("/{symbol}/ai", response_class=HTMLResponse)
+@router.get(
+    "/{symbol}/ai",
+    response_class=HTMLResponse,
+    dependencies=[Depends(require_browser_permission("ai.read"))],
+)
 async def stock_ai_partial(
     request: Request, symbol: str, session: AsyncSession = Depends(get_db_session)
 ) -> HTMLResponse:

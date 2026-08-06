@@ -1,12 +1,11 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from app.main import app
+from tests.auth_helpers import analyst_client
 
 
 @pytest.mark.asyncio
 async def test_indicator_calculate_endpoint() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.post("/api/v1/indicators/calculate")
         assert response.status_code == 202
         body = response.json()
@@ -16,14 +15,14 @@ async def test_indicator_calculate_endpoint() -> None:
 
 @pytest.mark.asyncio
 async def test_indicator_calculate_for_symbol() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.post("/api/v1/indicators/calculate?symbol=RELIANCE")
         assert response.status_code in (202, 404)
 
 
 @pytest.mark.asyncio
 async def test_indicator_status_endpoint() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/indicators/status")
         assert response.status_code == 200
         body = response.json()
@@ -33,6 +32,6 @@ async def test_indicator_status_endpoint() -> None:
 
 @pytest.mark.asyncio
 async def test_indicator_status_for_symbol() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         response = await client.get("/api/v1/indicators/status?symbol=RELIANCE")
         assert response.status_code in (200, 404)

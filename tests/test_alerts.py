@@ -1,11 +1,9 @@
 from datetime import date, timedelta
 
 import pytest
-from httpx import ASGITransport, AsyncClient
 from sqlalchemy import func, select
 
 from app.db.session import get_session_factory
-from app.main import app
 from app.models.alert import AlertEvent
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
@@ -13,6 +11,7 @@ from app.models.stock import Stock
 from app.services.alert import AlertEngineError, AlertService
 from app.services.analytics_engine import AnalyticsEngine
 from app.services.eod_pipeline import EODPipelineService
+from tests.auth_helpers import analyst_client
 from tests.seed_helpers import seed_stock
 
 
@@ -335,7 +334,7 @@ async def test_rule_scoped_to_watchlist() -> None:
 
 @pytest.mark.asyncio
 async def test_alerts_api_rules_crud() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         created = await client.post(
             "/api/v1/alerts/rules",
             json={"name": "API Rule", "rule_type": "rsi", "operator": ">", "value": 60},
@@ -362,7 +361,7 @@ async def test_alerts_api_rules_crud() -> None:
 @pytest.mark.asyncio
 async def test_alerts_api_events_and_status() -> None:
     await seed_stock(symbol="ALRTAPI")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client() as client:
         await client.post(
             "/api/v1/alerts/rules",
             json={"name": "API Rule", "rule_type": "overall_score", "operator": ">", "value": 50},
@@ -400,7 +399,7 @@ async def test_alerts_api_events_and_status() -> None:
 
 @pytest.mark.asyncio
 async def test_alerts_page_renders() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/alerts")
         assert response.status_code == 200
         assert "Alert Rules" in response.text
@@ -409,7 +408,7 @@ async def test_alerts_page_renders() -> None:
 
 @pytest.mark.asyncio
 async def test_dashboard_shows_alert_cards() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/dashboard")
         assert response.status_code == 200
         assert "Alert Rules" in response.text
@@ -418,7 +417,7 @@ async def test_dashboard_shows_alert_cards() -> None:
 @pytest.mark.asyncio
 async def test_stock_detail_shows_matching_alerts() -> None:
     await seed_stock(symbol="ALRTPNL")
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/ALRTPNL")
         assert response.status_code == 200
         assert "Matching Alerts" in response.text

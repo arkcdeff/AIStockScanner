@@ -4,11 +4,14 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.scanner_workspace import ScannerWorkspaceService
 
-router = APIRouter()
+router = APIRouter(
+    dependencies=[Depends(require_browser_permission("scanners.read"))]
+)
 
 
 @router.get("/", response_class=HTMLResponse)

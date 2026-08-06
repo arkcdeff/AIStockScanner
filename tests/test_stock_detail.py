@@ -1,20 +1,19 @@
 import pytest
-from httpx import ASGITransport, AsyncClient
 
-from app.main import app
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
 from app.models.sector import Sector
 from app.models.stock import Stock
+from tests.auth_helpers import analyst_client
 
 
 @pytest.mark.asyncio
 async def test_stock_detail_page_existing_symbol() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -25,7 +24,7 @@ async def test_stock_detail_page_existing_symbol() -> None:
 
 @pytest.mark.asyncio
 async def test_stock_detail_page_unknown_symbol() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/stocks/UNKNOWN123")
     assert response.status_code == 404
 
@@ -34,7 +33,7 @@ async def test_stock_detail_page_unknown_symbol() -> None:
 async def test_stock_chart_data_sorted_candles() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get(
                 "/api/v1/stocks/RELIANCE/chart-data?period=1y&include_indicators=true"
             )
@@ -53,7 +52,7 @@ async def test_stock_chart_data_sorted_candles() -> None:
 async def test_stock_chart_data_period_filter() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get(
                 "/api/v1/stocks/RELIANCE/chart-data?period=3m&include_indicators=false"
             )
@@ -70,7 +69,7 @@ async def test_stock_chart_data_period_filter() -> None:
 
 @pytest.mark.asyncio
 async def test_stock_chart_data_empty_history() -> None:
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+    async with analyst_client(browser=True) as client:
         response = await client.get("/api/v1/stocks/UNKNOWN123/chart-data")
     assert response.status_code == 404
 
@@ -79,7 +78,7 @@ async def test_stock_chart_data_empty_history() -> None:
 async def test_stock_overview_partial() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE/overview")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -91,7 +90,7 @@ async def test_stock_overview_partial() -> None:
 async def test_stock_indicators_partial() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE/indicators")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -103,7 +102,7 @@ async def test_stock_indicators_partial() -> None:
 async def test_stock_scanner_results_partial() -> None:
     stock_id = await _create_test_stock()
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE/scanner-results")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -115,7 +114,7 @@ async def test_stock_scanner_results_partial() -> None:
 async def test_stock_detail_page_without_price_data() -> None:
     stock_id = await _create_test_stock(no_prices=True)
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -128,7 +127,7 @@ async def test_stock_detail_page_without_price_data() -> None:
 async def test_stock_overview_partial_without_price_data() -> None:
     stock_id = await _create_test_stock(no_prices=True)
     try:
-        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+        async with analyst_client(browser=True) as client:
             response = await client.get("/stocks/RELIANCE/overview")
         assert response.status_code == 200
         assert "text/html" in response.headers["content-type"]
@@ -137,6 +136,8 @@ async def test_stock_overview_partial_without_price_data() -> None:
 
 
 async def _create_test_stock(no_prices: bool = False) -> int:
+    from datetime import date, timedelta
+
     from app.db.session import get_session_factory
 
     factory = get_session_factory()
@@ -160,8 +161,6 @@ async def _create_test_stock(no_prices: bool = False) -> int:
         if no_prices:
             await session.commit()
             return stock.id
-
-        from datetime import date, timedelta
 
         base_date = date.today() - timedelta(days=30)
         for i in range(30):
