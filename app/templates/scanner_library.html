@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block title %}Scanner Library - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-search me-2"></i>Scanner Library</h1>
+                <span class="badge bg-primary">{{ total_scanners }} scanners</span>
+            </div>
+
+            {% for category, scanners in grouped.items() %}
+            <div class="card mb-4">
+                <div class="card-header fw-semibold"><i class="bi bi-tag me-1"></i>{{ category }}</div>
+                <div class="card-body">
+                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
+                        {% for scanner in scanners %}
+                        <div class="col">
+                            <div class="card h-100">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <h6 class="card-title mb-1">{{ scanner.name }}</h6>
+                                        <a href="/scanner-run?scan_code={{ scanner.code }}"
+                                           class="btn btn-sm btn-outline-primary"
+                                           title="Run {{ scanner.name }}">
+                                            <i class="bi bi-play"></i>
+                                        </a>
+                                    </div>
+                                    <div class="small text-muted"><code>{{ scanner.code }}</code></div>
+                                    <div class="card-text small">{{ scanner.description or '' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="col"><div class="text-muted small">No scanners in this category.</div></div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-light">No scanner definitions available.</div>
+            {% endfor %}
+        </main>
+    </div>
+</div>
+{% endblock %}

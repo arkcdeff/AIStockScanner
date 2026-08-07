@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Stocks - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-building me-2"></i>Stocks</h1>
+            </div>
+
+            <div class="card mb-3">
+                <div class="card-body">
+                    <form class="row g-2" hx-get="/stocks/table" hx-target="#stocks-container" hx-swap="innerHTML" hx-trigger="submit">
+                        <div class="col-md-8">
+                            <input type="text" class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Search by symbol or company name...">
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-search me-1"></i>Search
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="stocks-container">
+                {% include "components/stocks_table.html" %}
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

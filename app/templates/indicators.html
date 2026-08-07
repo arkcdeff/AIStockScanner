@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Indicators - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-bar-chart me-2"></i>Indicators</h1>
+            </div>
+
+            {% set flash = request.query_params.get('flash') %}
+            {% set message = request.query_params.get('message') %}
+            {% if message %}
+            <div class="alert alert-{{ flash or 'info' }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <div id="indicator-status">
+                {% include "components/indicator_status_cards.html" %}
+            </div>
+
+            <div class="card mt-4">
+                <div class="card-header"><i class="bi bi-lightning-charge me-1"></i>Calculate Indicators</div>
+                <div class="card-body">
+                    <p class="text-muted small mb-3">
+                        Indicators (EMA, RSI, MACD, ATR, ADX, Bollinger, VWAP, OBV, stochastic)
+                        are computed from imported daily prices. Batch calculation processes all
+                        stocks; a single symbol calculation only refreshes one stock.
+                    </p>
+                    <form method="post" action="/indicators/calculate" class="row g-2">
+                        <div class="col-md-4">
+                            <input type="text" class="form-control form-control-sm" name="symbol"
+                                   placeholder="Symbol (blank = all stocks)">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-play me-1"></i>Calculate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

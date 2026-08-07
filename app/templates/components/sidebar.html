@@ -8,18 +8,23 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                <a class="nav-link {{ 'active' if current_path.startswith('/market-data') else '' }}" href="/market-data">
                     <i class="bi bi-table me-2"></i>Market Data
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                <a class="nav-link {{ 'active' if current_path.startswith('/indicators') else '' }}" href="/indicators">
                     <i class="bi bi-bar-chart me-2"></i>Indicators
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
-                    <i class="bi bi-search me-2"></i>Scanners
+                <a class="nav-link {{ 'active' if current_path.startswith('/scanner-library') else '' }}" href="/scanner-library">
+                    <i class="bi bi-search me-2"></i>Scanner Library
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/scanner-run') else '' }}" href="/scanner-run">
+                    <i class="bi bi-lightning-charge me-2"></i>Scanner Run
                 </a>
             </li>
             <li class="nav-item">
@@ -28,8 +33,28 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link disabled" href="#" tabindex="-1" aria-disabled="true">
+                <a class="nav-link {{ 'active' if current_path.startswith('/stocks') else '' }}" href="/stocks">
                     <i class="bi bi-building me-2"></i>Stocks
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/pipeline') else '' }}" href="/pipeline">
+                    <i class="bi bi-diagram-3 me-2"></i>Pipeline
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/scheduler') else '' }}" href="/scheduler">
+                    <i class="bi bi-calendar-check me-2"></i>Scheduler
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/analytics') else '' }}" href="/analytics">
+                    <i class="bi bi-graph-up me-2"></i>Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/ai') else '' }}" href="/ai">
+                    <i class="bi bi-cpu me-2"></i>AI Insights
                 </a>
             </li>
             <li class="nav-item">

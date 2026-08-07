@@ -1,0 +1,42 @@
+{% if imports %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>File</th>
+                <th>Trade Date</th>
+                <th>Status</th>
+                <th>Rows</th>
+                <th>Inserted</th>
+                <th>Rejected</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in imports %}
+            <tr>
+                <td>{{ job.id }}</td>
+                <td class="text-truncate" style="max-width: 220px;">{{ job.file_name }}</td>
+                <td>{{ job.trade_date or '—' }}</td>
+                <td>
+                    {% if job.status == 'completed' %}
+                        <span class="badge bg-success">{{ job.status }}</span>
+                    {% elif job.status == 'failed' %}
+                        <span class="badge bg-danger">{{ job.status }}</span>
+                    {% elif job.status == 'running' %}
+                        <span class="badge bg-warning text-dark">{{ job.status }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ job.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ job.rows_read }}</td>
+                <td>{{ job.rows_inserted }}</td>
+                <td>{{ job.rows_rejected }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-muted small">No imports yet. Upload a bhavcopy file above.</div>
+{% endif %}

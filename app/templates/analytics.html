@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-pie-chart me-2"></i>Analytics</h1>
+            </div>
+
+            <ul class="nav nav-tabs mb-3">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#top-rated" type="button">Top Rated</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#trending" type="button">Trending</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="tab" data-bs-target="#breakouts" type="button">Breakouts</button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="top-rated">
+                    {% include "components/analytics_table.html" with context %}
+                </div>
+                <div class="tab-pane fade" id="trending">
+                    {% set items, title = trending, 'Trending Stocks' %}
+                    {% include "components/analytics_table.html" with context %}
+                </div>
+                <div class="tab-pane fade" id="breakouts">
+                    {% set items, title = breakouts, 'Breakout Candidates' %}
+                    {% include "components/analytics_table.html" with context %}
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

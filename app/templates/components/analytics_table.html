@@ -1,0 +1,36 @@
+{% if items %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Symbol</th>
+                <th>Company</th>
+                <th class="text-end">Close</th>
+                <th class="text-end">Overall</th>
+                <th class="text-end">Trend</th>
+                <th class="text-end">Momentum</th>
+                <th>Flags</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td><a href="/stocks/{{ item.symbol }}" class="text-decoration-none fw-semibold">{{ item.symbol }}</a></td>
+                <td class="text-truncate" style="max-width: 220px;">{{ item.company_name }}</td>
+                <td class="text-end">{{ item.latest_close if item.latest_close is not none else '—' }}</td>
+                <td class="text-end">{{ item.overall_score }}</td>
+                <td class="text-end">{{ item.trend_score }}</td>
+                <td class="text-end">{{ item.momentum_score }}</td>
+                <td>
+                    {% if item.is_trending %}<span class="badge bg-primary me-1">Trending</span>{% endif %}
+                    {% if item.is_breakout %}<span class="badge bg-success">Breakout</span>{% endif %}
+                    {% if not item.is_trending and not item.is_breakout %}<span class="text-muted small">—</span>{% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-muted small">No analytics data available. Run the pipeline to compute analytics.</div>
+{% endif %}

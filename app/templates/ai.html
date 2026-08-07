@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}AI Insights - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-cpu me-2"></i>AI Insights</h1>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-body d-flex align-items-center">
+                    <div class="me-3">
+                        {% if ai_enabled %}
+                            <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Enabled</span>
+                        {% else %}
+                            <span class="badge bg-secondary"><i class="bi bi-slash-circle me-1"></i>Disabled</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="fw-semibold">Provider: {{ status.provider or '—' }}</div>
+                        <div class="small text-muted">Model: {{ status.model or '—' }} · Explanations: {{ status.explanations_total }}</div>
+                    </div>
+                </div>
+            </div>
+
+            {% if not ai_enabled %}
+            <div class="alert alert-warning d-flex align-items-start" role="alert">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                <div>
+                    <strong>AI features are disabled.</strong>
+                    Enable the AI provider (and optionally configure an API key) in
+                    the application settings to generate stock insights and market summaries.
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="row g-4">
+                <div class="col-md-7">
+                    <div class="card h-100">
+                        <div class="card-header"><i class="bi bi-stars me-1"></i>Top Opportunities</div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-sm table-hover align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Symbol</th>
+                                            <th>Company</th>
+                                            <th class="text-end">Score</th>
+                                            <th>Flags</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for o in opportunities %}
+                                        <tr>
+                                            <td><a href="/stocks/{{ o.symbol }}" class="text-decoration-none fw-semibold">{{ o.symbol }}</a></td>
+                                            <td class="text-truncate" style="max-width: 200px;">{{ o.company_name }}</td>
+                                            <td class="text-end">{{ o.overall_score }}</td>
+                                            <td>
+                                                {% if o.is_breakout %}<span class="badge bg-success">Breakout</span>{% endif %}
+                                                {% if o.is_trending %}<span class="badge bg-primary">Trending</span>{% endif %}
+                                            </td>
+                                        </tr>
+                                        {% else %}
+                                        <tr><td colspan="4" class="text-muted small">No opportunities available. Run the pipeline to compute analytics.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-5">
+                    <div class="card h-100">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-chat-dots me-1"></i>Recent Explanations</span>
+                            <button class="btn btn-sm btn-outline-secondary"
+                                    hx-get="/ai/recent"
+                                    hx-target="#ai-recent"
+                                    hx-swap="innerHTML">
+                                <i class="bi bi-arrow-clockwise"></i>
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="ai-recent">
+                                {% include "components/ai_recent_explanations.html" %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

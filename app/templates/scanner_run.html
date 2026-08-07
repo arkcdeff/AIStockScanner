@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+
+{% block title %}Run Scanner - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-lightning me-2"></i>Run Scanner</h1>
+            </div>
+
+            {% if request.query_params.get('ran_all') or request.query_params.get('ran') %}
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="bi bi-check-circle me-1"></i>Scanner execution completed. Review results below.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% elif request.query_params.get('error') %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-x-circle me-1"></i>Scanner could not be run. Check that indicators exist for the selected stock universe.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-joystick me-1"></i>Run a Scanner</div>
+                <div class="card-body">
+                    <form method="post" action="/scanner-run/run" class="row g-2">
+                        <div class="col-md-5">
+                            <select name="scan_code" class="form-select form-select-sm">
+                                {% for definition in definitions %}
+                                <option value="{{ definition.code }}" {% if selected_code == definition.code %}selected{% endif %}>
+                                    {{ definition.name }} ({{ definition.code }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-play-fill me-1"></i>Run
+                            </button>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" formaction="/scanner-run/run-all" class="btn btn-outline-primary btn-sm w-100">
+                                <i class="bi bi-list-check me-1"></i>Run All
+                            </button>
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <a href="/scanner-results" class="btn btn-outline-secondary btn-sm w-100">
+                                <i class="bi bi-table me-1"></i>Full Results
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            {% if selected_name %}
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-search me-1"></i>{{ selected_name }} — Recent Results
+                </div>
+                <div class="card-body">
+                    {% include "components/scanner_run_results.html" %}
+                </div>
+            </div>
+            {% endif %}
+        </main>
+    </div>
+</div>
+{% endblock %}

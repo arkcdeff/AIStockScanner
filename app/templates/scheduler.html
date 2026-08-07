@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}Scheduler - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-calendar-event me-2"></i>Scheduler</h1>
+            </div>
+
+            {% if request.query_params.get('run_delivery') %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                Delivery run finished: <strong>{{ request.query_params.get('run_delivery') }}</strong>
+                ({{ request.query_params.get('count', 0) }} deliveries).
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% elif request.query_params.get('run_summary') %}
+            <div class="alert alert-info alert-dismissible fade show" role="alert">
+                Daily summary run finished: <strong>{{ request.query_params.get('run_summary') }}</strong>.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% elif request.query_params.get('bad_date') %}
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                Invalid summary date. Use YYYY-MM-DD.
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <div id="scheduler-status">
+                {% include "components/scheduler_status_cards.html" %}
+            </div>
+
+            <div class="card mt-4 mb-4">
+                <div class="card-header"><i class="bi bi-play-circle me-1"></i>Manual Jobs</div>
+                <div class="card-body">
+                    <p class="text-muted small">
+                        Trigger a scheduler job immediately. These run asynchronously and
+                        update the delivery history and daily summary tables.
+                    </p>
+                    <div class="row g-2">
+                        <div class="col-md-4">
+                            <form method="post" action="/scheduler/run-delivery">
+                                <button type="submit" class="btn btn-primary w-100">
+                                    <i class="bi bi-send me-1"></i>Run Delivery Now
+                                </button>
+                            </form>
+                        </div>
+                        <div class="col-md-8">
+                            <form method="post" action="/scheduler/run-summary" class="row g-2">
+                                <div class="col-md-6">
+                                    <input type="date" class="form-control form-control-sm" name="summary_date"
+                                           placeholder="Summary date (optional)">
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="bi bi-file-earmark-text me-1"></i>Run Daily Summary
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header"><i class="bi bi-list-check me-1"></i>Scheduled Jobs</div>
+                <div class="card-body">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>Job</th>
+                                <th>Enabled</th>
+                                <th>Registered</th>
+                                <th>Next Run</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job_id, job in status.jobs.items() %}
+                            <tr>
+                                <td>{{ job_id }}</td>
+                                <td>
+                                    {% if job.enabled %}
+                                        <span class="badge bg-success">On</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Off</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if job.registered %}
+                                        <span class="badge bg-primary">Registered</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">—</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ job.next_run_time or '—' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

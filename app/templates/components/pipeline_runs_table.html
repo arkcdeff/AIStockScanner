@@ -1,0 +1,46 @@
+{% if runs %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Trade Date</th>
+                <th>Status</th>
+                <th>Stage</th>
+                <th class="text-end">Imported</th>
+                <th class="text-end">Indicators</th>
+                <th class="text-end">Scanners</th>
+                <th class="text-end">Matches</th>
+                <th class="text-end">Analytics</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for run in runs %}
+            <tr>
+                <td>{{ run.id }}</td>
+                <td>{{ run.trade_date or '—' }}</td>
+                <td>
+                    {% if run.status == 'completed' %}
+                        <span class="badge bg-success">{{ run.status }}</span>
+                    {% elif run.status == 'failed' %}
+                        <span class="badge bg-danger">{{ run.status }}</span>
+                    {% elif run.status == 'running' %}
+                        <span class="badge bg-warning text-dark">{{ run.status }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary">{{ run.status }}</span>
+                    {% endif %}
+                </td>
+                <td>{{ run.current_stage or '—' }}</td>
+                <td class="text-end">{{ run.imported_rows }}</td>
+                <td class="text-end">{{ run.indicators_calculated }}</td>
+                <td class="text-end">{{ run.scanners_executed }}</td>
+                <td class="text-end">{{ run.scanner_matches }}</td>
+                <td class="text-end">{{ run.analytics_calculated }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-muted small">No pipeline runs yet. Start one above.</div>
+{% endif %}

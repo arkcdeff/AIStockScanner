@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Market Data - AI Stock Scanner{% endblock %}
+
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-table me-2"></i>Market Data</h1>
+            </div>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="card"><div class="card-body">
+                        <div class="text-muted small">Stocks</div>
+                        <div class="fs-4 fw-bold">{{ summary.stocks }}</div>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card"><div class="card-body">
+                        <div class="text-muted small">Daily Price Rows</div>
+                        <div class="fs-4 fw-bold">{{ summary.daily_prices }}</div>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card"><div class="card-body">
+                        <div class="text-muted small">First Trade Date</div>
+                        <div class="fs-4 fw-bold">{{ summary.first_trade_date or '—' }}</div>
+                    </div></div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card"><div class="card-body">
+                        <div class="text-muted small">Last Trade Date</div>
+                        <div class="fs-4 fw-bold">{{ summary.last_trade_date or '—' }}</div>
+                    </div></div>
+                </div>
+            </div>
+
+            {% if nse_download_blocked %}
+            <div class="alert alert-info d-flex align-items-start" role="alert">
+                <i class="bi bi-info-circle me-2"></i>
+                <div>
+                    <strong>Live NSE download is currently unavailable.</strong>
+                    The National Stock Exchange blocks automated downloads of the EOD
+                    bhavcopy and delivery files. You can still import data by uploading
+                    the bhavcopy CSV/ZIP (and an optional delivery CSV) below.
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="card mb-4">
+                <div class="card-header"><i class="bi bi-upload me-1"></i>Import Bhavcopy</div>
+                <div class="card-body">
+                    <form method="post" action="/market-data/import" enctype="multipart/form-data" class="row g-2">
+                        <div class="col-md-5">
+                            <input type="file" class="form-control form-control-sm" name="bhavcopy" accept=".csv,.zip,application/zip" required>
+                        </div>
+                        <div class="col-md-5">
+                            <input type="file" class="form-control form-control-sm" name="delivery" accept=".csv" placeholder="Delivery CSV (optional)">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="bi bi-upload me-1"></i>Import
+                            </button>
+                        </div>
+                    </form>
+                    {% if request.query_params.get('imported') %}
+                    <div class="mt-2 alert alert-info py-2 mb-0 small">
+                        Import job status: <strong>{{ request.query_params.get('imported') }}</strong>. See the table below for details.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-clock-history me-1"></i>Recent Imports</span>
+                    <span>
+                        <button class="btn btn-sm btn-outline-secondary"
+                                hx-get="/market-data/imports"
+                                hx-target="#imports-section"
+                                hx-swap="innerHTML">
+                            <i class="bi bi-arrow-clockwise"></i> Refresh
+                        </button>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div id="imports-section">
+                        {% include "components/market_imports_table.html" %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-graph-up me-1"></i>Recent Prices</span>
+                    <form class="d-flex" hx-get="/market-data/prices" hx-target="#prices-section" hx-swap="innerHTML" hx-trigger="submit">
+                        <input type="text" class="form-control form-control-sm me-2" name="symbol" placeholder="Symbol (e.g. RELIANCE)">
+                        <button type="submit" class="btn btn-sm btn-outline-secondary">
+                            <i class="bi bi-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <div class="card-body">
+                    <div id="prices-section">
+                        {% include "components/market_prices_table.html" %}
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

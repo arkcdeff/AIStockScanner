@@ -1,0 +1,35 @@
+{% if status %}
+<div class="row g-3">
+    <div class="col-md-3">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Total Indicator Rows</div>
+            <div class="fs-4 fw-bold">{{ status.total_indicator_rows }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Stocks With Indicators</div>
+            <div class="fs-4 fw-bold">{{ status.stocks_with_indicators }}</div>
+            <div class="small text-muted">of {{ status.total_stocks }} stocks</div>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Latest Indicator Date</div>
+            <div class="fs-4 fw-bold">{{ status.latest_trade_date or '—' }}</div>
+        </div></div>
+    </div>
+    <div class="col-md-3">
+        <div class="card"><div class="card-body">
+            <div class="text-muted small">Coverage</div>
+            <div class="fs-4 fw-bold">
+                {% if status.total_stocks %}
+                    {{ (status.stocks_with_indicators / status.total_stocks * 100) | round(0) | int }}%
+                {% else %}—{% endif %}
+            </div>
+        </div></div>
+    </div>
+</div>
+{% else %}
+<div class="text-muted small">No indicator data yet.</div>
+{% endif %}
