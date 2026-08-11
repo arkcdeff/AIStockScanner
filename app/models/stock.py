@@ -10,6 +10,7 @@ from app.db.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.ai_explanation import AIExplanation
     from app.models.alert import AlertEvent, AlertRule
+    from app.models.backtest import BacktestTrade
     from app.models.daily_price import DailyPrice
     from app.models.indicator_result import IndicatorResult
     from app.models.portfolio import Holding
@@ -59,5 +60,8 @@ class Stock(TimestampMixin, Base):
     )
     alert_rules: Mapped[list[AlertRule]] = relationship(back_populates="stock")
     alert_events: Mapped[list[AlertEvent]] = relationship(
+        back_populates="stock", cascade="all, delete-orphan"
+    )
+    backtest_trades: Mapped[list[BacktestTrade]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

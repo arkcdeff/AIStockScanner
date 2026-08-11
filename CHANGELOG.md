@@ -96,6 +96,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `docs/05_Development/PROJECT_STATE.md` updated for Sprint 16
 - `CHANGELOG.md` created
 
+## [v0.12.1] - 2026-08-08
+
+### Added
+
+- **Sprint 16.8 — Application UI & navigation**
+  - HTML pages for Market Data, Indicators, Scanner Library, Scanner Run, Pipeline, Scheduler, Analytics, AI, and Stocks
+  - Sidebar and navbar updated to link all new pages (replaced disabled/placeholder links)
+  - Wired page routers into `app/main.py`
+  - 16 UI smoke tests covering pages and HTMX partials
+
+- **Sprint 17 Task 17.1 — Backtesting database + domain foundation**
+  - Models: `BacktestStrategy`, `BacktestRun`, `BacktestTrade`, `BacktestEquityPoint`, `BacktestMetric`
+  - Strategy types: scanner, rule_based, composite; run statuses: pending, running, completed, failed, cancelled
+  - Trades support long/short sides, entry/exit signals, stop loss, target, and PnL fields
+  - Equity points track daily portfolio value; metrics store per-run performance summary
+  - Constraints: positive capital/quantity/prices, non-negative cost rates, valid enum values, valid date ranges
+  - Unique constraints: strategy code, equity (run+date), metric (run)
+  - Repositories: create/get, get-by-code, paginated list, status update, eager get-with-details, bulk inserts, metric upsert
+  - Schemas: validated create/update/read schemas
+  - Alembic migration `d7b4cc79fd45` applied to dev and test databases
+  - 29 model tests covering constraints, relationships, repositories, and cascades
+
+### Changed
+
+- Version bumped to `v0.12.1` (`app/main.py`)
+- `Stock` model extended with `backtest_trades` relationship
+- Test suite: 432 total tests (403 + 29 new)
+- PROJECT_STATE.md updated for Sprint 16.8 and Task 17.1
+- Sprint_17.md created with Task 17.1 documentation
+
+### Documentation
+
+- `docs/05_Development/Sprint_17.md` (Task 17.1 documentation)
+- `docs/05_Development/PROJECT_STATE.md` updated
+
 ## [v0.11.0] - 2026-08-05
 
 ### Added

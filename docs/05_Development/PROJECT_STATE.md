@@ -1,6 +1,6 @@
 # Project State
 
-Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared for release v0.12.0.
+Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), building on v0.12.1.
 
 ## Stack
 
@@ -11,11 +11,12 @@ Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared f
 
 ## Data
 
-- 21 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 26 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
   NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
-  UserSession, UserPreference, AuditLog
+  UserSession, UserPreference, AuditLog, BacktestStrategy, BacktestRun, BacktestTrade,
+  BacktestEquityPoint, BacktestMetric
 - 18 indicator series per stock/date stored in `indicator_results`
 - 36 active scanners registered in `app/services/scanner_engine.py`
 - `scan_results` is unique on `(scan_definition_id, stock_id, scan_date)`
@@ -28,13 +29,15 @@ Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared f
 - Auth: `users` with `is_superuser`, `is_active`, `is_verified`; `user_sessions` with revocation;
   `audit_logs` with JSON metadata
 - Auth: `roles`, `permissions`, `user_roles`, `role_permissions` for RBAC
+- Backtesting: `backtest_strategies` (unique code), `backtest_runs`, `backtest_trades`,
+  `backtest_equity_points` (unique run+date), `backtest_metrics` (unique run)
 
 ## Migrations
 
-- Alembic current: `3f8c1a2b4d6e (head)`
-- Alembic heads: `3f8c1a2b4d6e (head)`
-- Linear history: 15 revisions
-- Sprint 16 migrations: auth tables + RBAC + audit_logs
+- Alembic current: `d7b4cc79fd45 (head)`
+- Alembic heads: `d7b4cc79fd45 (head)`
+- Linear history: 16 revisions
+- Sprint 17 Task 17.1 migration: backtesting foundation tables (strategies, runs, trades, equity_points, metrics)
 
 ## EOD pipeline
 
@@ -121,6 +124,35 @@ Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared f
 - Browser auth: `require_browser_permission`, `require_browser_role`, `enforce_browser_permission`
 - Friendly 403 page (no stack traces), unauthenticated redirect to `/login?next=...`
 
+## Backtesting (Sprint 17 Tasks 17.1–17.4 + CLI reconciliation)
+
+- Task 17.1 — persistence/domain foundation: COMPLETE and verified.
+  Models `BacktestStrategy`, `BacktestRun`, `BacktestTrade`, `BacktestEquityPoint`,
+  `BacktestMetric`; repositories, validated schemas, migration `d7b4cc79fd45` applied to dev + test DBs.
+- Task 17.2 — historical NSE fetch + replay: VERIFIED.
+  `app/services/nse_historical.py`, `app/services/backtest_replay.py`; replay is strict no-look-ahead
+  (only `<= D` price/indicator rows), 403 surfaced as `blocked_403` (no NSE bypass), bulk in-memory
+  loads, existing scanner rules reused. Manual local-file fallback preserved;
+  legacy/pre-08-Jul-2024 bhavcopy handled by the alias-based parser.
+- Task 17.3 — trade simulation engine: COMPLETE.
+  `app/services/backtest_simulator.py` and `tests/test_backtest_simulator.py` (23 tests) covering
+  entry modes, position sizing, one-position-per-stock, duplicate-signal skip, SL/target/max-holding/
+  opposite-signal/end-of-backtest exits, transaction-cost math, equity curve, run state and rerun
+  rejection. Two cost-math bugs fixed during reconciliation (exit-commission used `entry_slippage`
+  instead of `commission_rate`; cash settlement double-counted commissions).
+- Task 17.4 — performance metrics engine: COMPLETE & VERIFIED.
+  `app/services/backtest_metrics.py` (`BacktestMetricCalculator`) implemented: total/annualized/CAGR
+  returns (365.25-day convention), closed-trade stats, win rate, profit factor, expectancy, breakeven
+  handling, running-peak drawdown (persisted per equity point and as `max_drawdown_percent`),
+  Sharpe/Sortino (risk-free 0, sqrt(252) annualization, None when undefined), `bars_held`/calendar-day
+  holding days, `DailyPrice`-only benchmark return (no external fetch), and alpha. Metrics are None
+  (never NaN/Inf) when undefined, persisted idempotently via `BacktestMetricRepository.upsert`
+  (one row per run), wired into the CLI metrics table after successful simulation, and surfaced
+  through a sanitized failure policy. `tests/test_backtest_metrics.py` (40 tests).
+- CLI regression fixed: `app/cli/create_admin.py` now exposes a Typer app AND a legacy-compatible
+  module-level `_create_admin` + `main(argv) -> int`; `main()` guards added to import_nse/nse_history/
+  backtest_replay/backtest; `app/cli/backtest.py` reference bug (`async_session_factory`) fixed.
+
 ## API and page surface
 
 - `/api/v1`: health, stocks, market-data, indicators, scanners, pipeline, analytics, ai,
@@ -133,14 +165,25 @@ Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared f
 - `/admin/users`, `/admin/roles`, `/admin/permissions`: admin management
 - `/login`, `/profile`, `/settings`, `/sessions`, `/password/change`: auth UI
 - `/api/v1/auth`: login, refresh, logout, me, preferences, profile, sessions, change-password
+- Sprint 16.8 pages: `/market-data`, `/indicators`, `/scanner-library`, `/scanner-run`,
+  `/pipeline`, `/scheduler`, `/analytics`, `/ai`, `/stocks` (browse)
 
 ## Testing
 
 - Real PostgreSQL test persistence with database cleanup between tests
 - Scan definitions are seeded idempotently
-- 373+ total tests
+- 521 total tests passing (458 Sprint 16.8 baseline + 29 Task 17.1 + 23 Task 17.3 + 40 Task 17.4 + parser/replay/historical additions), three consecutive full-suite passes
 - 119 focused Sprint 16 tests cover auth models, providers, authorization helpers, APIs, UI,
   ownership/admin_override, audit events, and browser cookie auth
+- 16 Sprint 16.8 UI tests cover market data, indicators, scanner library/run, pipeline,
+  scheduler, analytics, AI, and stocks pages
+- 29 Sprint 17 Task 17.1 tests cover backtest models, constraints, relationships, repositories,
+  and cascade deletes
+- 23 Sprint 17 Task 17.3 tests cover the simulation engine: entry modes, sizing, positions,
+  exits, cost math, equity curve, run state and rerun rejection
+- 40 Sprint 17 Task 17.4 tests cover the metrics engine: returns/CAGR, trade stats,
+  drawdown, Sharpe/Sortino, holding days, benchmark/alpha, persistence idempotency,
+  simulator integration, determinism, and the sanitized failure policy
 - External AI, Telegram, and SMTP calls are mocked or replaced by deterministic providers
 - Release gate: Alembic current equals head, Ruff clean, and three consecutive full-suite passes
 
@@ -152,3 +195,26 @@ Snapshot of AIStockScanner after Sprint 16 (Authorization Framework), prepared f
 - `scanner_engine.run_all` re-fetches indicator rows per scanner (performance follow-up)
 - AI collection endpoints are memory-cached only; only per-stock explanations are persisted
 - CSRF system follows existing project conventions (HTMX forms)
+- Backtesting engine, replay, trade simulation, and metrics are implemented (Sprint 17
+  Tasks 17.1–17.4, verified); REST APIs (17.5), HTML UI/charts (17.6), and release
+  (17.7) are not yet implemented
+- Pre-existing simulator cash-accounting note: `final_capital` double-counts the entry
+  commission (entry outlay deducted from cash and entry commission also subtracted inside
+  `net_pnl`). The metrics engine mirrors `run.final_capital`; the simulator's settlement
+  math should be corrected in a follow-up task.
+
+## Current Sprint
+
+Sprint 17: Backtesting
+- Task 17.1 — Backtesting database + domain foundation — COMPLETE
+- Task 17.2 — Historical NSE fetch + historical replay — VERIFIED
+- Task 17.3 — Trade simulation — COMPLETE (cost bugs fixed; 23 tests)
+- Task 17.4 — Performance metrics — COMPLETE & VERIFIED (40 tests; CLI-wired)
+- Task 17.5 — REST APIs — PENDING
+- Task 17.6 — UI/charts — PENDING
+- Task 17.7 — Release — PENDING
+- CLI regression (create_admin / main() guards) — FIXED
+
+## Next Task
+
+Task 17.5 — Backtesting REST APIs.

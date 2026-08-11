@@ -26,3 +26,38 @@ def test_parse_new_udiff_headers() -> None:
     assert not errors
     assert records[0].symbol == "INFY"
     assert records[0].volume == 10000
+
+
+def test_parse_full_modern_cm_udiff_columns() -> None:
+    """Full modern (08-Jul-2024+) CM-UDiFF ticker columns must parse."""
+    payload = b"""TCKRSYMB,SCTYSRS,TRADDT,OPNPRIC,HGHPRIC,LWPRIC,CLSPRIC,PRVSCLSGPRIC,LASTPRIC,TTLTRADGVOL,TTLTRADGVAL,TTLNBOFTRAD,ISIN\nRELIANCE,EQ,2024-07-08,1500,1530,1490,1520,1498,1519,100000,152000000,5000,INE002A01018\n"""
+    records, errors = parse_bhavcopy(payload)
+    assert not errors
+    assert records[0].symbol == "RELIANCE"
+    assert records[0].close == Decimal("1520")
+    assert records[0].volume == 100000
+    assert records[0].turnover == Decimal("152000000")
+    assert records[0].trade_count == 5000
+    assert records[0].previous_close == Decimal("1498")
+    assert records[0].last_price == Decimal("1519")
+    assert records[0].trade_date.isoformat() == "2024-07-08"
+
+
+def test_parse_legacy_aliases() -> None:
+    """Legacy pre-08-Jul-2024 header aliases must actually parse."""
+    payload = b"""SctySrs,TCKRSYMB,TRAD_DT,OPN_PRIC,HGH_PRIC,LW_PRIC,CLS_PRIC,TTL_TRADG_VOL,TTL_TRADG_VAL,TTL_NB_OF_TRAD,ISIN\nEQ,IDEA,2020-01-15,120.0,125.0,118.0,124.0,500000,60000000,9000,INE824A01032\n"""
+    records, errors = parse_bhavcopy(payload)
+    assert not errors
+    assert records[0].symbol == "IDEA"
+    assert records[0].open == Decimal("120.0")
+    assert records[0].volume == 500000
+    assert records[0].trade_date.isoformat() == "2020-01-15"
+
+
+def test_parse_legacy_alias_date1() -> None:
+    """DATE1 trade-date alias from legacy archives."""
+    payload = b"""SYMBOL,SERIES,OPEN,HIGH,LOW,CLOSE,TTL_TRADG_VOL,DATE1,PREVCLOSE,LAST\nLIVTEST,EQ,10,11,9,10,1000,2019-03-15,9.5,10\n"""
+    records, errors = parse_bhavcopy(payload)
+    assert not errors
+    assert records[0].symbol == "LIVTEST"
+    assert records[0].trade_date.isoformat() == "2019-03-15"

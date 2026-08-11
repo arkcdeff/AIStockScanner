@@ -1,35 +1,24 @@
 from __future__ import annotations
 
-import argparse
-import asyncio
+import typer
 
-from app.db.session import get_session_factory
-from app.services.nse_import import NSEImportService
+from app.cli.backtest import app as backtest_app
+from app.cli.backtest_replay import app as backtest_replay_app
+from app.cli.create_admin import app as create_admin_app
+from app.cli.import_nse import app as import_nse_app
+from app.cli.nse_history import app as nse_history_app
+from app.cli.seed_auth import app as seed_auth_app
 
-
-async def _import_nse(bhavcopy: str, delivery: str | None) -> int:
-    async with get_session_factory()() as session:
-        job = await NSEImportService(session).import_files(bhavcopy, delivery)
-    print(
-        f"status={job.status} read={job.rows_read} inserted={job.rows_inserted} "
-        f"updated={job.rows_updated} rejected={job.rows_rejected}"
-    )
-    if job.error_message:
-        print(f"error={job.error_message}")
-    return 0 if job.status == "completed" else 1
-
+app = typer.Typer()
+app.add_typer(backtest_app, name="backtest", help="Backtest strategies and runs")
+app.add_typer(backtest_replay_app, name="replay", help="Replay scanner signals")
+app.add_typer(import_nse_app, name="import-nse", help="Import NSE data")
+app.add_typer(nse_history_app, name="nse-history", help="NSE history management")
+app.add_typer(create_admin_app, name="create-admin", help="Create admin user")
+app.add_typer(seed_auth_app, name="seed-auth", help="Seed roles and permissions")
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="aistock")
-    subparsers = parser.add_subparsers(dest="command", required=True)
-    importer = subparsers.add_parser("import-nse", help="Import NSE bhavcopy and delivery CSV/ZIP")
-    importer.add_argument("bhavcopy")
-    importer.add_argument("--delivery")
-    args = parser.parse_args()
-
-    if args.command == "import-nse":
-        raise SystemExit(asyncio.run(_import_nse(args.bhavcopy, args.delivery)))
-
+    app()
 
 if __name__ == "__main__":
     main()

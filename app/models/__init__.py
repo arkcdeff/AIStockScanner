@@ -10,6 +10,13 @@ from app.models.auth import (
     UserRole,
     UserSession,
 )
+from app.models.backtest import (
+    BacktestEquityPoint,
+    BacktestMetric,
+    BacktestRun,
+    BacktestStrategy,
+    BacktestTrade,
+)
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
@@ -31,6 +38,11 @@ from app.models.watchlist import Watchlist, WatchlistStock
 __all__ = [
     "Sector",
     "Stock",
+    "BacktestStrategy",
+    "BacktestRun",
+    "BacktestTrade",
+    "BacktestEquityPoint",
+    "BacktestMetric",
     "DailyPrice",
     "ImportJob",
     "EODPipelineRun",
