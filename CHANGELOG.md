@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.13.0] - 2026-08-12
+
+### Added
+
+- **Sprint 17 Tasks 17.5–17.6 (backtesting REST API + browser UI/charts)**
+  - REST API `/api/v1/backtests` (13 routes / 9 paths): strategy CRUD + soft
+    deactivate, run create/list/detail, synchronous `execute`, and
+    summary/trades/equity/metrics result endpoints
+  - Browser backtesting UI under `/backtests` (workspace, strategies, runs,
+    run detail) with HTMX partials and Lightweight Charts equity/drawdown
+  - `backtests.read/run/write` permission codes (catalog 25 → 28)
+  - Simulator settlement fix: both close sites credit
+    `net_pnl + entry_value + entry_commission`, preserving
+    `final_capital = initial_capital + gross_pnl - costs`
+  - API reference: `docs/03_APIs/Backtest_API.md`
+  - Test suites: `tests/test_backtest_api.py` (16), `tests/test_backtest_ui.py` (29)
+
+### Changed
+
+- Version bumped to `v0.13.0` (`app/main.py`) — first version where the
+  `app/main.py` version field matches the release (the v0.12.1 release did not
+  bump the field; corrected here)
+- Permission Matrix reconciled to the canonical 28-code catalog
+  (`docs/01_Architecture/Permission_Matrix.md`); phantom codes
+  (`market_data.read`, `indicators.read/write`, `scanners.write`,
+  `analytics.write`, `ai.write`, `pipeline.read`, `daily_summary.read`)
+  removed from the tables and route dependencies updated to match code
+- PROJECT_STATE.md updated for Sprint 17 completion (33 models)
+- Test suite: 570 total (541 baseline + 29 UI)
+
+### Documentation
+
+- `docs/05_Development/Sprint_17.md` updated for Tasks 17.5–17.6
+- `docs/05_Development/PROJECT_STATE.md` updated for v0.13.0
+- `docs/CURRENT_TASK.md` updated for Sprint 17 completion
+
 ## [v0.12.0] - 2026-08-06
 
 ### Added
@@ -120,7 +156,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Version bumped to `v0.12.1` (`app/main.py`)
+- `app/main.py` version field left at `0.12.0` for this release (corrected to
+  `0.13.0` in the v0.13.0 release)
 - `Stock` model extended with `backtest_trades` relationship
 - Test suite: 432 total tests (403 + 29 new)
 - PROJECT_STATE.md updated for Sprint 16.8 and Task 17.1

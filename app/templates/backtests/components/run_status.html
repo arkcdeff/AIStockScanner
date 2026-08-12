@@ -1,0 +1,40 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center">
+        <div>
+            <h5 class="mb-0"><i class="bi bi-cpu me-2"></i>Run #{{ run.id }} <span class="{{ run.status|status_badge }}">{{ run.status }}</span></h5>
+        </div>
+        {% if can_run and run.status in ['pending', 'failed'] %}
+        <form method="post" action="/backtests/runs/{{ run.id }}/execute"
+              hx-post="/backtests/runs/{{ run.id }}/execute"
+              hx-target="#run-workspace" hx-swap="outerHTML"
+              onsubmit="return confirm('Run backtest #{{ run.id }}?');">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-play-fill me-1"></i>Run backtest</button>
+        </form>
+        {% elif run.status == 'running' %}
+        <span class="text-muted small"><i class="bi bi-hourglass-split me-1"></i>Executing…</span>
+        {% else %}
+        <span class="text-muted small"><i class="bi bi-check2-circle me-1"></i>Execution complete</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="row g-3 text-muted small">
+            <div class="col-md-3"><span class="text-body">Strategy</span><br>{{ run.strategy.name if run.strategy else '—' }}</div>
+            <div class="col-md-3"><span class="text-body">Period</span><br>{{ run.start_date }} → {{ run.end_date }}</div>
+            <div class="col-md-3"><span class="text-body">Initial capital</span><br>{{ run.initial_capital|inr }}</div>
+            <div class="col-md-3"><span class="text-body">Final capital</span><br class="text-{{ 'success' if (run.final_capital or 0) > run.initial_capital else 'danger' }}">{{ run.final_capital|inr }}</div>
+        </div>
+        <div class="row g-3 text-muted small mt-1">
+            <div class="col-md-3"><span class="text-body">Commission</span><br>{{ run.commission_rate|num }}</div>
+            <div class="col-md-3"><span class="text-body">Slippage</span><br>{{ run.slippage_rate|num }}</div>
+            <div class="col-md-3"><span class="text-body">Position sizing</span><br>{{ run.position_size_type|label }} · {{ run.position_size_value|num }}</div>
+            <div class="col-md-3"><span class="text-body">Benchmark</span><br>{{ run.benchmark_symbol or '—' }}</div>
+        </div>
+        {% if run.status == 'failed' and run.error_message %}
+        <div class="alert alert-danger mt-3 mb-0">
+            <strong>Execution failed.</strong>
+            <div class="small font-monospace mt-1">{{ run.error_message }}</div>
+        </div>
+        {% endif %}
+    </div>
+</div>

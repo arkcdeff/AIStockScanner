@@ -35,6 +35,9 @@ BUILT_IN_PERMISSION_DEFINITIONS: dict[str, str] = {
     "scheduler.run": "Run notification schedulers",
     "settings.read": "View application settings",
     "settings.write": "Update application settings",
+    "backtests.read": "View backtest strategies, runs and results",
+    "backtests.run": "Execute backtest runs",
+    "backtests.write": "Create and manage backtest strategies and runs",
 }
 
 
@@ -73,6 +76,9 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "scheduler.run",
         "settings.read",
         "settings.write",
+        "backtests.read",
+        "backtests.run",
+        "backtests.write",
     ),
     "analyst": (
         "stocks.read",
@@ -89,6 +95,8 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "alerts.read",
         "alerts.write",
         "notifications.read",
+        "backtests.read",
+        "backtests.run",
     ),
     "viewer": (
         "dashboard.read",
@@ -100,6 +108,7 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "watchlists.read",
         "alerts.read",
         "notifications.read",
+        "backtests.read",
     ),
 }
 

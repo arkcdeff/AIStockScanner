@@ -2,23 +2,22 @@
 
 This document defines the canonical permission codes, role assignments, and API route protections for the AI Stock Scanner authorization framework (Sprint 16 Task 16.6).
 
-## Permission Codes (23 total)
+## Permission Codes (28 total)
 
 | Code | Description |
 |------|-------------|
+| `users.read` | List and view users |
+| `users.write` | Create, update, manage users |
+| `roles.read` | List and view roles |
+| `roles.write` | Create, update, manage roles |
 | `stocks.read` | Read access to stock data, symbols, and reference data |
 | `stocks.write` | Create/update stock records, import jobs |
-| `market_data.read` | Read market data, daily prices, indicators |
 | `market_data.write` | Write/import market data, run EOD pipeline imports |
-| `indicators.read` | Read technical indicator results |
-| `indicators.write` | Calculate/refresh indicators |
 | `scanners.read` | List scanner definitions, view scan results |
 | `scanners.run` | Execute scanners, run custom scans |
-| `scanners.write` | Create/update scanner definitions |
 | `analytics.read` | View analytics, portfolio performance, risk metrics |
-| `analytics.write` | Run analytics calculations |
 | `ai.read` | Read AI explanations, market summaries |
-| `ai.write` | Generate AI explanations, configure AI settings |
+| `dashboard.read` | View dashboard HTML page and widgets |
 | `portfolio.read` | View portfolios, holdings, positions |
 | `portfolio.write` | Create/update portfolios, add/remove holdings |
 | `watchlists.read` | View watchlists and watchlist stocks |
@@ -27,15 +26,19 @@ This document defines the canonical permission codes, role assignments, and API 
 | `alerts.write` | Create/update alert rules, run alert engine |
 | `notifications.read` | View notification channels, preferences, deliveries |
 | `notifications.write` | Configure notifications, send test messages |
-| `settings.read` | View user preferences, system settings |
-| `dashboard.read` | View dashboard HTML page and widgets |
 | `pipeline.run` | Execute EOD pipeline runs (file/date) |
-| `pipeline.read` | View pipeline status, history, runs |
 | `daily_summary.run` | Trigger daily summary generation |
-| `daily_summary.read` | View daily summary history and details |
 | `scheduler.run` | Trigger scheduler delivery runs |
+| `settings.read` | View user preferences, system settings |
+| `settings.write` | Update application settings |
+| `backtests.read` | View backtest strategies, runs and results |
+| `backtests.run` | Execute backtest runs |
+| `backtests.write` | Create and manage backtest strategies and runs |
 
-**Note**: The actual permission catalog in `app/services/builtin_auth.py` contains 23 codes. The table above includes all permissions used by the route protection layer.
+**Note**: The canonical permission catalog in `app/services/builtin_auth.py`
+contains 28 codes. The table above matches the catalog exactly. Indicator and
+market-data read access reuse `stocks.read` (there is no separate
+`indicators.read` / `market_data.read` code).
 
 ## Role Definitions
 
@@ -50,19 +53,18 @@ This document defines the canonical permission codes, role assignments, and API 
 
 | Permission | super_admin | admin | analyst | viewer |
 |------------|-------------|-------|---------|--------|
+| `users.read` | ✅ | ✅ | ❌ | ❌ |
+| `users.write` | ✅ | ✅ | ❌ | ❌ |
+| `roles.read` | ✅ | ✅ | ❌ | ❌ |
+| `roles.write` | ✅ | ✅ | ❌ | ❌ |
 | `stocks.read` | ✅ | ✅ | ✅ | ✅ |
-| `stocks.write` | ✅ | ✅ | ✅ | ❌ |
-| `market_data.read` | ✅ | ✅ | ✅ | ✅ |
+| `stocks.write` | ✅ | ✅ | ❌ | ❌ |
 | `market_data.write` | ✅ | ✅ | ✅ | ❌ |
-| `indicators.read` | ✅ | ✅ | ✅ | ✅ |
-| `indicators.write` | ✅ | ✅ | ✅ | ❌ |
 | `scanners.read` | ✅ | ✅ | ✅ | ✅ |
 | `scanners.run` | ✅ | ✅ | ✅ | ❌ |
-| `scanners.write` | ✅ | ✅ | ✅ | ❌ |
 | `analytics.read` | ✅ | ✅ | ✅ | ✅ |
-| `analytics.write` | ✅ | ✅ | ✅ | ❌ |
 | `ai.read` | ✅ | ✅ | ✅ | ✅ |
-| `ai.write` | ✅ | ✅ | ✅ | ❌ |
+| `dashboard.read` | ✅ | ✅ | ✅ | ✅ |
 | `portfolio.read` | ✅ | ✅ | ✅ | ✅ |
 | `portfolio.write` | ✅ | ✅ | ✅ | ❌ |
 | `watchlists.read` | ✅ | ✅ | ✅ | ✅ |
@@ -70,14 +72,15 @@ This document defines the canonical permission codes, role assignments, and API 
 | `alerts.read` | ✅ | ✅ | ✅ | ✅ |
 | `alerts.write` | ✅ | ✅ | ✅ | ❌ |
 | `notifications.read` | ✅ | ✅ | ✅ | ✅ |
-| `notifications.write` | ✅ | ✅ | ✅ | ❌ |
-| `settings.read` | ✅ | ✅ | ✅ | ✅ |
-| `dashboard.read` | ✅ | ✅ | ✅ | ✅ |
+| `notifications.write` | ✅ | ✅ | ❌ | ❌ |
 | `pipeline.run` | ✅ | ✅ | ❌ | ❌ |
-| `pipeline.read` | ✅ | ✅ | ✅ | ✅ |
 | `daily_summary.run` | ✅ | ✅ | ❌ | ❌ |
-| `daily_summary.read` | ✅ | ✅ | ✅ | ✅ |
 | `scheduler.run` | ✅ | ✅ | ❌ | ❌ |
+| `settings.read` | ✅ | ✅ | ❌ | ❌ |
+| `settings.write` | ✅ | ✅ | ❌ | ❌ |
+| `backtests.read` | ✅ | ✅ | ✅ | ✅ |
+| `backtests.run` | ✅ | ✅ | ✅ | ❌ |
+| `backtests.write` | ✅ | ✅ | ❌ | ❌ |
 
 > **Note**: `super_admin` and users with `is_superuser=True` bypass all permission checks entirely.
 
@@ -87,7 +90,6 @@ This document defines the canonical permission codes, role assignments, and API 
 |--------|-------|--------|---------------|---------|
 | **Analytics** | `/api/v1/analytics/*` | GET | `analytics.read` | viewer+ |
 | **AI** | `/api/v1/ai/*` | GET | `ai.read` | viewer+ |
-| | `/api/v1/ai/explain/*` | POST | `ai.write` | analyst+ |
 | **Stocks** | `/api/v1/stocks` | GET | `stocks.read` | viewer+ |
 | | `/api/v1/stocks` | POST | `stocks.write` | analyst+ |
 | | `/api/v1/stocks/{symbol}` | GET | `stocks.read` | viewer+ |
@@ -95,15 +97,12 @@ This document defines the canonical permission codes, role assignments, and API 
 | | `/api/v1/market-data/import` | POST | `market_data.write` | analyst+ |
 | **Indicators** | `/api/v1/indicators/*` | GET | `stocks.read` | viewer+ |
 | | `/api/v1/indicators/calculate` | POST | `market_data.write` | analyst+ |
-| **Scanners** | `/api/v1/scanners/*` | GET | `scanners.read` | viewer+ |
-| | `/api/v1/scanners/run` | POST | `scanners.run` | analyst+ |
-| | `/api/v1/scanners/run-all` | POST | `scanners.run` | analyst+ |
-| | `/api/v1/scanners/*` | POST | `scanners.write` | analyst+ |
+| **Scanners** | `/api/v1/scanners` | GET | `scanners.read` | viewer+ |
+| | `/api/v1/scanners` | POST | `scanners.run` | analyst+ |
+| | `/api/v1/scanners/results` | GET | `scanners.read` | viewer+ |
 | **Pipeline** | `/api/v1/pipeline/status` | GET | `stocks.read` | viewer+ |
 | | `/api/v1/pipeline/runs` | GET | `stocks.read` | viewer+ |
-| | `/api/v1/pipeline/run` | POST | `pipeline.run` | admin |
-| | `/api/v1/pipeline/run-file` | POST | `pipeline.run` | admin |
-| | `/api/v1/pipeline/run-date` | POST | `pipeline.run` | admin |
+| | `/api/v1/pipeline/run*` | POST | `pipeline.run` | admin |
 | **Watchlists** | `/api/v1/watchlists` | GET | `watchlists.read` | viewer+ |
 | | `/api/v1/watchlists` | POST | `watchlists.write` | analyst+ |
 | | `/api/v1/watchlists/{id}` | PUT/DELETE | `watchlists.write` | analyst+ |
@@ -118,6 +117,19 @@ This document defines the canonical permission codes, role assignments, and API 
 | | `/api/v1/notifications/daily-summary/run` | POST | `daily_summary.run` | admin |
 | | `/api/v1/notifications/scheduler/run-delivery` | POST | `scheduler.run` | admin |
 | | `/api/v1/notifications/*` | POST (other) | `notifications.write` | admin |
+| **Backtests** | `/api/v1/backtests/strategies` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/strategies` | POST | `backtests.write` | admin+ |
+| | `/api/v1/backtests/strategies/{id}` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/strategies/{id}` | PUT | `backtests.write` | admin+ |
+| | `/api/v1/backtests/strategies/{id}` | DELETE | `backtests.write` | admin+ |
+| | `/api/v1/backtests/runs` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/runs` | POST | `backtests.write` | admin+ |
+| | `/api/v1/backtests/runs/{id}` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/runs/{id}/execute` | POST | `backtests.run` | analyst+ |
+| | `/api/v1/backtests/runs/{id}/summary` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/runs/{id}/trades` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/runs/{id}/equity` | GET | `backtests.read` | viewer+ |
+| | `/api/v1/backtests/runs/{id}/metrics` | GET | `backtests.read` | viewer+ |
 | **Admin** | `/api/v1/admin/users` | GET | `users.read` | admin |
 | | `/api/v1/admin/users` | POST | `users.write` | admin |
 | | `/api/v1/admin/users/{id}` | PUT/POST/DELETE | `users.write` | admin |

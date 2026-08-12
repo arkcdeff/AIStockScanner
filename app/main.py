@@ -21,6 +21,7 @@ from app.api.routes.ai_pages import router as ai_pages_router
 from app.api.routes.alert_pages import router as alert_pages_router
 from app.api.routes.analytics_pages import router as analytics_pages_router
 from app.api.routes.auth_pages import router as auth_pages_router
+from app.api.routes.backtest_pages import router as backtest_pages_router
 from app.api.routes.indicator_pages import router as indicator_pages_router
 from app.api.routes.market_data_pages import router as market_data_pages_router
 from app.api.routes.notification_pages import router as notification_pages_router
@@ -70,7 +71,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
-        version="0.12.0",
+        version="0.13.0",
         debug=settings.app_debug,
         lifespan=lifespan,
         docs_url="/docs",
@@ -97,6 +98,7 @@ def create_app() -> FastAPI:
     app.include_router(scheduler_pages_router, prefix="/scheduler")
     app.include_router(analytics_pages_router, prefix="/analytics")
     app.include_router(ai_pages_router, prefix="/ai")
+    app.include_router(backtest_pages_router, prefix="/backtests")
 
     templates = Jinja2Templates(directory=str(settings.base_dir / "app" / "templates"))
     app.state.templates = templates

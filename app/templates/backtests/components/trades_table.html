@@ -1,0 +1,79 @@
+<div id="trades-section">
+    <div class="card mb-4">
+        <div class="card-header bg-white d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <h5 class="mb-0"><i class="bi bi-table me-2"></i>Trades <span class="text-muted small">({{ trades_total }})</span></h5>
+            <form class="row g-2 align-items-center" method="get"
+                  hx-get="/backtests/runs/{{ run.id }}/trades" hx-target="#trades-section" hx-swap="outerHTML" hx-trigger="submit">
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="status">
+                        <option value="">All statuses</option>
+                        {% for s in ['open', 'closed'] %}
+                        <option value="{{ s }}" {% if trades_filters.status == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="position_side">
+                        <option value="">All sides</option>
+                        {% for s in ['long', 'short'] %}
+                        <option value="{{ s }}" {% if trades_filters.position_side == s %}selected{% endif %}>{{ s }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <select class="form-select form-select-sm" name="profitable">
+                        <option value="">All P&L</option>
+                        <option value="true" {% if trades_filters.profitable == 'true' %}selected{% endif %}>Profitable</option>
+                        <option value="false" {% if trades_filters.profitable == 'false' %}selected{% endif %}>Losing</option>
+                    </select>
+                </div>
+                <div class="col-auto">
+                    <input type="text" class="form-control form-control-sm" name="symbol" value="{{ trades_filters.symbol }}" placeholder="Symbol">
+                </div>
+                <div class="col-auto">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Filter</button>
+                </div>
+            </form>
+        </div>
+        <div class="card-body p-0 table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>#</th><th>Symbol</th><th>Side</th><th>Entry</th><th>Exit</th><th>Qty</th>
+                        <th class="text-end">Net P&L</th><th class="text-end">Return</th><th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for trade in trades %}
+                    <tr>
+                        <td class="text-muted">{{ trade.id }}</td>
+                        <td><strong>{{ trade.symbol or '—' }}</strong></td>
+                        <td><span class="badge {{ 'bg-success' if trade.position_side == 'long' else 'bg-danger' }}">{{ trade.position_side }}</span></td>
+                        <td>{{ trade.entry_date }}<br><small class="text-muted">{{ trade.entry_price|inr }}</small></td>
+                        <td>{{ trade.exit_date or '—' }}<br><small class="text-muted">{{ trade.exit_price|inr }}</small></td>
+                        <td>{{ trade.quantity|num }}</td>
+                        <td class="text-end {{ trade.net_pnl|sign_class }}">{{ trade.net_pnl|inr }}</td>
+                        <td class="text-end {{ trade.return_percent|sign_class }}">{{ trade.return_percent|pct }}</td>
+                        <td><span class="badge {{ 'bg-info text-dark' if trade.status == 'open' else 'bg-secondary' }}">{{ trade.status }}</span></td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="9" class="text-center text-muted py-4">No trades match the current filters.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if trades_total > trades_page_size or trades_page > 1 %}
+        <div class="card-footer bg-white d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Page {{ trades_page }} of {{ ((trades_total + trades_page_size - 1) // trades_page_size) }}</span>
+            <div class="btn-group btn-group-sm">
+                {% if trades_page > 1 %}
+                <a class="btn btn-outline-secondary" hx-get="/backtests/runs/{{ run.id }}/trades?page={{ trades_page - 1 }}&status={{ trades_filters.status }}&position_side={{ trades_filters.position_side }}&profitable={{ trades_filters.profitable }}&symbol={{ trades_filters.symbol }}" hx-target="#trades-section" hx-swap="outerHTML">Prev</a>
+                {% endif %}
+                {% if trades_page < ((trades_total + trades_page_size - 1) // trades_page_size) %}
+                <a class="btn btn-outline-secondary" hx-get="/backtests/runs/{{ run.id }}/trades?page={{ trades_page + 1 }}&status={{ trades_filters.status }}&position_side={{ trades_filters.position_side }}&profitable={{ trades_filters.profitable }}&symbol={{ trades_filters.symbol }}" hx-target="#trades-section" hx-swap="outerHTML">Next</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>

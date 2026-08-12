@@ -1,0 +1,49 @@
+/* Backtesting UI styles */
+.backtest-chart {
+    width: 100%;
+    height: 300px;
+}
+
+#drawdown-chart {
+    height: 220px;
+}
+
+.metric-card {
+    border: 1px solid var(--bs-border-color);
+    border-radius: 0.5rem;
+    padding: 0.75rem 1rem;
+    height: 100%;
+}
+
+.metric-card .text-muted.small {
+    font-size: 0.75rem;
+}
+
+#equity-chart, #drawdown-chart {
+    min-height: 200px;
+}
+
+.chart-title {
+    font-weight: 500;
+}
+
+#trades-section .table th,
+#trades-section .table td {
+    vertical-align: middle;
+}
+
+#trades-section .table th:first-child,
+#trades-section .table td:first-child {
+    width: 40px;
+}
+
+#trades-section .table th:last-child,
+#trades-section .table td:last-child {
+    width: 80px;
+}
+
+@media (max-width: 767.98px) {
+    .metric-card {
+        padding: 0.5rem 0.75rem;
+    }
+}

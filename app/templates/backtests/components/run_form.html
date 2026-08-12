@@ -1,0 +1,84 @@
+<div class="card">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-play-circle me-2"></i>New backtest run</h5>
+    </div>
+    <div class="card-body">
+        {% if not strategies %}
+        <div class="alert alert-warning mb-3">
+            No active strategies yet. <a href="/backtests/strategies" class="alert-link">Create a strategy</a> first.
+        </div>
+        {% endif %}
+        <form method="post" action="/backtests/runs/create">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="mb-3">
+                <label class="form-label" for="strategy_id">Strategy</label>
+                <select class="form-select" name="strategy_id" id="strategy_id" {% if not can_write %}disabled{% endif %}>
+                    <option value="" {% if not strategies %}disabled selected{% endif %}>Select a strategy</option>
+                    {% for strategy in strategies %}
+                    <option value="{{ strategy.id }}" {% if run_values and run_values.strategy_id|string == strategy.id|string %}selected{% endif %}>
+                        {{ strategy.name }} ({{ strategy.code }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="start_date">Start date</label>
+                    <input type="date" class="form-control" name="start_date" id="start_date" value="{{ run_values.start_date if run_values else run_defaults.start_date }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="end_date">End date</label>
+                    <input type="date" class="form-control" name="end_date" id="end_date" value="{{ run_values.end_date if run_values else run_defaults.end_date }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="initial_capital">Initial capital (₹)</label>
+                    <input type="number" step="0.01" min="1" class="form-control" name="initial_capital" id="initial_capital" value="{{ run_values.initial_capital if run_values else run_defaults.initial_capital }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="max_positions">Max positions (optional)</label>
+                    <input type="number" step="1" min="1" class="form-control" name="max_positions" id="max_positions" value="{{ run_values.max_positions if run_values else run_defaults.max_positions }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="position_size_type">Position sizing</label>
+                    <select class="form-select" name="position_size_type" id="position_size_type" {% if not can_write %}disabled{% endif %}>
+                        {% for pst in position_size_types %}
+                        <option value="{{ pst }}" {% if (run_values and run_values.position_size_type == pst) or (not run_values and run_defaults.position_size_type == pst) %}selected{% endif %}>{{ pst|label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="position_size_value">Sizing value</label>
+                    <input type="number" step="0.01" min="0" class="form-control" name="position_size_value" id="position_size_value" value="{{ run_values.position_size_value if run_values else run_defaults.position_size_value }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="commission_rate">Commission rate</label>
+                    <input type="number" step="0.0001" min="0" class="form-control" name="commission_rate" id="commission_rate" value="{{ run_values.commission_rate if run_values else run_defaults.commission_rate }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+                <div class="col-6 mb-3">
+                    <label class="form-label" for="slippage_rate">Slippage rate</label>
+                    <input type="number" step="0.0001" min="0" class="form-control" name="slippage_rate" id="slippage_rate" value="{{ run_values.slippage_rate if run_values else run_defaults.slippage_rate }}" {% if not can_write %}disabled{% endif %}>
+                </div>
+            </div>
+            <div class="mb-3">
+                <label class="form-label" for="benchmark_symbol">Benchmark symbol (optional)</label>
+                <input type="text" class="form-control" name="benchmark_symbol" id="benchmark_symbol" list="benchmark-symbols" value="{{ run_values.benchmark_symbol if run_values else '' }}" {% if not can_write %}disabled{% endif %}>
+                <datalist id="benchmark-symbols">
+                    {% for symbol in active_symbols %}<option value="{{ symbol }}"></option>{% endfor %}
+                </datalist>
+                <div class="form-text">Compare strategy performance against an active NSE symbol.</div>
+            </div>
+            <button type="submit" class="btn btn-primary w-100" {% if not can_write %}disabled{% endif %}>
+                <i class="bi bi-play me-2"></i>Create & open run
+            </button>
+            {% if not can_write %}
+            <div class="form-text text-muted mt-2 text-center">read-only — you need <code>backtests.write</code> permission to create runs.</div>
+            {% endif %}
+        </form>
+    </div>
+</div>

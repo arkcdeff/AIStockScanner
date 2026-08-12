@@ -741,3 +741,201 @@ async def test_rerun_already_completed_rejected(monkeypatch) -> None:
     async with get_session_factory()() as session:
         with pytest.raises(ValueError, match="already completed"):
             await BacktestSimulator(session).simulate_run(run_id)
+
+
+# --------------------------------------------------------------------------- SETTLEMENT
+
+
+async def _flat_round_trip(symbol: str) -> int:
+    """Flat round trip: signal D0, entry D1 at open, forced close at D2 close."""
+    stock_id = await _create_stock(symbol)
+    await _add_prices(
+        stock_id,
+        [
+            {"date": date(2023, 1, 2), "open": 100, "high": 102, "low": 98, "close": 101},
+            {"date": date(2023, 1, 4), "open": 100, "high": 100, "low": 100, "close": 100},
+            {"date": date(2023, 1, 5), "open": 100, "high": 100, "low": 100, "close": 100},
+        ],
+    )
+    return stock_id
+
+
+async def _trend_round_trip(symbol: str, d2_close: int) -> int:
+    """Round trip ending at ``d2_close`` used for zero-cost win/loss checks."""
+    stock_id = await _create_stock(symbol)
+    await _add_prices(
+        stock_id,
+        [
+            {"date": date(2023, 1, 2), "open": 100, "high": 102, "low": 98, "close": 101},
+            {"date": date(2023, 1, 4), "open": 100, "high": 100, "low": 100, "close": 100},
+            {
+                "date": date(2023, 1, 5),
+                "open": d2_close,
+                "high": d2_close,
+                "low": d2_close,
+                "close": d2_close,
+            },
+        ],
+    )
+    return stock_id
+
+
+@pytest.mark.asyncio
+async def test_settlement_entry_commission_not_double_counted(monkeypatch) -> None:
+    """Entry commission is paid once (in the entry outlay), never twice.
+
+    Regression: the entry outlay already includes the entry commission, but the
+    close previously credited ``trade.net_pnl`` (which subtracts the entry
+    commission again), understating final capital by exactly the entry commission.
+    """
+    stock_id = await _flat_round_trip("SETT1")
+    signal = _signal(stock_id, "SETT1", date(2023, 1, 2))
+    _patch_replay(monkeypatch, signals=[signal])
+
+    strategy_id = await _create_strategy(execution_mode="next_open")
+    run_id = await _create_run(
+        strategy_id,
+        position_size_type="fixed_quantity",
+        position_size_value=Decimal("10"),
+        commission_rate=Decimal("0.001"),
+        slippage_rate=Decimal("0.001"),
+    )
+
+    async with get_session_factory()() as session:
+        summary = await BacktestSimulator(session).simulate_run(run_id)
+        run = await BacktestRunRepository(session).get(run_id)
+    trades = await _trades_for(run_id)
+    assert len(trades) == 1
+    t = trades[0]
+
+    entry_value = t.entry_price * t.quantity  # 1001.0000
+    exit_value = t.exit_price * t.quantity  # 999.0000
+    entry_commission = entry_value * Decimal("0.001")  # 1.001
+    exit_commission = exit_value * Decimal("0.001")  # 0.999
+    assert abs(t.costs - (entry_commission + exit_commission)) < Decimal("0.001")
+
+    # final_capital = initial + gross P&L - entry costs - exit costs (no double count)
+    expected_final = (
+        Decimal("100000") + (exit_value - entry_value) - entry_commission - exit_commission
+    )
+    assert expected_final == Decimal("99996.000")
+    assert abs(summary.final_capital - expected_final) < Decimal("0.001")
+    assert abs(run.final_capital - expected_final) < Decimal("0.001")
+    assert abs(
+        summary.net_pnl - (summary.final_capital - summary.initial_capital)
+    ) < Decimal("0.001")
+
+
+@pytest.mark.asyncio
+async def test_settlement_zero_cost_win_and_loss(monkeypatch) -> None:
+    """With zero commission/slippage, final_capital moves exactly by gross P&L."""
+    win_stock = await _trend_round_trip("SETW1", 110)
+    win_signal = _signal(win_stock, "SETW1", date(2023, 1, 2))
+    _patch_replay(monkeypatch, signals=[win_signal])
+    strategy_id = await _create_strategy(execution_mode="next_open")
+    win_run = await _create_run(
+        strategy_id,
+        position_size_type="fixed_quantity",
+        position_size_value=Decimal("10"),
+        commission_rate=Decimal("0"),
+        slippage_rate=Decimal("0"),
+    )
+    async with get_session_factory()() as session:
+        win_summary = await BacktestSimulator(session).simulate_run(win_run)
+    assert win_summary.total_costs == 0
+    assert abs(win_summary.final_capital - Decimal("100100")) < Decimal("0.001")
+    assert win_summary.gross_pnl == Decimal("100")
+
+    loss_stock = await _trend_round_trip("SETL1", 90)
+    loss_signal = _signal(loss_stock, "SETL1", date(2023, 1, 2))
+    _patch_replay(monkeypatch, signals=[loss_signal])
+    loss_strategy = await _create_strategy(execution_mode="next_open", scenario="loss")
+    loss_run = await _create_run(
+        loss_strategy,
+        position_size_type="fixed_quantity",
+        position_size_value=Decimal("10"),
+        commission_rate=Decimal("0"),
+        slippage_rate=Decimal("0"),
+    )
+    async with get_session_factory()() as session:
+        loss_summary = await BacktestSimulator(session).simulate_run(loss_run)
+    assert loss_summary.total_costs == 0
+    assert abs(loss_summary.final_capital - Decimal("99900")) < Decimal("0.001")
+    assert loss_summary.gross_pnl == Decimal("-100")
+
+
+@pytest.mark.asyncio
+async def test_settlement_cash_flow_charges_exit_commission_once(monkeypatch) -> None:
+    """Cash change over one round trip equals -entry_outlay + net exit proceeds."""
+    stock_id = await _flat_round_trip("SETC1")
+    signal = _signal(stock_id, "SETC1", date(2023, 1, 2))
+    _patch_replay(monkeypatch, signals=[signal])
+
+    strategy_id = await _create_strategy(execution_mode="next_open")
+    run_id = await _create_run(
+        strategy_id,
+        position_size_type="fixed_quantity",
+        position_size_value=Decimal("10"),
+        commission_rate=Decimal("0.002"),
+        slippage_rate=Decimal("0.001"),
+    )
+    async with get_session_factory()() as session:
+        summary = await BacktestSimulator(session).simulate_run(run_id)
+    trades = await _trades_for(run_id)
+    assert len(trades) == 1
+    t = trades[0]
+
+    entry_value = t.entry_price * t.quantity
+    exit_value = t.exit_price * t.quantity
+    entry_commission = entry_value * Decimal("0.002")
+    exit_commission = exit_value * Decimal("0.002")
+
+    cash_change = summary.final_capital - summary.initial_capital
+    expected_change = -(entry_value + entry_commission) + (exit_value - exit_commission)
+    assert abs(cash_change - expected_change) < Decimal("0.001")
+    assert abs(cash_change - (t.gross_pnl - t.costs)) < Decimal("0.001")
+
+
+@pytest.mark.asyncio
+async def test_settlement_multiple_sequential_trades_identity(monkeypatch) -> None:
+    """Accounting identity holds across multiple sequential round trips."""
+    stock_id = await _create_stock("SETM1")
+    await _add_prices(
+        stock_id,
+        [
+            {"date": date(2023, 1, 2), "open": 100, "high": 102, "low": 98, "close": 101},
+            {"date": date(2023, 1, 4), "open": 100, "high": 100, "low": 100, "close": 100},
+            {"date": date(2023, 1, 5), "open": 110, "high": 110, "low": 110, "close": 110},
+            {"date": date(2023, 1, 6), "open": 120, "high": 120, "low": 120, "close": 120},
+        ],
+    )
+    # max_holding_days=1 exits the first position at D2 close; a second signal
+    # on D2 re-enters at D3 open (forced closed at D3 close).
+    s1 = _signal(stock_id, "SETM1", date(2023, 1, 2))
+    s2 = _signal(stock_id, "SETM1", date(2023, 1, 5))
+    _patch_replay(monkeypatch, signals=[s1, s2])
+
+    strategy_id = await _create_strategy(
+        execution_mode="next_open", exit={"max_holding_days": 1}
+    )
+    run_id = await _create_run(
+        strategy_id,
+        position_size_type="fixed_quantity",
+        position_size_value=Decimal("10"),
+        commission_rate=Decimal("0.001"),
+        slippage_rate=Decimal("0.001"),
+    )
+    async with get_session_factory()() as session:
+        summary = await BacktestSimulator(session).simulate_run(run_id)
+        run = await BacktestRunRepository(session).get(run_id)
+    trades = await _trades_for(run_id)
+    assert len(trades) == 2
+
+    gross = sum((t.gross_pnl or Decimal("0")) for t in trades)
+    costs = sum((t.costs or Decimal("0")) for t in trades)
+    net = sum((t.net_pnl or Decimal("0")) for t in trades)
+    expected_final = summary.initial_capital + gross - costs
+
+    assert abs(summary.final_capital - expected_final) < Decimal("0.001")
+    assert abs(run.final_capital - expected_final) < Decimal("0.001")
+    assert abs(net - (summary.final_capital - summary.initial_capital)) < Decimal("0.001")

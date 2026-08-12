@@ -244,7 +244,7 @@ class BacktestSimulator:
                         pos, exit_date, exit_price, exit_signal, run.id
                     )
                     closed_trades.append(trade)
-                    cash += trade.net_pnl
+                    cash += self._cash_returned_on_close(trade, pos)
                     del open_positions[stock_id]
                     summary.trades_closed += 1
 
@@ -295,7 +295,7 @@ class BacktestSimulator:
                     pos, last_price.trade_date, exit_price, "end_of_backtest", run.id
                 )
                 closed_trades.append(trade)
-                cash += trade.net_pnl
+                cash += self._cash_returned_on_close(trade, pos)
                 summary.open_positions_forced_closed += 1
             del open_positions[stock_id]
 
@@ -579,6 +579,19 @@ class BacktestSimulator:
                 return close, "opposite_signal", trade_date
 
         return None
+
+    @staticmethod
+    def _cash_returned_on_close(trade: BacktestTrade, pos: _OpenPosition) -> Decimal:
+        """Cash credited to the account when a position closes.
+
+        The entry outlay (``entry_value + entry_commission``) was already
+        deducted from cash on entry, so crediting ``trade.net_pnl`` here would
+        deduct the entry commission a second time. The correct credit is the
+        exit proceeds net of exit costs, which equals
+        ``net_pnl + entry_value + entry_commission``. This preserves the
+        settlement identity ``final_capital = initial_capital + gross_pnl - costs``.
+        """
+        return trade.net_pnl + pos.entry_price * pos.quantity + pos.entry_commission
 
     def _close_position(
         self,

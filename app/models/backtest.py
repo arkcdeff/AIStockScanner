@@ -30,6 +30,7 @@ BACKTEST_STRATEGY_TYPES = ("scanner", "rule_based", "composite")
 BACKTEST_RUN_STATUSES = ("pending", "running", "completed", "failed", "cancelled")
 BACKTEST_POSITION_SIDES = ("long", "short")
 BACKTEST_TRADE_STATUSES = ("open", "closed")
+BACKTEST_POSITION_SIZE_TYPES = ("fixed_amount", "fixed_quantity", "percent_capital", "equal_weight")
 
 
 class BacktestStrategy(TimestampMixin, Base):

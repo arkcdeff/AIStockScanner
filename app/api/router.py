@@ -6,6 +6,7 @@ from app.api.routes import (
     alerts,
     analytics,
     auth,
+    backtests,
     dashboard,
     health,
     indicators,
@@ -35,6 +36,7 @@ api_router.include_router(watchlists.router)
 api_router.include_router(portfolio.router)
 api_router.include_router(alerts.router)
 api_router.include_router(notifications.router)
+api_router.include_router(backtests.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)

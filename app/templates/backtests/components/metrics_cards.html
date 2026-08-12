@@ -1,0 +1,52 @@
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-bar-chart me-2"></i>Performance metrics</h5>
+    </div>
+    <div class="card-body">
+        {% if metric %}
+        <div class="row g-3">
+            {% set cards = [
+                {'label': 'Total return', 'value': metric.total_return_percent, 'fmt': 'pct', 'hint': 'Return over the backtest period'},
+                {'label': 'CAGR', 'value': metric.cagr, 'fmt': 'pct', 'hint': 'Compound annual growth rate'},
+                {'label': 'Max drawdown', 'value': metric.max_drawdown_percent, 'fmt': 'pct', 'hint': 'Worst peak-to-trough decline'},
+                {'label': 'Sharpe ratio', 'value': metric.sharpe_ratio, 'fmt': 'num', 'hint': 'Risk-adjusted return'},
+                {'label': 'Sortino ratio', 'value': metric.sortino_ratio, 'fmt': 'num', 'hint': 'Downside-risk-adjusted return'},
+                {'label': 'Win rate', 'value': metric.win_rate, 'fmt': 'pct', 'hint': 'Share of winning trades'},
+                {'label': 'Total trades', 'value': metric.total_trades, 'fmt': 'int', 'hint': 'Closed trades'},
+                {'label': 'Winning / Losing', 'value': None, 'fmt': 'combo', 'hint': 'Wins vs losses'},
+                {'label': 'Profit factor', 'value': metric.profit_factor, 'fmt': 'num', 'hint': 'Gross profit / gross loss'},
+                {'label': 'Expectancy', 'value': metric.expectancy, 'fmt': 'inr', 'hint': 'Average net P&L per trade'},
+                {'label': 'Avg holding days', 'value': metric.average_holding_days, 'fmt': 'num', 'hint': 'Average trade duration'},
+                {'label': 'Benchmark return', 'value': metric.benchmark_return_percent, 'fmt': 'pct', 'hint': 'Buy-and-hold benchmark'},
+                {'label': 'Alpha', 'value': metric.alpha, 'fmt': 'pct', 'hint': 'Excess return vs benchmark'},
+            ] %}
+            {% for card in cards %}
+            <div class="col-6 col-md-4 col-lg-3">
+                <div class="metric-card">
+                    <div class="text-muted small">{{ card.label }}</div>
+                    <div class="fs-5 fw-semibold {{ card.value|sign_class }}">
+                        {% if card.fmt == 'combo' %}
+                            {{ metric.winning_trades|int }} / {{ metric.losing_trades|int }}
+                        {% elif card.fmt == 'int' %}
+                            {{ card.value|int }}
+                        {% elif card.fmt == 'inr' %}
+                            {{ card.value|inr }}
+                        {% elif card.fmt == 'pct' %}
+                            {{ card.value|pct }}
+                        {% else %}
+                            {{ card.value|num }}
+                        {% endif %}
+                    </div>
+                    <div class="text-muted small">{{ card.hint }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="bi bi-bar-chart fs-2 d-block mb-2"></i>
+            Metrics are computed after the run completes.
+        </div>
+        {% endif %}
+    </div>
+</div>

@@ -294,11 +294,167 @@ real-time data were added.
   single-row; determinism; simulator-then-metrics integration (values match
   `run.final_capital`); and the sanitized failure policy.
 
+### 17.5 - Backtesting REST APIs
+
+Completed the backtesting REST API plus the simulator settlement fix and the
+backtest permission codes. No UI, charts, OpenAlgo, paper trading, or
+real-time data were added.
+
+#### 17.5A - Simulator settlement fix
+
+`app/services/backtest_simulator.py` double-counted the entry commission in
+`final_capital`: the entry outlay (`entry_value + entry_commission`) was
+deducted from cash on entry and `trade.net_pnl` also subtracted the entry
+commission, so the credit on close understated the cash returned. Both
+settlement sites (the `exit_result` close in the daily loop and the
+`end_of_backtest` forced close) now credit
+`_cash_returned_on_close(trade, pos)` = `net_pnl + entry_value +
+entry_commission`, preserving
+`final_capital = initial_capital + gross_pnl - costs`. No other simulator
+behavior changed. Regression tests added to `tests/test_backtest_simulator.py`
+(`# SETTLEMENT` section: `_flat_round_trip`/`_trend_round_trip` helpers and
+4 tests) — 27 simulator tests total.
+
+#### 17.5B - Permission codes
+
+`app/services/builtin_auth.py::BUILT_IN_PERMISSION_DEFINITIONS` grew from 25 to
+28 codes with `backtests.read/run/write`. `admin` gets all three, `analyst`
+gets read+run, `viewer` gets read; `super_admin` remains unrestricted.
+`docs/01_Architecture/Permission_Matrix.md` updated with the codes table, the
+role matrix rows, and a route-protection table for all 13 backtest routes.
+
+#### 17.5C-H - REST API
+
+New `app/api/routes/backtests.py` (prefix `/backtests`, tag `Backtests`) with
+13 routes across strategies, runs, execution, and results:
+
+- Strategies: `POST/GET /strategies`, `GET/PUT/DELETE /strategies/{id}`.
+  Create validates active `scanner_code` (ScanDefinition active) and rejects
+  duplicate `code` with `409`. DELETE is a **soft deactivate**
+  (`is_active = false`) so historical runs keep valid FKs.
+- Runs: `POST/GET /runs`, `GET /runs/{id}`. Create validates date range,
+  capital/cost/sizing bounds, no-future `end_date`, active strategy, and an
+  active benchmark stock. `list_runs` hides other users' runs from non-admins.
+- Execution: `POST /runs/{id}/execute` — synchronous, guarded by an in-process
+  per-run `asyncio.Lock` and run-status checks (`409` when already
+  running/completed). On success the run is persisted `completed` with
+  `final_capital`/timing, and trades/equity/metric rows are written; the
+  response carries the simulation summary and metrics dict. Failures are
+  sanitized (`400` for `ValueError`, `500` otherwise;
+  `detail = "Backtest execution failed: <ExceptionType>"`) and the run is
+  persisted `failed`.
+- Results: `GET /runs/{id}/summary`, `/trades` (paginated with
+  status/position_side/profitable/symbol filters + stock symbol enrichment),
+  `/equity` (chronological), `/metrics` (persisted row; `409` before
+  completion, `404` if missing).
+
+Ownership: runs are private to `requested_by_user_id`; a non-admin may only
+access their own runs, admins/superusers may access any run (an `admin_override`
+audit event is recorded). Denials record `access_denied`.
+
+Supporting changes: `app/schemas/backtest.py` added request/response schemas
+(`BacktestStrategyCreateRequest`, `BacktestRunCreateRequest`,
+`BacktestStrategyList`, `BacktestRunList`, `BacktestRunDetailRead`,
+`BacktestTradeList`, `BacktestEquityPointList`, `BacktestRunSummary`,
+`BacktestExecutionResponse`, `BacktestDeleteResponse`); `BacktestTradeRead`
+gained optional `symbol`. `app/repositories/backtest.py` extended
+strategy/run/trade/equity repositories (search+count+update, owner filter,
+paginated trade listing with filters, equity listing). `app/api/router.py`
+includes the backtest router. `app/services/backtest_metrics.py` now reads
+committed trades/equity points directly from the database so metrics reflect
+committed state even in the same session where a run was just simulated (the
+in-memory relationship collections can be stale after `commit()` with
+`expire_on_commit=False`).
+
+No migration — no schema change.
+
+#### 17.5I - API tests
+
+`tests/test_backtest_api.py` (16 tests): unauthenticated 401 for all endpoint
+groups; viewer read-only (403 execute/write); analyst read+run, 403 write;
+admin + superuser write; strategy create/duplicate-409/detail/update/
+soft-delete/404 and invalid-scanner 422; strategy list pagination + filters;
+run create + validation errors (dates, capital, commission, sizing, future
+end_date, benchmark, inactive strategy); run list pagination + filters;
+execute end-to-end with the settlement regression (`final_capital =
+99996.000`, persisted completed run + metric with `total_trades = 1`);
+running-state 409; sanitized failure (400, exact detail, `failed` persisted);
+results before completion (summary zeros, metrics 409); results after
+execution (summary trade_count, trades pagination + filters + symbol, equity
+chronological, metrics nulls preserved); benchmark-symbol metrics; run
+ownership restrictions + admin_override audit + superuser override.
+
+### 17.6 - Backtesting HTML UI & charts
+
+Completed the browser-facing backtesting UI built on the REST layer from Task 17.5
+(no migration, no business logic duplication, no frontend recompute).
+
+#### Files added
+
+- `app/api/routes/backtest_pages.py` — page router registered in `app/main.py`
+  under `/backtests`. Pages: workspace (`GET /backtests`), strategies
+  (`GET /backtests/strategies`), runs (`GET /backtests/runs`), run detail
+  (`GET /backtests/runs/{id}`). HTMX partials: `/runs/{id}/workspace`,
+  `/runs/{id}/status`, `/runs/{id}/metrics`, `/runs/{id}/trades`,
+  `/runs/history`, `/strategies/table`, `/strategies/{id}/form`. POST handlers:
+  `/strategies/create`, `/strategies/{id}/update`, `/strategies/{id}/deactivate`,
+  `/runs/create`, `/runs/{id}/execute`.
+- `app/templates/backtests/` — workspace, strategies, runs, run_detail pages.
+- `app/templates/backtests/components/` — run_form, strategies_table,
+  runs_table, strategy_form, run_workspace, run_status, metrics_cards,
+  benchmark_cards, equity_chart, trades_table partials.
+- `app/static/js/backtests.js` + `app/static/css/backtests.css` —
+  Lightweight Charts (CDN) equity/drawdown rendering, resize, HTMX
+  `afterSwap` lifecycle, empty-state handling.
+- `tests/test_backtest_ui.py` — 29 tests (navigation/auth, workspace,
+  strategy CRUD (incl. XSS escaping + deactivation), run creation, execution
+  end-to-end with patched replay, metrics cards, charts, trades table +
+  empty-state, run history, pending/running/completed/failed detail states,
+  HTMX partials, ownership denial, CSRF-missing rejection, read-only UX).
+
+#### Permission model
+
+- `backtests.read` gates every page and partial (route dependency).
+- `backtests.write` gates strategy create/update/deactivate and run creation.
+- `backtests.run` gates execution.
+- Runs are private: a non-admin may only view runs they requested
+  (`_can_access_run`); an admin override raises `ForbiddenError` for
+  cross-user access. The workspace form shows a read-only hint and disables
+  write controls for viewers.
+
+#### Execution
+
+- `POST /runs/{id}/execute` calls the shared `BacktestSimulator.simulate_run`
+  and `BacktestMetricCalculator.compute_metrics` (same services as the REST
+  API), guarded by an in-process per-run `asyncio.Lock` and run-status checks
+  (completed/running locked). Failures are sanitized (no exception leak); the
+  run remains accessible with a danger flash. `can_run`/`can_write` are
+  pre-computed before the try/except to avoid detached-session lazy loads
+  after `session.rollback()`.
+
+#### Presentation
+
+- Indian-formatted currency (\u20b9 + lakh grouping) via Jinja filters
+  (`inr`, `num`, `pct`, `int`, `sign_class`, `status_badge`, `label`).
+- `BacktestMetric` NULL (never NaN/inf) renders `—`/`N/A`.
+
+#### Tests
+
+`tests/test_backtest_ui.py` (29 tests): sidebar link read-gated; workspace
+form + recent runs; viewer read-only hint; strategy create denied for viewer;
+strategy create + duplicate-safe (admin); strategy edit/deactivate with XSS
+escaping; run creation redirect (admin) and denial (viewer); run detail
+ownership restriction; missing run 404; execute end-to-end (completed render,
+sanitized failure, double-execution rejection, empty-state charts); metrics
+cards + benchmark cards; trades table + empty state; run history status
+badges + detail links; pending/running/completed/failed detail states; HTMX
+partials; CSRF-missing rejection.
+
+No migration.
+
 ## Backlog (future tasks)
 
-- 17.5 REST APIs for backtesting.
-- 17.6 HTML UI and charts for backtesting.
-- 17.7 Release.
+- None for Sprint 17 (Sprint 18: Market Intelligence).
 
 ## Status (reconciliation)
 
@@ -315,15 +471,33 @@ real-time data were added.
   wired into the CLI; `tests/test_backtest_metrics.py` (40 tests) green; migration head
   unchanged (`d7b4cc79fd45`); full suite 521 passed ×3; ruff clean. See the 17.4
   section above for conventions.
+- Task 17.5 — **COMPLETE & VERIFIED.** Simulator settlement fix (entry commission no
+  longer double-counted in `final_capital`; 27 simulator tests), backtests.read/run/write
+  permissions (26 permission codes, role matrix + route table in Permission_Matrix.md),
+  full `/api/v1/backtests` REST API (strategies, runs, synchronous execution, results;
+  13 routes / 9 paths), `tests/test_backtest_api.py` (16 tests) green. `backtest_metrics.py`
+  hardened to read committed trades/equity directly from the database instead of the
+  (possibly stale after `commit()`) in-memory relationship collections. Migration head
+  unchanged (`d7b4cc79fd45`); full suite 541 passed; ruff clean. See the 17.5 section
+  above for details.
+- Task 17.6 — **COMPLETE & VERIFIED.** Browser backtesting UI/charts; 29 tests in
+  `tests/test_backtest_ui.py`; no migration. See the 17.6 section above.
+- Task 17.7 — **COMPLETE & VERIFIED (v0.13.0 release).** Alembic head `d7b4cc79fd45`
+  (clean, no pending operations); ruff clean; `git diff --check` clean; three consecutive
+  full-suite passes (570 passed). Version bumped to `v0.13.0` in `app/main.py`;
+  CHANGELOG v0.13.0 section added and the inaccurate v0.12.1 version-bump claim
+  corrected; Permission Matrix reconciled to the canonical 28-code catalog (phantom
+  codes removed, role/route matrices aligned with `app/services/builtin_auth.py` and
+  the route dependency layer). Annotated tag `v0.13.0` created after all release gates;
+  `sprint-17-backtesting` merged into `main` (fast-forward) and pushed.
 
 ## Known issues (Sprint 17)
 
-- Pre-existing simulator cash-accounting note: at entry the position cost
-  (`gross + commission`) is deducted from cash and `net_pnl` also subtracts the
-  entry commission, so `final_capital` double-counts the entry commission. This
-  lives in `app/services/backtest_simulator.py` and is outside the Task 17.4
-  metrics scope; the metrics engine faithfully mirrors `run.final_capital`. A
-  follow-up (e.g. Task 17.5) should correct the simulator's settlement math.
+- **Resolved in 17.5A:** the simulator entry-commission double count. Both settlement
+  sites now credit `net_pnl + entry_value + entry_commission`, preserving
+  `final_capital = initial_capital + gross_pnl - costs`.
+- Backtest execution is synchronous inside the request (no Celery/Redis); very long
+  runs block the request thread. A worker-based queue is a future improvement.
 
 ## CLI regression
 

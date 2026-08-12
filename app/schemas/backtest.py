@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.models.backtest import (
     BACKTEST_POSITION_SIDES,
+    BACKTEST_POSITION_SIZE_TYPES,
     BACKTEST_RUN_STATUSES,
     BACKTEST_STRATEGY_TYPES,
     BACKTEST_TRADE_STATUSES,
@@ -114,6 +116,7 @@ class BacktestTradeRead(BaseModel):
     id: int
     backtest_run_id: int
     stock_id: int
+    symbol: str | None = None
     entry_date: date
     entry_price: Decimal
     exit_date: date | None
@@ -191,3 +194,97 @@ class BacktestRunDetail(BaseModel):
     trades: list[BacktestTradeRead]
     equity_points: list[BacktestEquityPointRead]
     metric: BacktestMetricRead | None
+
+
+class BacktestStrategyCreateRequest(BaseModel):
+    """Strategy creation payload. Ownership is resolved from the caller."""
+
+    name: str = Field(min_length=1, max_length=STRATEGY_NAME_LENGTH)
+    code: str = Field(min_length=1, max_length=STRATEGY_CODE_LENGTH)
+    strategy_type: str = "scanner"
+    description: str | None = None
+    scanner_code: str | None = Field(default=None, max_length=STRATEGY_CODE_LENGTH)
+    configuration_json: dict = Field(default_factory=dict)
+    is_active: bool = True
+
+    @field_validator("strategy_type")
+    @classmethod
+    def _check_strategy_type(cls, v: str) -> str:
+        return _validate_enum(v, BACKTEST_STRATEGY_TYPES, "strategy_type")
+
+
+class BacktestRunCreateRequest(BaseModel):
+    """Run creation payload. Ownership and status are resolved from the caller."""
+
+    strategy_id: int
+    start_date: date
+    end_date: date
+    initial_capital: Decimal = INITIAL_CAPITAL_FIELD
+    commission_rate: Decimal = Field(default=0, ge=0)
+    slippage_rate: Decimal = Field(default=0, ge=0)
+    position_size_type: str = "percent_capital"
+    position_size_value: Decimal = Field(default=10, ge=0)
+    benchmark_symbol: str | None = Field(default=None, max_length=32)
+    max_positions: int | None = Field(default=None, gt=0)
+
+    @field_validator("position_size_type")
+    @classmethod
+    def _check_position_size_type(cls, v: str) -> str:
+        return _validate_enum(v, BACKTEST_POSITION_SIZE_TYPES, "position_size_type")
+
+    @model_validator(mode="after")
+    def _check_date_range(self):
+        if self.start_date > self.end_date:
+            raise ValueError("start_date must be on or before end_date")
+        return self
+
+
+class BacktestStrategyList(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    items: list[BacktestStrategyRead]
+
+
+class BacktestRunList(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    items: list[BacktestRunRead]
+
+
+class BacktestRunDetailRead(BacktestRunRead):
+    strategy: BacktestStrategyRead | None = None
+
+
+class BacktestTradeList(BaseModel):
+    total: int
+    offset: int
+    limit: int
+    items: list[BacktestTradeRead]
+
+
+class BacktestEquityPointList(BaseModel):
+    items: list[BacktestEquityPointRead]
+
+
+class BacktestRunSummary(BaseModel):
+    run: BacktestRunRead
+    strategy: BacktestStrategyRead | None = None
+    trade_count: int = 0
+    metric: BacktestMetricRead | None = None
+
+
+class BacktestExecutionResponse(BaseModel):
+    run_id: int
+    status: str
+    final_capital: Decimal | None = None
+    summary: dict[str, Any] | None = None
+    metrics: dict[str, Any] | None = None
+
+
+class BacktestDeleteResponse(BaseModel):
+    id: int
+    code: str
+    is_active: bool
+    message: str

@@ -1,0 +1,41 @@
+{% extends "layouts/app.html" %}
+{% block title %}Backtest Run History - AI Stock Scanner{% endblock %}
+{% block extra_head %}
+<link href="/static/css/backtests.css" rel="stylesheet">
+{% endblock %}
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <div>
+        <h1 class="h2 mb-1"><i class="bi bi-clock-history me-2"></i>Run history</h1>
+        <p class="text-muted mb-0">All backtest runs you are allowed to view.</p>
+    </div>
+    <a href="/backtests" class="btn btn-primary"><i class="bi bi-plus-lg me-1"></i>New run</a>
+</div>
+<div class="card mb-3">
+    <div class="card-body">
+        <form class="row g-2" method="get"
+              hx-get="/backtests/runs/history" hx-target="#runs-table-section" hx-swap="outerHTML" hx-trigger="submit">
+            <div class="col-auto">
+                <select class="form-select" name="status">
+                    <option value="">All statuses</option>
+                    {% for s in statuses %}
+                    <option value="{{ s }}" {% if status_filter == s %}selected{% endif %}>{{ s|label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <select class="form-select" name="strategy_id">
+                    <option value="">All strategies</option>
+                    {% for strategy in strategies %}
+                    <option value="{{ strategy.id }}" {% if strategy_id_filter|string == strategy.id|string %}selected{% endif %}>{{ strategy.name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-auto">
+                <button class="btn btn-outline-secondary" type="submit">Filter</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% include "backtests/components/runs_table.html" %}
+{% endblock %}

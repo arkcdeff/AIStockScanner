@@ -1,0 +1,25 @@
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-graph-up me-2"></i>Equity curve</h5>
+    </div>
+    <div class="card-body">
+        {% if equity_points %}
+        <div class="row">
+            <div class="col-lg-7">
+                <div class="chart-title text-muted small mb-1">Portfolio value</div>
+                <div id="equity-chart" class="backtest-chart"></div>
+            </div>
+            <div class="col-lg-5">
+                <div class="chart-title text-muted small mb-1">Drawdown</div>
+                <div id="drawdown-chart" class="backtest-chart"></div>
+            </div>
+        </div>
+        {% else %}
+        <div id="chart-empty" class="text-center text-muted py-4">
+            <i class="bi bi-graph-up fs-2 d-block mb-2"></i>
+            The equity curve is generated when the run completes.
+        </div>
+        {% endif %}
+    </div>
+</div>
+<script type="application/json" id="backtest-equity-data">{{ equity_payload|tojson }}</script>

@@ -52,6 +52,13 @@
                     <i class="bi bi-graph-up me-2"></i>Analytics
                 </a>
             </li>
+            {% if browser_user and (browser_user.user.is_superuser or 'backtests.read' in (browser_user.permissions or [])) %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/backtests') else '' }}" href="/backtests">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Backtesting
+                </a>
+            </li>
+            {% endif %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if current_path.startswith('/ai') else '' }}" href="/ai">
                     <i class="bi bi-cpu me-2"></i>AI Insights

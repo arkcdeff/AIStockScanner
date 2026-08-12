@@ -1,0 +1,88 @@
+{% if error %}
+<div class="alert alert-danger">{{ error }}</div>
+{% endif %}
+{% if edit %}
+<form method="post" action="/backtests/strategies/{{ strategy.id }}/update"
+      hx-post="/backtests/strategies/{{ strategy.id }}/update"
+      hx-target="#strategies-table" hx-swap="outerHTML">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Name</label>
+            <input class="form-control" name="name" value="{{ strategy.name }}" required>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Code (read-only)</label>
+            <input class="form-control" value="{{ strategy.code }}" disabled>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Scanner</label>
+            <select class="form-select" name="scanner_code">
+                <option value="">— none —</option>
+                {% for sd in scan_definitions %}
+                <option value="{{ sd.code }}" {% if strategy.scanner_code == sd.code %}selected{% endif %}>{{ sd.name }} ({{ sd.code }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Description</label>
+            <input class="form-control" name="description" value="{{ strategy.description or '' }}">
+        </div>
+        <div class="col-md-4 d-flex align-items-end">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="edit_active" value="1" {% if strategy.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="edit_active">Active</label>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-primary btn-sm" type="submit"><i class="bi bi-check me-1"></i>Save changes</button>
+        <button class="btn btn-outline-secondary btn-sm" type="button" onclick="document.getElementById('edit-panel').innerHTML=''">Cancel</button>
+    </div>
+</form>
+{% else %}
+<form method="post" action="/backtests/strategies/create"
+      hx-post="/backtests/strategies/create"
+      hx-target="#strategies-table" hx-swap="outerHTML"
+      hx-on::after-request="this.reset()">
+    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+    <div class="row g-3">
+        <div class="col-md-3">
+            <label class="form-label">Name</label>
+            <input class="form-control" name="name" value="{{ form_values.name if form_values else '' }}" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Code</label>
+            <input class="form-control" name="code" value="{{ form_values.code if form_values else '' }}" placeholder="e.g. ema_cross" required>
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Type</label>
+            <select class="form-select" name="strategy_type">
+                {% for st in strategy_types %}
+                <option value="{{ st }}" {% if form_values and form_values.strategy_type == st %}selected{% endif %}>{{ st|label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Scanner</label>
+            <select class="form-select" name="scanner_code">
+                <option value="">— none —</option>
+                {% for sd in scan_definitions %}
+                <option value="{{ sd.code }}" {% if form_values and form_values.scanner_code == sd.code %}selected{% endif %}>{{ sd.name }} ({{ sd.code }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2 d-flex align-items-end">
+            <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" name="is_active" id="create_active" value="1" checked>
+                <label class="form-check-label" for="create_active">Active</label>
+            </div>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Description</label>
+            <input class="form-control" name="description" value="{{ form_values.description if form_values else '' }}">
+        </div>
+    </div>
+    <button class="btn btn-primary mt-3" type="submit"><i class="bi bi-plus-lg me-1"></i>Create strategy</button>
+</form>
+{% endif %}

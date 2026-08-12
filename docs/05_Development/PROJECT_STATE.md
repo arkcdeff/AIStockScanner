@@ -1,6 +1,6 @@
 # Project State
 
-Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), building on v0.12.1.
+Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0.
 
 ## Stack
 
@@ -11,7 +11,7 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 
 ## Data
 
-- 26 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 33 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
   NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
@@ -113,9 +113,9 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 ## Authorization Framework (Sprint 16)
 
 - Reusable helpers in `app/auth/authorization.py` for both API (Bearer) and browser (cookie) auth
-- 23 permission codes across 4 roles: super_admin, admin, analyst, viewer
+- 28 permission codes across 4 roles: super_admin, admin, analyst, viewer
 - API modules protected: analytics, ai, stocks, market_data, indicators, scanners, pipeline,
-  watchlists, portfolio, alerts, notifications, admin
+  watchlists, portfolio, alerts, notifications, backtests, admin
 - HTML pages protected: dashboard, scanner-workspace, stock_detail, watchlists, portfolio,
   alerts, notifications, admin
 - Superuser/super_admin bypass; owner-or-admin with audit on `admin_override`
@@ -124,8 +124,18 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 - Browser auth: `require_browser_permission`, `require_browser_role`, `enforce_browser_permission`
 - Friendly 403 page (no stack traces), unauthenticated redirect to `/login?next=...`
 
-## Backtesting (Sprint 17 Tasks 17.1–17.4 + CLI reconciliation)
+## Backtesting (Sprint 17 Tasks 17.1–17.7)
 
+- Task 17.7 — release: **COMPLETE & VERIFIED.** Version bumped to v0.13.0
+  (`app/main.py`); CHANGELOG v0.13.0 section added; Permission Matrix reconciled to
+  the 28-code catalog; release gates passed (alembic head `d7b4cc79fd45`, ruff clean,
+  three consecutive full-suite passes, `git diff --check` clean); annotated tag
+  `v0.13.0` created and merged `sprint-17-backtesting` → `main` (fast-forward).
+- Task 17.6 — UI/charts: **COMPLETE & VERIFIED**.
+  Browser pages (workspace, strategies, runs, run detail), HTMX partials, Lightweight Charts
+  equity/drawdown, trade table, run-status locking, read/write/run permissions, CSRF on writes,
+  ownership enforcement, Indian-formatted currency, 29 tests in `tests/test_backtest_ui.py`.
+  No migration.
 - Task 17.1 — persistence/domain foundation: COMPLETE and verified.
   Models `BacktestStrategy`, `BacktestRun`, `BacktestTrade`, `BacktestEquityPoint`,
   `BacktestMetric`; repositories, validated schemas, migration `d7b4cc79fd45` applied to dev + test DBs.
@@ -152,11 +162,27 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 - CLI regression fixed: `app/cli/create_admin.py` now exposes a Typer app AND a legacy-compatible
   module-level `_create_admin` + `main(argv) -> int`; `main()` guards added to import_nse/nse_history/
   backtest_replay/backtest; `app/cli/backtest.py` reference bug (`async_session_factory`) fixed.
+- Task 17.5 — REST APIs + settlement fix + permissions: **COMPLETE & VERIFIED**.
+
+  Simulator settlement fixed (both close sites credit `net_pnl + entry_value + entry_commission`;
+  `final_capital = initial_capital + gross_pnl - costs`; 27 simulator tests incl. 4 new SETTLEMENT tests).
+  Permission codes 25→28 (`backtests.read/run/write`; admin=all, analyst=read+run, viewer=read),
+  Permission_Matrix.md role/route tables updated. New `app/api/routes/backtests.py`: 13 routes /
+  9 paths under `/api/v1/backtests` (strategy CRUD + soft-deactivate, run create/list/detail,
+  synchronous execute guarded by an in-process per-run lock, summary/trades/equity/metrics).
+  Runs are private to their requester with admin/superuser override + `admin_override` audit;
+  failures sanitized and the run persisted `failed`. Schemas/repositories extended
+  (`BacktestStrategyCreateRequest`, `BacktestRunCreateRequest`, `BacktestRunSummary`,
+  `BacktestExecutionResponse`, `BacktestDeleteResponse`, trade listing filters + symbol,
+  strategy search/update, owner-filtered run listing). `backtest_metrics.py` reads committed
+  trades/equity directly from the database (fixes stale in-memory collections after `commit()`).
+  `tests/test_backtest_api.py` (16 tests). No migration. Full suite 570 passed; ruff clean.
+  API docs: `docs/03_APIs/Backtest_API.md`.
 
 ## API and page surface
 
 - `/api/v1`: health, stocks, market-data, indicators, scanners, pipeline, analytics, ai,
-  watchlists, portfolios, alerts, notifications, admin
+  watchlists, portfolios, alerts, notifications, backtests, admin
 - `/dashboard`: pipeline, analytics, AI, portfolio, watchlist, alert, and notification summaries
 - `/scanner-results`: server-rendered workspace with CSV/Excel/PDF export
 - `/stocks/{symbol}`: overview, indicators, analytics, scanners, AI, watchlist, portfolio, alerts,
@@ -172,7 +198,8 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 
 - Real PostgreSQL test persistence with database cleanup between tests
 - Scan definitions are seeded idempotently
-- 521 total tests passing (458 Sprint 16.8 baseline + 29 Task 17.1 + 23 Task 17.3 + 40 Task 17.4 + parser/replay/historical additions), three consecutive full-suite passes
+- 570 total tests passing (541 baseline + 29 Task 17.6 UI),
+  three consecutive full-suite passes
 - 119 focused Sprint 16 tests cover auth models, providers, authorization helpers, APIs, UI,
   ownership/admin_override, audit events, and browser cookie auth
 - 16 Sprint 16.8 UI tests cover market data, indicators, scanner library/run, pipeline,
@@ -184,6 +211,16 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 - 40 Sprint 17 Task 17.4 tests cover the metrics engine: returns/CAGR, trade stats,
   drawdown, Sharpe/Sortino, holding days, benchmark/alpha, persistence idempotency,
   simulator integration, determinism, and the sanitized failure policy
+- 4 Sprint 17 Task 17.5 settlement regression tests cover the simulator cash fix
+  (entry commission not double-counted; zero-cost win/loss; exit commission charged once;
+  multi-trade settlement identity)
+- 16 Sprint 17 Task 17.5 API tests cover auth/roles, strategy CRUD + soft delete +
+  validation, run create/list + validation, synchronous execute end-to-end (incl. settlement),
+  running-state rejection, sanitized failures, results pre/post-completion, benchmark metrics,
+  and run ownership + admin override
+- 29 Sprint 17 Task 17.6 UI tests cover sidebar gating, workspace, strategy CRUD + XSS,
+  run creation/execution, metrics/benchmark cards, charts, trades table + empty state,
+  run history + detail states, HTMX partials, ownership, CSRF, and read-only UX
 - External AI, Telegram, and SMTP calls are mocked or replaced by deterministic providers
 - Release gate: Alembic current equals head, Ruff clean, and three consecutive full-suite passes
 
@@ -195,26 +232,23 @@ Snapshot of AIStockScanner after Sprint 17 Task 17.1 (Backtesting Foundation), b
 - `scanner_engine.run_all` re-fetches indicator rows per scanner (performance follow-up)
 - AI collection endpoints are memory-cached only; only per-stock explanations are persisted
 - CSRF system follows existing project conventions (HTMX forms)
-- Backtesting engine, replay, trade simulation, and metrics are implemented (Sprint 17
-  Tasks 17.1–17.4, verified); REST APIs (17.5), HTML UI/charts (17.6), and release
-  (17.7) are not yet implemented
-- Pre-existing simulator cash-accounting note: `final_capital` double-counts the entry
-  commission (entry outlay deducted from cash and entry commission also subtracted inside
-  `net_pnl`). The metrics engine mirrors `run.final_capital`; the simulator's settlement
-  math should be corrected in a follow-up task.
+- The pre-existing simulator entry-commission double count was resolved in Task 17.5A;
+  both settlement sites credit `net_pnl + entry_value + entry_commission`
+- Backtest execution is synchronous inside the request (no Celery/Redis); long runs
+  block the request thread — a worker-based queue is a future improvement
 
 ## Current Sprint
 
-Sprint 17: Backtesting
+Sprint 17: Backtesting — COMPLETE
 - Task 17.1 — Backtesting database + domain foundation — COMPLETE
 - Task 17.2 — Historical NSE fetch + historical replay — VERIFIED
 - Task 17.3 — Trade simulation — COMPLETE (cost bugs fixed; 23 tests)
 - Task 17.4 — Performance metrics — COMPLETE & VERIFIED (40 tests; CLI-wired)
-- Task 17.5 — REST APIs — PENDING
-- Task 17.6 — UI/charts — PENDING
-- Task 17.7 — Release — PENDING
+- Task 17.5 — REST APIs — COMPLETE & VERIFIED (16 API tests; settlement fix; 28 permission codes)
+- Task 17.6 — UI/charts — COMPLETE & VERIFIED (29 tests, no migration)
+- Task 17.7 — Release — COMPLETE & VERIFIED (v0.13.0; tag + merge + push)
 - CLI regression (create_admin / main() guards) — FIXED
 
 ## Next Task
 
-Task 17.5 — Backtesting REST APIs.
+Sprint 18 — Market Intelligence (not yet started).

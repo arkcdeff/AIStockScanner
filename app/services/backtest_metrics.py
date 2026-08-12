@@ -125,15 +125,32 @@ class BacktestMetricCalculator:
     # ------------------------------------------------------------------ public API
 
     async def compute_metrics(self, run_id: int) -> MetricSummary:
-        """Compute and persist metrics for a completed backtest run."""
-        run = await self.runs.get_with_details(run_id)
+        """Compute and persist metrics for a completed backtest run.
+
+        Trades and equity points are read directly from the database so the
+        computation reflects committed state even when the run was just
+        simulated in the same session (whose in-memory relationship
+        collections can be stale after ``commit()``).
+        """
+        run = await self.runs.get(run_id)
         if run is None:
             raise BacktestMetricError(f"Backtest run {run_id} not found")
         if run.status != "completed":
             raise BacktestMetricError(f"Backtest run {run_id} is not completed")
 
-        closed_trades = [t for t in run.trades if t.status == "closed"]
-        ordered_points = sorted(run.equity_points, key=lambda p: p.trade_date)
+        trade_rows = (
+            await self.session.scalars(
+                select(BacktestTrade).where(BacktestTrade.backtest_run_id == run_id)
+            )
+        ).all()
+        closed_trades = [t for t in trade_rows if t.status == "closed"]
+        ordered_points = list(
+            await self.session.scalars(
+                select(BacktestEquityPoint)
+                .where(BacktestEquityPoint.backtest_run_id == run_id)
+                .order_by(BacktestEquityPoint.trade_date)
+            )
+        )
         drawdowns = self._compute_drawdowns(ordered_points)
 
         benchmark_return = await self._compute_benchmark_return(run)

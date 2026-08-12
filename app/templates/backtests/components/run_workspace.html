@@ -1,0 +1,12 @@
+<div id="run-workspace" {% if run and run.status == 'running' %}hx-get="/backtests/runs/{{ run.id }}/workspace" hx-trigger="every 3s" hx-target="#run-workspace" hx-swap="outerHTML"{% endif %}>
+    {% if missing %}
+    <div class="alert alert-danger">Run not found.</div>
+    {% else %}
+    {% include "components/flash.html" %}
+    {% include "backtests/components/run_status.html" %}
+    {% include "backtests/components/metrics_cards.html" %}
+    {% include "backtests/components/benchmark_cards.html" %}
+    {% include "backtests/components/equity_chart.html" %}
+    {% include "backtests/components/trades_table.html" %}
+    {% endif %}
+</div>
