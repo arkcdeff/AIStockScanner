@@ -410,6 +410,61 @@ class NotificationDeliveryRepository(BaseRepository[NotificationDelivery]):
         )
         return await self.session.scalar(statement)
 
+    async def list_recent_by_type_and_date(
+        self,
+        *,
+        notification_type: str,
+        market_date: date,
+        since: datetime,
+        limit: int = 100,
+    ) -> list[NotificationDelivery]:
+        """Return recent deliveries of a specific type for a market date.
+
+        Used for cooldown/deduplication checks.
+        """
+        statement = (
+            select(NotificationDelivery)
+            .where(
+                NotificationDelivery.notification_type == notification_type,
+                NotificationDelivery.subject.like(f"%{market_date.isoformat()}%"),
+                NotificationDelivery.created_at >= since,
+            )
+            .options(selectinload(NotificationDelivery.channel))
+            .order_by(NotificationDelivery.created_at.desc())
+            .limit(limit)
+        )
+        return list(await self.session.scalars(statement))
+
+    async def existing_by_type_date_states(
+        self,
+        *,
+        channel_id: int,
+        notification_type: str,
+        market_date: date,
+        from_state: str | None = None,
+        to_state: str | None = None,
+    ) -> NotificationDelivery | None:
+        """Check for existing delivery with same type, date, and state transition.
+
+        Used for idempotency: prevents duplicate notifications for the same
+        regime change, score transition, etc.
+        """
+        subject_pattern = f"%{market_date.isoformat()}%"
+        if from_state is not None and to_state is not None:
+            subject_pattern = f"%{from_state}%{to_state}%{market_date.isoformat()}%"
+
+        statement = (
+            select(NotificationDelivery)
+            .where(
+                NotificationDelivery.channel_id == channel_id,
+                NotificationDelivery.notification_type == notification_type,
+                NotificationDelivery.subject.like(subject_pattern),
+            )
+            .order_by(NotificationDelivery.id)
+            .limit(1)
+        )
+        return await self.session.scalar(statement)
+
 
 class DailySummaryRunRepository(BaseRepository[DailySummaryRun]):
     def __init__(self, session: AsyncSession) -> None:

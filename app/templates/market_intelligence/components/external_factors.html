@@ -1,0 +1,37 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        {% if external.india_vix %}
+        <div class="mb-2">
+            <div class="d-flex justify-content-between">
+                <strong>India VIX</strong>
+                <span class="{{ (external.india_vix.score or 0) | mi_sign_class }}">{{ external.india_vix.score | mi_score }}</span>
+            </div>
+            <small class="text-muted">Level: {{ external.india_vix.latest | mi_price }} | Regime: {{ (external.india_vix.regime or '--') | mi_label }}</small>
+            <br><small class="{{ external.india_vix.freshness | mi_freshness_class }}">{{ external.india_vix.freshness }}</small>
+        </div>
+        {% endif %}
+        {% if external.usd_inr %}
+        <div class="mb-2">
+            <div class="d-flex justify-content-between">
+                <strong>USD/INR</strong>
+                <span class="{{ (external.usd_inr.score or 0) | mi_sign_class }}">{{ external.usd_inr.score | mi_score }}</span>
+            </div>
+            <small class="text-muted">Rate: {{ external.usd_inr.latest | mi_price }} INR/USD</small>
+            <br><small class="{{ external.usd_inr.freshness | mi_freshness_class }}">{{ external.usd_inr.freshness }}</small>
+        </div>
+        {% endif %}
+        {% if external.brent_crude %}
+        <div class="mb-2">
+            <div class="d-flex justify-content-between">
+                <strong>Brent Crude</strong>
+                <span class="{{ (external.brent_crude.score or 0) | mi_sign_class }}">{{ external.brent_crude.score | mi_score }}</span>
+            </div>
+            <small class="text-muted">Price: ${{ external.brent_crude.latest | mi_price }}/bbl</small>
+            <br><small class="{{ external.brent_crude.freshness | mi_freshness_class }}">{{ external.brent_crude.freshness }}</small>
+        </div>
+        {% endif %}
+        {% if not external.india_vix and not external.usd_inr and not external.brent_crude %}
+        <p class="text-muted mb-0"><i class="bi bi-question-circle me-1"></i>External factor data unavailable.</p>
+        {% endif %}
+    </div>
+</div>

@@ -34,7 +34,9 @@ def _clean_test_db() -> None:
         "scan_results, scan_definitions, indicator_results, import_jobs, "
         "eod_pipeline_runs, technical_analysis, daily_prices, stocks, sectors, "
         "backtest_metrics, backtest_trades, backtest_equity_points, backtest_runs, "
-        "backtest_strategies"
+        "backtest_strategies, "
+        "market_indices, market_index_prices, institutional_flows, "
+        "market_intelligence_snapshots, econ_events"
     )
     with engine.connect() as conn:
         conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
@@ -47,6 +49,21 @@ async def _dispose_engine() -> None:
 
     yield
     await dispose_engine()
+
+
+@pytest.fixture
+async def mi_fixture():
+    """Create a MarketIndex fixture for tests."""
+    from app.db.session import get_session_factory
+    from app.models.market_index import MarketIndex
+
+    factory = get_session_factory()
+    async with factory() as session:
+        mi = MarketIndex(code="NIFTY", country="INDIA", name="Nifty 50")
+        session.add(mi)
+        await session.commit()
+        await session.refresh(mi)
+        yield mi
 
 
 @pytest.fixture(autouse=True)

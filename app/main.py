@@ -24,6 +24,7 @@ from app.api.routes.auth_pages import router as auth_pages_router
 from app.api.routes.backtest_pages import router as backtest_pages_router
 from app.api.routes.indicator_pages import router as indicator_pages_router
 from app.api.routes.market_data_pages import router as market_data_pages_router
+from app.api.routes.market_intelligence_pages import router as market_intelligence_pages_router
 from app.api.routes.notification_pages import router as notification_pages_router
 from app.api.routes.pipeline_pages import router as pipeline_pages_router
 from app.api.routes.portfolio_pages import router as portfolio_pages_router
@@ -71,7 +72,7 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
 def create_app() -> FastAPI:
     app = FastAPI(
         title=settings.app_name,
-        version="0.13.0",
+        version="0.14.0",
         debug=settings.app_debug,
         lifespan=lifespan,
         docs_url="/docs",
@@ -91,6 +92,7 @@ def create_app() -> FastAPI:
     app.include_router(alert_pages_router, prefix="/alerts")
     app.include_router(notification_pages_router, prefix="/notifications")
     app.include_router(market_data_pages_router, prefix="/market-data")
+    app.include_router(market_intelligence_pages_router, prefix="/market-intelligence")
     app.include_router(indicator_pages_router, prefix="/indicators")
     app.include_router(scanner_library_pages_router, prefix="/scanner-library")
     app.include_router(scanner_run_pages_router, prefix="/scanner-run")

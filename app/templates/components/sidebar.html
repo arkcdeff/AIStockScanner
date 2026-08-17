@@ -52,6 +52,13 @@
                     <i class="bi bi-graph-up me-2"></i>Analytics
                 </a>
             </li>
+            {% if browser_user and (browser_user.user.is_superuser or 'market_intelligence.read' in (browser_user.permissions or [])) %}
+            <li class="nav-item">
+                <a class="nav-link {{ 'active' if current_path.startswith('/market-intelligence') else '' }}" href="/market-intelligence">
+                    <i class="bi bi-activity me-2"></i>Market Intel
+                </a>
+            </li>
+            {% endif %}
             {% if browser_user and (browser_user.user.is_superuser or 'backtests.read' in (browser_user.permissions or [])) %}
             <li class="nav-item">
                 <a class="nav-link {{ 'active' if current_path.startswith('/backtests') else '' }}" href="/backtests">

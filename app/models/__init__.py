@@ -21,6 +21,11 @@ from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
+from app.models.institutional_flow import InstitutionalFlow
+from app.models.macro_event import EconEvent
+from app.models.market_index import MarketIndex
+from app.models.market_index_price import MarketIndexPrice
+from app.models.market_intelligence_snapshot import MarketIntelligenceSnapshot
 from app.models.notification import (
     DailySummaryRun,
     NotificationChannel,
@@ -39,6 +44,11 @@ __all__ = [
     "Sector",
     "Stock",
     "BacktestStrategy",
+    "MarketIndex",
+    "MarketIndexPrice",
+    "InstitutionalFlow",
+    "MarketIntelligenceSnapshot",
+    "EconEvent",
     "BacktestRun",
     "BacktestTrade",
     "BacktestEquityPoint",

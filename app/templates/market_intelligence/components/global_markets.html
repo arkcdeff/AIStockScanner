@@ -1,0 +1,29 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Market</th>
+                        <th class="text-end">Score</th>
+                        <th>Direction</th>
+                        <th>Freshness</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for code, m in global.markets.items() %}
+                    <tr>
+                        <td><strong>{{ code }}</strong></td>
+                        <td class="text-end {{ (m.score or 0) | mi_sign_class }}">{{ m.score | mi_score }}</td>
+                        <td>{{ (m.direction or '--') | mi_label }}</td>
+                        <td><span class="{{ m.freshness | mi_freshness_class }}">{{ m.freshness }}</span></td>
+                    </tr>
+                {% endfor %}
+                {% if not global.markets %}
+                    <tr><td colspan="4" class="text-muted text-center">No global market data available.</td></tr>
+                {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,42 @@
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <small class="text-muted text-uppercase">Market Regime</small>
+                <h2 class="mb-0 mt-1">
+                    <span class="badge {{ composite.regime | mi_regime_class }} fs-6">
+                        {{ (composite.regime or 'unknown') | mi_label }}
+                    </span>
+                </h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <small class="text-muted text-uppercase">Composite Score</small>
+                <h2 class="mb-0 mt-1 {{ (composite.composite_score or 0) | mi_sign_class }}">
+                    {{ composite.composite_score | mi_score }}
+                </h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <small class="text-muted text-uppercase">Confidence</small>
+                <h2 class="mb-0 mt-1">{{ composite.confidence_score | mi_pct }}</h2>
+                <small class="text-muted">{{ composite.confidence_state | mi_label }}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card border-0 shadow-sm">
+            <div class="card-body text-center">
+                <small class="text-muted text-uppercase">Data Completeness</small>
+                <h2 class="mb-0 mt-1">{{ composite.data_completeness_percent | mi_pct }}</h2>
+                <small class="text-muted">Last: {{ composite.market_date or '--' }}</small>
+            </div>
+        </div>
+    </div>
+</div>

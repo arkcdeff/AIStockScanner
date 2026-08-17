@@ -1,0 +1,29 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        {% if macro.macro_score is not none %}
+        <div class="d-flex justify-content-between mb-2">
+            <strong>Macro Score</strong>
+            <span class="{{ (macro.macro_score or 0) | mi_sign_class }} fw-bold">{{ macro.macro_score | mi_score }}</span>
+        </div>
+        <small class="text-muted">Direction: {{ (macro.direction or '--') | mi_label }} | Confidence: {{ macro.confidence | mi_pct }}</small>
+        {% if macro.upcoming_events %}
+        <hr class="my-2">
+        <small class="fw-bold text-uppercase">Upcoming Events</small>
+        {% for ev in macro.upcoming_events[:5] %}
+        <div class="py-1 border-bottom small">
+            <div class="d-flex justify-content-between">
+                <span>{{ ev.name or ev.event_code }}</span>
+                <span class="badge {{ 'bg-danger' if ev.importance == 'high' else 'bg-warning text-dark' if ev.importance == 'medium' else 'bg-secondary' }}">{{ ev.importance or 'low' }}</span>
+            </div>
+            {% if ev.lifecycle %}
+            <small class="text-muted">{{ ev.lifecycle | mi_label }}</small>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% endif %}
+        <br><small class="{{ macro.freshness | mi_freshness_class }}">{{ macro.freshness }}</small>
+        {% else %}
+        <p class="text-muted mb-0"><i class="bi bi-question-circle me-1"></i>Macro intelligence data unavailable.</p>
+        {% endif %}
+    </div>
+</div>

@@ -76,6 +76,28 @@ class Settings(BaseSettings):
     daily_summary_max_instances: int = 1
     daily_summary_coalesce: bool = True
 
+    # Market Intelligence Scheduler
+    market_intelligence_premarket_enabled: bool = False
+    market_intelligence_premarket_hour: int = 8
+    market_intelligence_premarket_minute: int = 30
+    market_intelligence_premarket_timezone: str = "Asia/Kolkata"
+    market_intelligence_premarket_max_instances: int = 1
+    market_intelligence_premarket_coalesce: bool = True
+
+    market_intelligence_postmarket_enabled: bool = False
+    market_intelligence_postmarket_hour: int = 16
+    market_intelligence_postmarket_minute: int = 15
+    market_intelligence_postmarket_timezone: str = "Asia/Kolkata"
+    market_intelligence_postmarket_max_instances: int = 1
+    market_intelligence_postmarket_coalesce: bool = True
+
+    market_intelligence_snapshot_enabled: bool = False
+    market_intelligence_snapshot_hour: int = 17
+    market_intelligence_snapshot_minute: int = 0
+    market_intelligence_snapshot_timezone: str = "Asia/Kolkata"
+    market_intelligence_snapshot_max_instances: int = 1
+    market_intelligence_snapshot_coalesce: bool = True
+
     telegram_bot_token: str = ""
     telegram_default_chat_id: str = ""
     telegram_html_mode: bool = True

@@ -1,6 +1,7 @@
 # Project State
 
-Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0.
+AIStockScanner after Sprint 18 Task 18.12 (Scheduler + Notifications + v0.14.0 Release) — COMPLETE & VERIFIED. Sprint 18 COMPLETE.
+Sprint 17 was released as v0.13.0. Latest alembic head: `5f7b2c9d4e3a`.
 
 ## Stack
 
@@ -11,12 +12,13 @@ Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0
 
 ## Data
 
-- 33 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 37 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
   NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
   UserSession, UserPreference, AuditLog, BacktestStrategy, BacktestRun, BacktestTrade,
-  BacktestEquityPoint, BacktestMetric
+  BacktestEquityPoint, BacktestMetric, MarketIndex, MarketIndexPrice, InstitutionalFlow,
+  MarketIntelligenceSnapshot
 - 18 indicator series per stock/date stored in `indicator_results`
 - 36 active scanners registered in `app/services/scanner_engine.py`
 - `scan_results` is unique on `(scan_definition_id, stock_id, scan_date)`
@@ -34,10 +36,14 @@ Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0
 
 ## Migrations
 
-- Alembic current: `d7b4cc79fd45 (head)`
-- Alembic heads: `d7b4cc79fd45 (head)`
-- Linear history: 16 revisions
+- Alembic current: `25e6f159a646 (head)`
+- Alembic heads: `25e6f159a646 (head)`
+- Linear history: 17 revisions
 - Sprint 17 Task 17.1 migration: backtesting foundation tables (strategies, runs, trades, equity_points, metrics)
+- Sprint 18 Task 18.1 migration `25e6f159a646`: market intelligence foundation tables
+  (market_indices, market_index_prices, institutional_flows, market_intelligence_snapshots)
+- Sprint 18 Tasks 18.3–18.5 extend/reuse the existing market-intelligence tables and catalog;
+  migrations created after Task 18.1: NONE
 
 ## EOD pipeline
 
@@ -198,8 +204,62 @@ Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0
 
 - Real PostgreSQL test persistence with database cleanup between tests
 - Scan definitions are seeded idempotently
-- 570 total tests passing (541 baseline + 29 Task 17.6 UI),
+- **810 total tests passing**,
   three consecutive full-suite passes
+- 31 Sprint 18 Task 18.5 tests: 13 in `tests/test_institutional_intelligence.py` covering
+  FII/FPI and DII exact labels/unit/dataset, Decimal net recomputation, 1/3/5/20-session rollups,
+  FII 65%/DII 35% weighting, missing-not-zero, one bulk query, ordered provider/DB fallback,
+  partial and raised-provider behavior, malformed-future isolation, provenance, and future invariance;
+  18 in `tests/test_fx_crude_intelligence.py` covering exact India VIX, USD/INR spot orientation,
+  and Europe Brent physical-spot identities, returns/trend/regime/scoring, provider exception and
+  overlap behavior, exact/stale/unavailable fallback, no HTTP, date-only cutoffs, and mandatory
+  future invariance for all three factors
+- 67 Sprint 18 Task 18.4 tests: 25 in `tests/test_gift_nifty_provider.py` covering the canonical
+  NSE IX `FUTIDX`/NIFTY 50/USD identity, no-HTTP unavailable/manual CSV contract, aware observation
+  and availability timestamps, deterministic knowability, provenance, and proxy/invalid rejection;
+  42 in `tests/test_gift_nifty_intelligence.py` covering current split sessions, completed NIFTY
+  reference selection, one bounded bulk query, formulas/direction boundaries, score/confidence/
+  completeness bounds, ordered provider/DB fallback, explicit contexts, date-only limitations,
+  determinism, and mandatory future-invariance no-look-ahead
+- 43 Sprint 18 Task 18.3 tests: 24 in `tests/test_global_index_provider.py` covering the exact
+  seven-index provider catalog, injected/mock HTTP, normalization/provenance, provider failures,
+  idempotent catalog/range/date ingestion, ordered fallback, boundary previous close, stale DB,
+  missing data, and range validation; 19 in `tests/test_global_market_intelligence.py` covering
+  native/DST-safe session cutoffs, one bulk history load, deterministic bounded scoring,
+  breadth, missing-weight renormalization, completeness, freshness/agreement confidence,
+  short history, no-look-ahead, cross-timezone behavior, weekends, and provenance/breakdown
+- 27 Sprint 18 Task 18.2 tests: 7 in `tests/test_indian_index.py` (catalog, freshness/status,
+  SENSEX=BSE-not-NSE, NSE provider SENSEX unavailable, NSE provider supports only NSE indices),
+  20 in `tests/test_index_price_action.py` (basic price, gap, returns, SMAs, trend, momentum,
+  52-week, daily range, 20-session avg move, price-action score bounded −100..+100, breakdown,
+  missing-values-remain-None, and the mandatory no-look-ahead regression test)
+- DB isolation verified: engine sessions closed properly; focused tests pass in both orders;
+  index seeding idempotent; `provider_symbol` stays unique (DB constraint unchanged)
+- No-look-ahead: repository `get_date_range_by_index_code`/`get_date_range` bound rows by the
+  requested `end_date`, never the wall clock; `IndexPriceAction._fetch_history` uses a
+  400-calendar-day lookback bounded by the requested date
+- SENSEX handling: SENSEX is catalogued exchange=BSE; `NSEIndexProvider` returns honest
+  `unavailable` for SENSEX (no fabricated NSE data, no scraping bypass)
+- Task 18.3 global provider is separate from NSE, uses only injected/mocked HTTP in tests, and
+  normalizes the seven required US/Asian indices into the existing `MarketIndexPrice` model
+- Global intelligence uses an aware evaluation instant, native exchange close policies via
+  `zoneinfo`, one SQL-bounded bulk history query, and the existing `IndexPriceAction` formulas
+- Task 18.4 uses actual GIFT Nifty futures only. Its dedicated provider performs zero HTTP and is
+  unavailable by default because no documented stable unauthenticated NSE IX automation contract
+  was established; explicit local CSV input must validate NSE IX/FUTIDX/NIFTY_50/USD identity
+- GIFT intelligence uses current audited NSE IX sessions (06:30–15:40 and 16:35–02:45 next day
+  IST), the latest completed knowable NIFTY cash close, one bounded bulk query, conservative
+  date-only stored fallback, explicit provenance/limitations, and deterministic no-look-ahead
+- Task 18.5 providers likewise perform zero HTTP and are unavailable without explicitly configured,
+  exact-identity local data. The services validate payloads again at their boundary and follow
+  primary → secondary → exact DB → stale DB → unavailable with explicit attempts and freshness
+- Institutional intelligence recomputes `net = buy - sell`, calculates daily/3/5/20-session FII/DII
+  values and combined daily/5/20 values, and exposes independent bounded scores, directions,
+  breakdown, completeness, and confidence. India VIX, USD/INR spot, and Europe Brent physical spot
+  expose exact identities, return horizons, trend/regime context, and separate bounded scores
+- Task 18.5 is historical/replay safe at an aware evaluation instant, uses conservative date-only
+  cutoffs, ignores data unavailable at T, de-duplicates provider/DB overlaps, and performs one bounded
+  DB bulk load per service. It does not create the Task 18.9 composite/regime engine
 - 119 focused Sprint 16 tests cover auth models, providers, authorization helpers, APIs, UI,
   ownership/admin_override, audit events, and browser cookie auth
 - 16 Sprint 16.8 UI tests cover market data, indicators, scanner library/run, pipeline,
@@ -236,19 +296,96 @@ Snapshot of AIStockScanner after Sprint 17 (Backtesting) — released as v0.13.0
   both settlement sites credit `net_pnl + entry_value + entry_commission`
 - Backtest execution is synchronous inside the request (no Celery/Redis); long runs
   block the request thread — a worker-based queue is a future improvement
+- Existing `MarketIndexPrice.observed_at`/`fetched_at` fields are dates, so stored Task 18.3/18.4
+  provenance remains date-granular. Task 18.4 accepts aware timestamped provider/manual observations
+  but explicitly does not claim timestamp replay for stored fallback
+- Task 18.5 stored market-factor provenance is also date-granular. Existing `InstitutionalFlow`
+  buy/sell/net columns are legacy Float; intelligence normalizes them via `Decimal(str(value))`
+- The Stooq-compatible global provider contract is fixture-verified with injected transport;
+  live upstream availability was intentionally not asserted by automated tests
 
 ## Current Sprint
 
-Sprint 17: Backtesting — COMPLETE
-- Task 17.1 — Backtesting database + domain foundation — COMPLETE
-- Task 17.2 — Historical NSE fetch + historical replay — VERIFIED
-- Task 17.3 — Trade simulation — COMPLETE (cost bugs fixed; 23 tests)
-- Task 17.4 — Performance metrics — COMPLETE & VERIFIED (40 tests; CLI-wired)
-- Task 17.5 — REST APIs — COMPLETE & VERIFIED (16 API tests; settlement fix; 28 permission codes)
-- Task 17.6 — UI/charts — COMPLETE & VERIFIED (29 tests, no migration)
-- Task 17.7 — Release — COMPLETE & VERIFIED (v0.13.0; tag + merge + push)
-- CLI regression (create_admin / main() guards) — FIXED
+Sprint 18: Market Intelligence — IN PROGRESS
+- Task 18.1 — Market Intelligence Foundation — COMPLETE & VERIFIED (models, repositories, schemas,
+  migration 25e6f159a646, provider interfaces, freshness/status conventions, configuration,
+  72 foundation tests; full suite 642 passed x3; ruff + alembic gates clean). Do NOT fetch every
+  external source yet.
+- Task 18.2 — Indian Index Data & Price Action — **COMPLETE & VERIFIED** (async deterministic
+  `IndexPriceAction` engine: OHLC, previous close, daily change %, gap points/%, gap classification,
+  1/5/20/60-session returns, SMA20/50/100/200, above/below SMA, distance from SMA, trend
+  classification, momentum, 52-week high/low, distance from 52w high/low, position in 52w range,
+  daily range %, 20-session average daily move, price_action_score −100..+100, score breakdown;
+  missing values remain None; repository no-look-ahead fix; SENSEX/BSE honesty; 27 tests;
+  full suite 669 passed ×3; ruff + alembic gates clean).
+- Task 18.3 — Global & Asian Markets — **COMPLETE & VERIFIED** (canonical seven-market extension
+  in the existing catalog/table; separate Stooq-compatible provider; date/range/multi-index
+  ingestion with ordered provider/DB fallback and no date×index HTTP N+1; native aware/DST-safe
+  session cutoffs; one-query deterministic US/Asian/global scoring, breadth, completeness,
+  confidence, provenance/freshness, and explicit no-look-ahead; 43 focused tests; 712 tests ×3;
+  Ruff, Alembic, app import, and diff gates clean; migration created: NONE).
+- Task 18.4 — GIFT Nifty Intelligence — **COMPLETE & VERIFIED** (canonical actual NSE IX
+  `GIFT_NIFTY` futures identity; truthful no-HTTP unavailable/manual-import provider; current split
+  NSE IX sessions; latest completed knowable NIFTY cash reference; deterministic gap, five-level
+  direction, bounded score/confidence/completeness, ordered fallback, provenance/limitations, one
+  bounded bulk query, and mandatory future-invariance no-look-ahead; 67 focused tests; 779 tests ×3;
+  Ruff, Alembic, app import, diff, HTTP/proxy/secrets/placeholders gates clean; migration: NONE).
+- Task 18.5 — FII/DII + India VIX + USD/INR + Brent Intelligence — **COMPLETE & VERIFIED**
+  (canonical FII/FPI and DII provisional cash flow with recomputed net and 1/3/5/20-session context;
+  exact NSE India VIX, USD/INR spot in INR per USD, and Europe Brent physical spot; independent
+  bounded scores, directions/regime/trend, confidence/completeness, provenance/freshness; zero-HTTP
+  validated manual providers; primary→secondary→exact DB→stale DB→unavailable; aware no-look-ahead,
+  overlap de-duplication, one bulk query per service; 31 Task 18.5 tests; exact collection 810;
+  full suite 810 ×3; Ruff, Alembic, import, and diff gates clean; migration: NONE).
+- Task 18.6 — Market Breadth Engine — **COMPLETE & VERIFIED** (deterministic breadth from advances/
+  declines, A/D ratio, percent advancing, new high/low balance, SMA20/50/200 participation, momentum,
+  and divergence; central `breadth_config.py` constants; canonical state/direction thresholds at
+  +60/+25/−25/−60; bounded breadth score −100..+100, five directions, completeness/confidence; one
+  bulk query, no N+1; 11 breadth tests; exact collection 821; full suite ×3; gates clean; migration: NONE).
+- Task 18.7 — Sector Strength & Rotation — **COMPLETE & VERIFIED** (sector 1D/5D/20D return, relative
+  performance vs NIFTY, trend, rank, leaders/laggards, participation, rotation state; deterministic
+  bounded sector score and direction; 9 sector tests; exact collection 830; full suite ×3; migration: NONE).
+- Task 18.8 — Macro & Event Intelligence — **COMPLETE & VERIFIED** (declarative 34-event catalog
+  (18 core + 16 sector) with category/importance/frequency/direction/has_forecast/timezone/unit and
+  declarative surprise_full_scale; focused `EconEvent` model + migration `5f7b2c9d4e3a`;
+  zero-HTTP unavailable-by-default validated manual provider; deterministic engine with
+  upcoming/known/scheduled-not-knowable/missing lifecycle, forecast-then-previous surprise with
+  inverted semantics, monetary/inflation/growth/employment/other domains, renormalized
+  macro_score −100..+100 at +60/+25/−25/−60, event-risk dampen that never reverses direction,
+  completeness/confidence with contradiction handling, provenance/limitations, one bulk query, and
+  mandatory no-look-ahead; 24 macro tests; exact collection 854; full suite 854 ×3; Ruff, Alembic
+  (head `5f7b2c9d4e3a`), import, and diff gates clean; migration created: YES, one focused table).
+- Task 18.9 — Market Regime & Composite Intelligence — **COMPLETE & VERIFIED** (composite
+  orchestrator `CompositeMarketIntelligence` consuming all factor engines 18.2–18.8 at one
+  evaluation boundary; pure `compute_composite_factor_result()` emitting regime/composite_score/
+  confidence_score/bullish_factors/bearish_factors/risk_factors/missing_factors plus
+  contradictions, stale_factors, agreement, and provenance; centralized configurable weights;
+  weighted completeness + confidence blend with low-confidence reliability dampener; five regime
+  bands at +60/+25/−25/−60; high-volatility flag, deterministic contradiction pairs, and risk
+  rules; idempotent `evaluate(persistence=True)` snapshot upsert one-row-per-market_date;
+  mandatory no-look-ahead bounded by evaluation market_date; 38 pure composite tests covering all
+  nine mandatory scenarios + 8 DB-backed integration tests (persistence/upsert idempotency and
+  future-invariance); Task 18.1 foundation suite (72) preserved; migration: NONE).
+- Sprint 17: Backtesting — COMPLETE (released as v0.13.0)
+  - Task 17.1 — Backtesting database + domain foundation — COMPLETE
+  - Task 17.2 — Historical NSE fetch + historical replay — VERIFIED
+  - Task 17.3 — Trade simulation — COMPLETE (cost bugs fixed; 23 tests)
+  - Task 17.4 — Performance metrics — COMPLETE & VERIFIED (40 tests; CLI-wired)
+  - Task 17.5 — REST APIs — COMPLETE & VERIFIED (16 API tests; settlement fix; 28 permission codes)
+  - Task 17.6 — UI/charts — COMPLETE & VERIFIED (29 tests, no migration)
+  - Task 17.7 — Release — COMPLETE & VERIFIED (v0.13.0; tag + merge + push)
+  - CLI regression (create_admin / main() guards) — FIXED
 
+- Task 18.10 — AI Market Explanation — **COMPLETE & VERIFIED** (deterministic explanation layer
+  from `CompositeMarketIntelligenceResult`: provider abstraction `app/services/ai_explanation_provider.py`,
+  prompt builder, `AIExplanationResult` contract, `sanitize_provider_error` (sk-***, password=***),
+  `validate_ai_output` anti-hallucination (regime/score/confidence override rejected),
+  `AIMarketExplanationService` in `app/services/ai_market_explanation.py` with mandatory deterministic
+  fallback `MarketExplanation` (always available, zero cost, zero HTTP), `market_date` bounded
+  evaluation for historical reproducibility, provider fallback order primary→deterministic; 61 tests
+  covering all 28 mandatory categories per 18.10M; exact collection 89; full suite 89 ×3;
+  Ruff, Alembic, import, diff gates clean; migration: NONE).
 ## Next Task
 
-Sprint 18 — Market Intelligence (not yet started).
+Sprint 18 — Market Intelligence — COMPLETE & RELEASED as **v0.14.0**.
+Tasks 18.1–18.12 all COMPLETE & VERIFIED. No Sprint 19 work started.

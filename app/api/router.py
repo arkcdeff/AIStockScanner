@@ -11,6 +11,7 @@ from app.api.routes import (
     health,
     indicators,
     market_data,
+    market_intelligence,
     notifications,
     pipeline,
     portfolio,
@@ -37,6 +38,7 @@ api_router.include_router(portfolio.router)
 api_router.include_router(alerts.router)
 api_router.include_router(notifications.router)
 api_router.include_router(backtests.router)
+api_router.include_router(market_intelligence.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)

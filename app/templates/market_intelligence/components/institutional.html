@@ -1,0 +1,26 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        {% if institutional.investors %}
+        {% for inv_type, inv in institutional.investors.items() %}
+        <div class="mb-2">
+            <div class="d-flex justify-content-between">
+                <strong>{{ inv_type }}</strong>
+                <span class="{{ (inv.score or 0) | mi_sign_class }}">{{ inv.score | mi_score }}</span>
+            </div>
+            <small class="text-muted">
+                Buy: {{ inv.buy_value | mi_int }} Cr | Sell: {{ inv.sell_value | mi_int }} Cr | Net: {{ inv.net_value | mi_int }} Cr
+            </small>
+            <br><small class="{{ inv.freshness | mi_freshness_class }}">{{ inv.freshness }}</small>
+        </div>
+        {% endfor %}
+        <hr class="my-2">
+        <div class="d-flex justify-content-between">
+            <strong>Combined Score</strong>
+            <span class="{{ (institutional.institutional_score or 0) | mi_sign_class }} fw-bold">{{ institutional.institutional_score | mi_score }}</span>
+        </div>
+        <small class="text-muted">Direction: {{ (institutional.direction or '--') | mi_label }}</small>
+        {% else %}
+        <p class="text-muted mb-0"><i class="bi bi-question-circle me-1"></i>FII/DII data unavailable.</p>
+        {% endif %}
+    </div>
+</div>

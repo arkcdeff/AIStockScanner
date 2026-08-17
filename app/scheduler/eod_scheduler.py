@@ -10,15 +10,23 @@ from loguru import logger
 from app.core.config import settings
 from app.services.daily_summary import current_summary_date
 from app.services.eod_pipeline import EODPipelineService, PipelineOverlapError
+from app.services.market_intelligence_jobs import (
+    run_daily_snapshot_intelligence_job,
+    run_postmarket_intelligence_job,
+    run_premarket_intelligence_job,
+    sanitize_job_error,
+)
 from app.services.notification_jobs import (
     run_daily_summary_job,
     run_pending_delivery_job,
-    sanitize_job_error,
 )
 
 EOD_JOB_ID = "eod_pipeline_daily"
 NOTIFICATION_DELIVERY_JOB_ID = "notification_delivery_interval"
 DAILY_SUMMARY_JOB_ID = "notification_daily_summary"
+MARKET_INTELLIGENCE_PREMARKET_JOB_ID = "market_intelligence_premarket"
+MARKET_INTELLIGENCE_POSTMARKET_JOB_ID = "market_intelligence_postmarket"
+MARKET_INTELLIGENCE_SNAPSHOT_JOB_ID = "market_intelligence_snapshot"
 
 
 class EODScheduler:
@@ -35,6 +43,9 @@ class EODScheduler:
             settings.eod_scheduler_enabled
             or settings.notification_delivery_job_enabled
             or settings.daily_summary_enabled
+            or settings.market_intelligence_premarket_enabled
+            or settings.market_intelligence_postmarket_enabled
+            or settings.market_intelligence_snapshot_enabled
         )
 
     @property
@@ -93,6 +104,51 @@ class EODScheduler:
                 coalesce=settings.daily_summary_coalesce,
                 replace_existing=True,
             )
+        if settings.market_intelligence_premarket_enabled:
+            scheduler.add_job(
+                self._run_premarket_intelligence,
+                trigger=CronTrigger(
+                    day_of_week="mon-fri",
+                    hour=settings.market_intelligence_premarket_hour,
+                    minute=settings.market_intelligence_premarket_minute,
+                    timezone=settings.market_intelligence_premarket_timezone,
+                ),
+                id=MARKET_INTELLIGENCE_PREMARKET_JOB_ID,
+                name="Market Intelligence Pre-Market Refresh",
+                max_instances=settings.market_intelligence_premarket_max_instances,
+                coalesce=settings.market_intelligence_premarket_coalesce,
+                replace_existing=True,
+            )
+        if settings.market_intelligence_postmarket_enabled:
+            scheduler.add_job(
+                self._run_postmarket_intelligence,
+                trigger=CronTrigger(
+                    day_of_week="mon-fri",
+                    hour=settings.market_intelligence_postmarket_hour,
+                    minute=settings.market_intelligence_postmarket_minute,
+                    timezone=settings.market_intelligence_postmarket_timezone,
+                ),
+                id=MARKET_INTELLIGENCE_POSTMARKET_JOB_ID,
+                name="Market Intelligence Post-Market Refresh",
+                max_instances=settings.market_intelligence_postmarket_max_instances,
+                coalesce=settings.market_intelligence_postmarket_coalesce,
+                replace_existing=True,
+            )
+        if settings.market_intelligence_snapshot_enabled:
+            scheduler.add_job(
+                self._run_daily_snapshot_intelligence,
+                trigger=CronTrigger(
+                    day_of_week="mon-fri",
+                    hour=settings.market_intelligence_snapshot_hour,
+                    minute=settings.market_intelligence_snapshot_minute,
+                    timezone=settings.market_intelligence_snapshot_timezone,
+                ),
+                id=MARKET_INTELLIGENCE_SNAPSHOT_JOB_ID,
+                name="Market Intelligence Daily Snapshot",
+                max_instances=settings.market_intelligence_snapshot_max_instances,
+                coalesce=settings.market_intelligence_snapshot_coalesce,
+                replace_existing=True,
+            )
 
         self._scheduler = scheduler
         self._registered = True
@@ -135,6 +191,21 @@ class EODScheduler:
             DAILY_SUMMARY_JOB_ID,
             enabled=settings.daily_summary_enabled,
         )
+        premarket = job_status(
+            MARKET_INTELLIGENCE_PREMARKET_JOB_ID,
+            enabled=settings.market_intelligence_premarket_enabled,
+        )
+        postmarket = job_status(
+            MARKET_INTELLIGENCE_POSTMARKET_JOB_ID,
+            enabled=settings.market_intelligence_postmarket_enabled,
+        )
+        snapshot = job_status(
+            MARKET_INTELLIGENCE_SNAPSHOT_JOB_ID,
+            enabled=settings.market_intelligence_snapshot_enabled,
+        )
+        mi_pre = settings.market_intelligence_premarket_enabled
+        mi_post = settings.market_intelligence_postmarket_enabled
+        mi_snap = settings.market_intelligence_snapshot_enabled
         return {
             "enabled": self.enabled,
             "running": self.is_running,
@@ -144,11 +215,17 @@ class EODScheduler:
             "timezone": settings.eod_scheduler_timezone,
             "alert_delivery_job_enabled": settings.notification_delivery_job_enabled,
             "daily_summary_job_enabled": settings.daily_summary_enabled,
+            "market_intelligence_premarket_enabled": mi_pre,
+            "market_intelligence_postmarket_enabled": mi_post,
+            "market_intelligence_snapshot_enabled": mi_snap,
             "registered_job_ids": sorted(registered),
             "jobs": {
                 "eod_pipeline": eod,
                 "alert_delivery": delivery,
                 "daily_summary": daily_summary,
+                "market_intelligence_premarket": premarket,
+                "market_intelligence_postmarket": postmarket,
+                "market_intelligence_snapshot": snapshot,
             },
         }
 
@@ -157,6 +234,15 @@ class EODScheduler:
 
     async def run_daily_summary_now(self, summary_date: date | None = None) -> dict[str, object]:
         return await self._run_daily_summary(summary_date=summary_date)
+
+    async def run_premarket_intelligence_now(self) -> dict[str, object]:
+        return await self._run_premarket_intelligence()
+
+    async def run_postmarket_intelligence_now(self) -> dict[str, object]:
+        return await self._run_postmarket_intelligence()
+
+    async def run_daily_snapshot_intelligence_now(self) -> dict[str, object]:
+        return await self._run_daily_snapshot_intelligence()
 
     async def _run_pipeline(self) -> None:
         started = datetime.now(UTC)
@@ -233,6 +319,81 @@ class EODScheduler:
         logger.info(
             "Scheduled daily summary completed date={} status={} duration_ms={}",
             requested_date,
+            payload["status"],
+            payload["duration_ms"],
+        )
+        return payload
+
+    async def _run_premarket_intelligence(self) -> dict[str, object]:
+        started = datetime.now(UTC)
+        logger.info("Scheduled market intelligence pre-market refresh started")
+        try:
+            result = await run_premarket_intelligence_job()
+            payload = {
+                **result.as_dict(),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        except Exception as exc:
+            msg = sanitize_job_error(exc)
+            logger.error("Scheduled market intelligence pre-market failed: {}", msg)
+            payload = {
+                "status": "failed",
+                "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 1),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        self._last_execution[MARKET_INTELLIGENCE_PREMARKET_JOB_ID] = payload
+        logger.info(
+            "Scheduled market intelligence pre-market completed status={} duration_ms={}",
+            payload["status"],
+            payload["duration_ms"],
+        )
+        return payload
+
+    async def _run_postmarket_intelligence(self) -> dict[str, object]:
+        started = datetime.now(UTC)
+        logger.info("Scheduled market intelligence post-market refresh started")
+        try:
+            result = await run_postmarket_intelligence_job()
+            payload = {
+                **result.as_dict(),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        except Exception as exc:
+            msg = sanitize_job_error(exc)
+            logger.error("Scheduled market intelligence post-market failed: {}", msg)
+            payload = {
+                "status": "failed",
+                "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 1),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        self._last_execution[MARKET_INTELLIGENCE_POSTMARKET_JOB_ID] = payload
+        logger.info(
+            "Scheduled market intelligence post-market completed status={} duration_ms={}",
+            payload["status"],
+            payload["duration_ms"],
+        )
+        return payload
+
+    async def _run_daily_snapshot_intelligence(self) -> dict[str, object]:
+        started = datetime.now(UTC)
+        logger.info("Scheduled market intelligence daily snapshot started")
+        try:
+            result = await run_daily_snapshot_intelligence_job()
+            payload = {
+                **result.as_dict(),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        except Exception as exc:
+            msg = sanitize_job_error(exc)
+            logger.error("Scheduled market intelligence daily snapshot failed: {}", msg)
+            payload = {
+                "status": "failed",
+                "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 1),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        self._last_execution[MARKET_INTELLIGENCE_SNAPSHOT_JOB_ID] = payload
+        logger.info(
+            "Scheduled market intelligence daily snapshot completed status={} duration_ms={}",
             payload["status"],
             payload["duration_ms"],
         )

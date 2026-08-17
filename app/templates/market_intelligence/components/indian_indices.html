@@ -1,0 +1,32 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Index</th>
+                        <th class="text-end">Close</th>
+                        <th class="text-end">1D</th>
+                        <th class="text-end">5D</th>
+                        <th class="text-end">20D</th>
+                        <th>Trend</th>
+                        <th class="text-end">Score</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for idx in indian_indices %}
+                    <tr>
+                        <td><strong>{{ idx.code }}</strong><br><small class="text-muted">{{ idx.name or '' }}</small></td>
+                        <td class="text-end">{{ idx.close | mi_price }}</td>
+                        <td class="text-end {{ (idx.change_pct or 0) | mi_sign_class }}">{{ idx.change_pct | mi_pct }}</td>
+                        <td class="text-end {{ (idx.return_1d or 0) | mi_sign_class }}">{{ idx.return_1d | mi_pct }}</td>
+                        <td class="text-end {{ (idx.return_5d or 0) | mi_sign_class }}">{{ idx.return_5d | mi_pct }}</td>
+                        <td><small class="text-muted">{{ (idx.trend or '--') | mi_label }}</small></td>
+                        <td class="text-end {{ (idx.score or 0) | mi_sign_class }}">{{ idx.score | mi_score }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

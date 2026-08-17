@@ -1,0 +1,14 @@
+Market Intelligence Alert: {{ event_type }}
+
+Market Date: {{ market_date }}
+Regime Change: {{ from_regime }} → {{ to_regime }}
+Composite Score: {{ composite_score }}
+Confidence: {{ confidence_score }}%
+
+Details:
+- Previous Regime: {{ from_regime }}
+- New Regime: {{ to_regime }}
+- Composite Score: {{ composite_score }}
+- Confidence: {{ confidence_score }}%
+
+This is an automated market intelligence notification from AI Stock Scanner.

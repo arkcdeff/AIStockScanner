@@ -1,0 +1,29 @@
+<div class="card border-0 shadow-sm">
+    <div class="card-body">
+        {% if breadth.breadth_score is not none %}
+        <div class="d-flex justify-content-between mb-2">
+            <strong>Breadth Score</strong>
+            <span class="{{ (breadth.breadth_score or 0) | mi_sign_class }} fw-bold">{{ breadth.breadth_score | mi_score }}</span>
+        </div>
+        <div class="row text-center mb-2">
+            <div class="col-4">
+                <small class="text-muted d-block">Advancers</small>
+                <span class="text-success fw-bold">{{ breadth.advancing_count | mi_int }}</span>
+            </div>
+            <div class="col-4">
+                <small class="text-muted d-block">Decliners</small>
+                <span class="text-danger fw-bold">{{ breadth.declining_count | mi_int }}</span>
+            </div>
+            <div class="col-4">
+                <small class="text-muted d-block">Unchanged</small>
+                <span class="text-muted fw-bold">{{ breadth.unchanged_count | mi_int }}</span>
+            </div>
+        </div>
+        <small class="text-muted">A/D Ratio: {{ breadth.advance_decline_ratio | mi_price }} | Net: {{ breadth.net_advances | mi_int }}</small>
+        <br><small class="text-muted">State: {{ (breadth.breadth_state or '--') | mi_label }} | Momentum: {{ (breadth.breadth_momentum_direction or '--') | mi_label }}</small>
+        <br><small class="{{ breadth.freshness | mi_freshness_class }}">{{ breadth.freshness }}</small>
+        {% else %}
+        <p class="text-muted mb-0"><i class="bi bi-question-circle me-1"></i>Breadth data unavailable.</p>
+        {% endif %}
+    </div>
+</div>

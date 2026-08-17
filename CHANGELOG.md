@@ -5,6 +5,87 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.14.0] - 2026-08-17
+
+### Added
+
+- **Sprint 18 — Market Intelligence System (Tasks 18.1–18.12)**
+  - Task 18.1: Market Intelligence Foundation — models, repositories, schemas,
+    migration `25e6f159a646`, provider interfaces, freshness/status conventions,
+    configuration, 72 foundation tests
+  - Task 18.2: Indian Index Data & Price Action — async deterministic
+    `IndexPriceAction` engine (OHLC, gaps, returns, SMAs, trend, momentum,
+    52-week, price_action_score −100..+100), no-look-ahead repository, SENSEX
+    honesty (BSE index), 27 tests
+  - Task 18.3: Global & Asian Markets — 7 US/Asian indices via Stooq-compatible
+    `GlobalIndexProvider`, native aware/DST-safe session cutoffs, one-query
+    deterministic US/Asian/global scoring, 43 tests, zero live HTTP
+  - Task 18.4: GIFT Nifty Intelligence — canonical NSE IX `GIFT_NIFTY` futures
+    identity, truthful no-HTTP unavailable/manual-import provider, current split
+    NSE IX sessions, deterministic gap/direction/score/confidence, 67 tests,
+    zero live HTTP
+  - Task 18.5: FII/DII + India VIX + USD/INR + Brent — canonical FII/FPI/DII
+    flows in INR_CRORE, exact India VIX, USD/INR spot (INR_PER_1_USD), Europe
+    Brent physical spot, independent bounded scores, zero-HTTP providers,
+    31 tests, no migration
+  - Task 18.6: Market Breadth Engine — advances/declines, A/D ratio, new
+    high/low balance, SMA participation, momentum/divergence, breadth score
+    −100..+100, canonical thresholds at +60/+25/−25/−60, 11 tests
+  - Task 18.7: Sector Strength & Rotation — 1D/5D/20D sector returns, relative
+    vs NIFTY, trend, rank, leaders/laggards, rotation state, deterministic
+    bounded sector score, 9 tests
+  - Task 18.8: Macro & Event Intelligence — declarative 34-event catalog (18
+    core + 16 sector), `EconEvent` model + migration `5f7b2c9d4e3a`,
+    zero-HTTP validated manual provider, deterministic engine with lifecycle
+    classification, surprise normalization, importance-weighted domains,
+    macro_score −100..+100 at +60/+25/−25/−60, event-risk dampener, 24 tests
+  - Task 18.9: Market Regime & Composite Intelligence — orchestrator consuming
+    all 10 upstream factor engines at same evaluation boundary, pure
+    `compute_composite_factor_result()` core, weighted composite −100..+100,
+    five regime bands at +60/+25/−25/−60, confidence blend with reliability
+    dampener, deterministic contradiction/risk rules, idempotent snapshot
+    upsert, 46 tests (38 pure + 8 DB-backed)
+  - Task 18.10: AI Market Explanation — provider abstraction, deterministic
+    fallback `MarketExplanation`, compact JSON prompt builder, anti-hallucination
+    validation, provider fallback order, 61 tests covering 28 mandatory
+    categories, zero external HTTP
+  - Task 18.11: REST APIs & Market Intelligence Dashboard — 14 endpoints under
+    `/api/v1/market-intelligence/` with Bearer auth + permissions, browser
+    `/market-intelligence` dashboard + HTMX partials, CSRF on POST `/refresh`,
+    Pydantic schemas validate all responses, missing values render "Unavailable",
+    36 focused tests, 998 total tests
+  - Task 18.12: Scheduler + Notifications + v0.14.0 Release —
+    *Scheduler*: 3 market intelligence jobs (pre-market 08:30 IST, post-market
+    16:15 IST, daily snapshot 17:00 IST) on existing APScheduler, timezone-aware
+    cron triggers, max_instances=1, coalesce, idempotent evaluation with
+    persistence, failure isolation, last-good-data preservation
+    *Notifications*: deterministic regime-change, score-transition (≥15 pts),
+    extreme VIX (≤−60), and high-risk macro event triggers (upcoming Task 18.8
+    macro event with top-tier `high` importance; dedup by real event identity +
+    date, no AI, no direction prediction); reuses Sprint 15
+    notification infrastructure (channels, preferences, retry, dedup, cooldown),
+    AI explanation optional after deterministic trigger, historical API never
+    emits live alerts, 28 new Task 18.12 tests
+
+### Changed
+
+- Version bumped to `v0.14.0` (`app/main.py`)
+- Alembic head: `5f7b2c9d4e3a` (single head, no drift)
+- Test suite: 1026 tests (998 → 1026 with 28 new Task 18.12 tests)
+- All Sprint 18 work intentionally uncommitted until release authorization
+
+### Security
+
+- Timezone safety: all `utcnow()` replaced with `datetime.now(UTC)` in reachable
+  Sprint 18 paths
+- No-look-ahead guarantees preserved across all factor engines, composite,
+  scheduler, and historical APIs
+- AI explanation never computes scores/regime/confidence; only explains
+  deterministic output
+- Notification triggers are deterministic; AI only adds prose after trigger
+- Sanitized provider errors, no secrets in logs
+- CSRF on all browser state-changing actions
+
 ## [v0.13.0] - 2026-08-12
 
 ### Added

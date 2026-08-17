@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+{% block title %}Market Intelligence - AI Stock Scanner{% endblock %}
+{% block body %}
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            {% include "components/sidebar.html" %}
+        </nav>
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+            {% include "components/navbar.html" %}
+
+            {% if flash %}
+            <div class="alert alert-{{ flash.level }} alert-dismissible fade show" role="alert">
+                {{ flash.message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h3 mb-0">
+                    <i class="bi bi-activity me-2"></i>Market Intelligence
+                </h1>
+                <div>
+                    {% if can_refresh %}
+                    <form method="post" action="/market-intelligence/refresh" class="d-inline">
+                        <input type="hidden" name="_csrf_token" value="{{ csrf_token or '' }}">
+                        <button type="submit" class="btn btn-primary btn-sm"
+                                hx-post="/market-intelligence/refresh"
+                                hx-target="#mi-dashboard"
+                                hx-swap="innerHTML"
+                                hx-headers='{"x-csrf-token": "{{ csrf_token }}"}'>
+                            <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="/api/v1/market-intelligence/latest" class="btn btn-outline-secondary btn-sm ms-2" target="_blank">
+                        <i class="bi bi-code-slash me-1"></i>API
+                    </a>
+                </div>
+            </div>
+
+            <div id="mi-dashboard">
+                {% include "market_intelligence/components/hero.html" %}
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="bi bi-grid-3x3-gap me-2"></i>Factor Scores</h5>
+                    </div>
+                </div>
+                {% include "market_intelligence/components/factor_cards.html" %}
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-arrow-up-circle me-2 text-success"></i>Bullish Factors</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {% if composite.bullish_factors %}
+                                {% for f in composite.bullish_factors %}
+                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                    <span>{{ f.name | mi_label }}</span>
+                                    <span class="{{ (f.score or 0) | mi_sign_class }} fw-bold">{{ f.score | mi_score }}</span>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted mb-0">No bullish factors identified.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-arrow-down-circle me-2 text-danger"></i>Bearish Factors</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {% if composite.bearish_factors %}
+                                {% for f in composite.bearish_factors %}
+                                <div class="d-flex justify-content-between align-items-center py-1 border-bottom">
+                                    <span>{{ f.name | mi_label }}</span>
+                                    <span class="{{ (f.score or 0) | mi_sign_class }} fw-bold">{{ f.score | mi_score }}</span>
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted mb-0">No bearish factors identified.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Risk Factors</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {% if composite.risk_factors %}
+                                {% for r in composite.risk_factors %}
+                                <div class="py-1 border-bottom">
+                                    <span class="badge bg-{{ 'danger' if r.severity == 'high' else 'warning' if r.severity == 'medium' else 'secondary' }} me-2">{{ r.severity | upper }}</span>
+                                    {{ r.message }}
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted mb-0">No significant risk factors.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-shield-exclamation me-2 text-info"></i>Contradictions</h5>
+                        <div class="card">
+                            <div class="card-body">
+                                {% if composite.contradictions %}
+                                {% for c in composite.contradictions %}
+                                <div class="py-1 border-bottom">
+                                    <span class="badge bg-{{ 'danger' if c.severity == 'high' else 'warning' if c.severity == 'medium' else 'info' }} me-2">{{ c.severity | upper }}</span>
+                                    {{ c.factor_a | mi_label }} vs {{ c.factor_b | mi_label }}
+                                </div>
+                                {% endfor %}
+                                {% else %}
+                                <p class="text-muted mb-0">No contradictions detected.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="bi bi-building me-2"></i>Indian Market</h5>
+                    </div>
+                </div>
+                {% include "market_intelligence/components/indian_indices.html" %}
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="bi bi-globe me-2"></i>Global &amp; Asian Markets</h5>
+                    </div>
+                </div>
+                {% include "market_intelligence/components/global_markets.html" %}
+
+                <div class="row mb-4">
+                    <div class="col-md-4">
+                        <h5 class="mb-3"><i class="bi bi-graph-up-arrow me-2"></i>GIFT Nifty</h5>
+                        {% include "market_intelligence/components/gift_nifty.html" %}
+                    </div>
+                    <div class="col-md-4">
+                        <h5 class="mb-3"><i class="bi bi-bank me-2"></i>FII / DII</h5>
+                        {% include "market_intelligence/components/institutional.html" %}
+                    </div>
+                    <div class="col-md-4">
+                        <h5 class="mb-3"><i class="bi bi-currency-exchange me-2"></i>VIX / FX / Crude</h5>
+                        {% include "market_intelligence/components/external_factors.html" %}
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-bar-chart-steps me-2"></i>Market Breadth</h5>
+                        {% include "market_intelligence/components/breadth.html" %}
+                    </div>
+                    <div class="col-md-6">
+                        <h5 class="mb-3"><i class="bi bi-diagram-3 me-2"></i>Sector Intelligence</h5>
+                        {% include "market_intelligence/components/sectors.html" %}
+                    </div>
+                </div>
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="bi bi-calendar-event me-2"></i>Macro &amp; Events</h5>
+                    </div>
+                </div>
+                {% include "market_intelligence/components/macro.html" %}
+
+                <div class="row mb-4">
+                    <div class="col-12">
+                        <h5 class="mb-3"><i class="bi bi-cpu me-2"></i>AI Market Explanation</h5>
+                    </div>
+                </div>
+                {% include "market_intelligence/components/ai_explanation.html" %}
+            </div>
+        </main>
+    </div>
+</div>
+{% endblock %}

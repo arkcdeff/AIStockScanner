@@ -1,0 +1,20 @@
+Subject: Market Intelligence Alert - High-Risk Macro Event {{ event_code }} at {{ event_reference_time }} [{{ market_date }}]
+
+Market Intelligence Alert: High-Risk Macro Event
+
+Market Date: {{ market_date }}
+Upcoming Macro Events:
+{% for event in macro_events %}
+- {{ event.name }} ({{ event.event_code }})
+  Importance: {{ event.importance }}
+  Scheduled: {{ event.reference_time }}
+  Category: {{ event.category }}
+{% else %}
+- {{ risk_detail }}
+{% endfor %}
+
+Regime: {{ regime }}
+Composite Score: {{ composite_score }}
+Confidence: {{ confidence_score }}%
+
+This is an automated market intelligence notification from AI Stock Scanner.

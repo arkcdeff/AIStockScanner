@@ -38,6 +38,10 @@ BUILT_IN_PERMISSION_DEFINITIONS: dict[str, str] = {
     "backtests.read": "View backtest strategies, runs and results",
     "backtests.run": "Execute backtest runs",
     "backtests.write": "Create and manage backtest strategies and runs",
+    # Market Intelligence permissions (Sprint 18)
+    "market_intelligence.read": "View market intelligence snapshots and analysis",
+    "market_intelligence.refresh": "Trigger refresh of market intelligence data",
+    "market_intelligence.write": "Create and manage market intelligence snapshots",
 }
 
 
@@ -79,6 +83,10 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "backtests.read",
         "backtests.run",
         "backtests.write",
+        # Market Intelligence permissions
+        "market_intelligence.read",
+        "market_intelligence.refresh",
+        "market_intelligence.write",
     ),
     "analyst": (
         "stocks.read",
@@ -97,6 +105,9 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "notifications.read",
         "backtests.read",
         "backtests.run",
+        # Market Intelligence read/refresh for analysts
+        "market_intelligence.read",
+        "market_intelligence.refresh",
     ),
     "viewer": (
         "dashboard.read",
@@ -109,6 +120,8 @@ _ROLE_PERMISSION_MATRIX: dict[str, tuple[str, ...]] = {
         "alerts.read",
         "notifications.read",
         "backtests.read",
+        # Market Intelligence read only for viewers
+        "market_intelligence.read",
     ),
 }
 

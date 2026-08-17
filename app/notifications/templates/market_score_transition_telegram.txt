@@ -1,0 +1,16 @@
+Market Intelligence Alert: {{ event_type }}
+
+Market Date: {{ market_date }}
+Score Transition: {{ previous_score }} → {{ current_score }}
+Change: {{ score_change }}
+Current Regime: {{ regime }}
+Confidence: {{ confidence_score }}%
+
+Details:
+- Previous Score: {{ previous_score }}
+- Current Score: {{ current_score }}
+- Absolute Change: {{ score_change }}
+- Current Regime: {{ regime }}
+- Confidence: {{ confidence_score }}%
+
+This is an automated market intelligence notification from AI Stock Scanner.

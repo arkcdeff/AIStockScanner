@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Market Regime Change Alert</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; border-radius: 8px 8px 0 0;">
+        <h1 style="margin: 0; font-size: 24px;">Market Intelligence Alert</h1>
+        <p style="margin: 10px 0 0; opacity: 0.9;">Regime Change Detected</p>
+    </div>
+    <div style="background: #f8f9fa; padding: 20px; border-radius: 0 0 8px 8px; border: 1px solid #e9ecef;">
+        <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold; width: 30%;">Market Date</td>
+                <td style="padding: 8px 0;">{{ market_date }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Regime Change</td>
+                <td style="padding: 8px 0;">{{ from_regime }} → {{ to_regime }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Composite Score</td>
+                <td style="padding: 8px 0;">{{ composite_score }}</td>
+            </tr>
+            <tr>
+                <td style="padding: 8px 0; font-weight: bold;">Confidence</td>
+                <td style="padding: 8px 0;">{{ confidence_score }}%</td>
+            </tr>
+        </table>
+        <hr style="border: none; border-top: 1px solid #dee2e6; margin: 20px 0;">
+        <p style="font-size: 12px; color: #6c757d; margin: 0;">
+            This is an automated market intelligence notification from AI Stock Scanner.
+        </p>
+    </div>
+</body>
+</html>

@@ -19,6 +19,26 @@ _TEMPLATE_NAMES = {
         "email": "daily_summary_email.txt",
         "email_html": "daily_summary_email.html",
     },
+    "market_regime_change": {
+        "telegram": "market_regime_change_telegram.txt",
+        "email": "market_regime_change_email.txt",
+        "email_html": "market_regime_change_email.html",
+    },
+    "market_score_transition": {
+        "telegram": "market_score_transition_telegram.txt",
+        "email": "market_score_transition_email.txt",
+        "email_html": "market_score_transition_email.html",
+    },
+    "market_vix_extreme": {
+        "telegram": "market_vix_extreme_telegram.txt",
+        "email": "market_vix_extreme_email.txt",
+        "email_html": "market_vix_extreme_email.html",
+    },
+    "market_macro_risk": {
+        "telegram": "market_macro_risk_telegram.txt",
+        "email": "market_macro_risk_email.txt",
+        "email_html": "market_macro_risk_email.html",
+    },
 }
 
 _HTML_PROVIDERS = frozenset({"email"})
@@ -85,7 +105,25 @@ class NotificationRenderer:
     def _subject(notification_type: str, context: dict[str, Any]) -> str:
         if notification_type == "alert":
             return f"Alert: {context.get('symbol', _NA)} - {context.get('alert_name', _NA)}"
-        return f"Daily Summary - {context.get('summary_date', _NA)}"
+        if notification_type == "daily_summary":
+            return f"Daily Summary - {context.get('summary_date', _NA)}"
+        if notification_type == "market_regime_change":
+            from_regime = context.get("from_regime", _NA)
+            to_regime = context.get("to_regime", _NA)
+            return f"Market Intelligence: Regime {from_regime} → {to_regime}"
+        if notification_type == "market_score_transition":
+            return f"Market Intelligence: Score Change {context.get('score_change', _NA)}"
+        if notification_type == "market_vix_extreme":
+            return f"Market Intelligence: Extreme VIX ({context.get('vix_score', _NA)})"
+        if notification_type == "market_macro_risk":
+            event_code = context.get("event_code", _NA)
+            event_reference_time = context.get("event_reference_time", _NA)
+            market_date = context.get("market_date", _NA)
+            return (
+                f"Market Intelligence: High-Risk Macro Event {event_code} "
+                f"at {event_reference_time} [{market_date}]"
+            )
+        return f"Notification - {notification_type}"
 
 
 def templates_dir() -> Path:

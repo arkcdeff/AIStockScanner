@@ -1,0 +1,18 @@
+Subject: Market Intelligence Alert - {{ event_type }}
+
+Market Intelligence Alert: {{ event_type }}
+
+Market Date: {{ market_date }}
+VIX Extreme: Score {{ vix_score }} ({{ vix_direction }})
+Regime: {{ regime }}
+Composite Score: {{ composite_score }}
+Confidence: {{ confidence_score }}%
+
+Details:
+- India VIX Factor Score: {{ vix_score }}
+- VIX Direction: {{ vix_direction }}
+- Current Regime: {{ regime }}
+- Composite Score: {{ composite_score }}
+- Confidence: {{ confidence_score }}%
+
+This is an automated market intelligence notification from AI Stock Scanner.
