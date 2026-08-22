@@ -1,17 +1,31 @@
 from __future__ import annotations
 
+import hashlib
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.data.nse_parser import PriceRecord, load_bytes, parse_bhavcopy, parse_delivery
+from app.data.nse_parser import (
+    PriceRecord,
+    load_bytes,
+    parse_bhavcopy_detailed,
+    parse_delivery,
+)
 from app.models.daily_price import DailyPrice
 from app.models.import_job import ImportJob
 from app.models.stock import Stock
+
+# Import-job provenance modes used by the market-data pipeline.
+MODE_UPLOAD = "UPLOAD"
+MODE_DATE_DOWNLOAD = "DATE_DOWNLOAD"
+MODE_LATEST_DOWNLOAD = "LATEST_DOWNLOAD"
+MODE_RANGE_BACKFILL = "RANGE_BACKFILL"
+MODE_AUTO_EOD = "AUTO_EOD"
+MODE_AUTO_CATCHUP = "AUTO_CATCHUP"
 
 
 class NSEImportService:
@@ -22,6 +36,10 @@ class NSEImportService:
         self,
         bhavcopy_path: str | Path,
         delivery_path: str | Path | None = None,
+        *,
+        mode: str = MODE_UPLOAD,
+        archive_path: str | None = None,
+        checksum: str | None = None,
     ) -> ImportJob:
         bhavcopy, file_name = load_bytes(bhavcopy_path)
         delivery_payload = load_bytes(delivery_path)[0] if delivery_path else None
@@ -30,6 +48,9 @@ class NSEImportService:
             bhavcopy_name=file_name,
             delivery=delivery_payload,
             delivery_name=Path(delivery_path).name if delivery_path else None,
+            mode=mode,
+            archive_path=archive_path,
+            checksum=checksum,
         )
 
     async def import_bytes(
@@ -39,12 +60,20 @@ class NSEImportService:
         bhavcopy_name: str,
         delivery: bytes | None = None,
         delivery_name: str | None = None,
+        mode: str = MODE_UPLOAD,
+        archive_path: str | None = None,
+        checksum: str | None = None,
     ) -> ImportJob:
+        started = datetime.now(UTC)
         job = ImportJob(
             file_name=bhavcopy_name,
             status="running",
-            started_at=datetime.now(UTC),
-            details={"delivery_file": delivery_name},
+            started_at=started,
+            details={
+                "delivery_file": delivery_name,
+                "mode": mode,
+                "checksum": checksum or self._sha256(bhavcopy),
+            },
         )
         self.session.add(job)
         await self.session.flush()
@@ -53,21 +82,31 @@ class NSEImportService:
             delivery_map = (
                 parse_delivery(delivery, delivery_name or "delivery.csv") if delivery else {}
             )
-            records, errors = parse_bhavcopy(bhavcopy, bhavcopy_name, delivery_map)
-            if not records:
+            parsed = parse_bhavcopy_detailed(bhavcopy, bhavcopy_name, delivery_map)
+            if not parsed.records:
                 raise ValueError("No valid equity records found in the bhavcopy")
 
-            job.trade_date = records[0].trade_date
-            job.rows_read = len(records) + len(errors)
-            job.rows_rejected = len(errors)
-            inserted, updated = await self._upsert(records)
+            job.trade_date = parsed.records[0].trade_date
+            job.rows_read = len(parsed.records) + len(parsed.errors)
+            job.rows_rejected = len(parsed.errors)
+            inserted, updated = await self._upsert(parsed.records)
             job.rows_inserted = inserted
             job.rows_updated = updated
             job.status = "completed"
             job.details = {
                 "delivery_file": delivery_name,
-                "parse_errors": errors[:100],
-                "valid_rows": len(records),
+                "mode": mode,
+                "format": parsed.detected_format,
+                "rows_discovered": parsed.total_rows,
+                "rows_skipped_series": parsed.skipped_series,
+                "delivery_rows": parsed.delivery_rows,
+                "delivery_missing": parsed.delivery_missing,
+                "has_delivery_columns": parsed.has_delivery_columns,
+                "archive_path": archive_path,
+                "checksum": checksum or self._sha256(bhavcopy),
+                "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 2),
+                "parse_errors": parsed.errors[:100],
+                "valid_rows": len(parsed.records),
             }
             job.completed_at = datetime.now(UTC)
             await self.session.commit()
@@ -81,7 +120,12 @@ class NSEImportService:
                 rows_read=job.rows_read,
                 rows_rejected=job.rows_rejected,
                 error_message=str(exc),
-                details={"delivery_file": delivery_name},
+                details={
+                    "delivery_file": delivery_name,
+                    "mode": mode,
+                    "checksum": checksum or self._sha256(bhavcopy),
+                    "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 2),
+                },
                 started_at=job.started_at,
                 completed_at=datetime.now(UTC),
             )
@@ -89,6 +133,10 @@ class NSEImportService:
             await self.session.commit()
             await self.session.refresh(failed_job)
             return failed_job
+
+    @staticmethod
+    def _sha256(data: bytes) -> str:
+        return hashlib.sha256(data).hexdigest()
 
     async def _upsert(self, records: list[PriceRecord]) -> tuple[int, int]:
         symbols = sorted({record.symbol for record in records})
@@ -118,6 +166,10 @@ class NSEImportService:
                 "is_active": True,
                 "updated_at": datetime.now(UTC),
             },
+            where=or_(
+                Stock.series.is_distinct_from(stock_insert.excluded.series),
+                Stock.isin.is_distinct_from(stock_insert.excluded.isin),
+            ),
         )
         await self.session.execute(stock_insert)
         await self.session.flush()
@@ -179,6 +231,19 @@ class NSEImportService:
                 "delivery_percentage": price_insert.excluded.delivery_percentage,
                 "updated_at": datetime.now(UTC),
             },
+            where=or_(
+                DailyPrice.open.is_distinct_from(price_insert.excluded.open),
+                DailyPrice.high.is_distinct_from(price_insert.excluded.high),
+                DailyPrice.low.is_distinct_from(price_insert.excluded.low),
+                DailyPrice.close.is_distinct_from(price_insert.excluded.close),
+                DailyPrice.previous_close.is_distinct_from(price_insert.excluded.previous_close),
+                DailyPrice.last_price.is_distinct_from(price_insert.excluded.last_price),
+                DailyPrice.volume.is_distinct_from(price_insert.excluded.volume),
+                DailyPrice.turnover.is_distinct_from(price_insert.excluded.turnover),
+                DailyPrice.trade_count.is_distinct_from(price_insert.excluded.trade_count),
+                DailyPrice.delivery_quantity.is_distinct_from(price_insert.excluded.delivery_quantity),
+                DailyPrice.delivery_percentage.is_distinct_from(price_insert.excluded.delivery_percentage),
+            ),
         )
         await self.session.execute(price_insert)
 

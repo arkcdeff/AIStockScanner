@@ -1,60 +1,40 @@
-{% extends "base.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Notifications - AI Stock Scanner{% endblock %}
+{% block extra_head %}<link href="/static/css/notifications.css" rel="stylesheet">{% endblock %}
+{% block page_title %}Notifications{% endblock %}
 
-{% block extra_head %}
-<link href="/static/css/notifications.css" rel="stylesheet">
-{% endblock %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Notifications</h1>
+        <p class="page-subtitle">Notification system overview and delivery status</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/notifications/settings" class="btn btn-sm btn-outline-primary">Settings</a>
+        <a href="/notifications/history" class="btn btn-sm btn-outline-primary">History</a>
+    </div>
+</div>
 
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <nav class="col-md-2 d-md-block bg-light sidebar">{% include "components/sidebar.html" %}</nav>
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            {% include "components/navbar.html" %}
-            <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <div>
-                    <h1 class="h2 mb-1"><i class="bi bi-bell me-2"></i>Notifications</h1>
-                    <p class="text-muted mb-0">Delivery health, provider readiness and recent activity.</p>
-                </div>
-                <div class="btn-group mt-2 mt-md-0">
-                    <a href="/notifications/settings" class="btn btn-outline-primary"><i class="bi bi-gear me-1"></i>Settings</a>
-                    <a href="/notifications/history" class="btn btn-primary"><i class="bi bi-clock-history me-1"></i>Full history</a>
-                </div>
+<div id="notification-status">
+    {% include "notifications/components/status_cards.html" %}
+</div>
+
+<div class="row g-3 mt-3">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Providers</div>
+            <div class="card-body">
+                <div id="notification-providers">{% include "notifications/components/provider_cards.html" %}</div>
             </div>
-
-            <section id="notification-status" class="mb-4"
-                     hx-get="/notifications/status" hx-trigger="every 30s" hx-swap="innerHTML">
-                {% include "notifications/components/status_cards.html" %}
-            </section>
-
-            <section id="summary-scheduler-panel" class="mb-4">
-                {% set show_run_action = true %}
-                {% include "notifications/components/summary_scheduler.html" %}
-            </section>
-
-            <section class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h2 class="h5 mb-0">Providers</h2>
-                    <button class="btn btn-sm btn-outline-secondary" hx-get="/notifications/providers" hx-target="#provider-cards">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
-                <div id="provider-cards">{% include "notifications/components/provider_cards.html" %}</div>
-            </section>
-
-            <section class="card">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h2 class="h5 mb-0">Recent delivery history</h2>
-                    <button class="btn btn-sm btn-outline-secondary" hx-get="/notifications/recent" hx-target="#recent-history">
-                        <i class="bi bi-arrow-clockwise"></i> Refresh
-                    </button>
-                </div>
-                <div id="recent-history" class="card-body p-0" aria-live="polite">
-                    {% include "notifications/components/recent_history.html" %}
-                </div>
-            </section>
-        </main>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">Recent Deliveries</div>
+            <div class="card-body">
+                <div id="notification-recent">{% include "notifications/components/recent_history.html" %}</div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}

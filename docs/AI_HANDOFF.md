@@ -1,94 +1,75 @@
-# AI Handoff
+# AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-Snapshot of AIStockScanner after Sprint 17 backtesting reconciliation (Task 17.1 through 17.3
-verified, Task 17.4 quarantined as WIP). All work is uncommitted; do NOT commit/push/stash/reset/clean.
+## Sprint 20.0 UI/UX 2.0 Handoff
 
-## Workspace / environment
+- **Status**: `COMPLETE - AUDIT, DESIGN, AND DOCUMENTATION ONLY`
+- **Completed**: 2026-08-22
+- **Production code changed**: No
+- **Deliverables**:
+  - `docs/UI_UX_2_0_FEATURE_INVENTORY.md`
+  - `docs/UI_UX_2_0_INFORMATION_ARCHITECTURE.md`
+  - `docs/UI_UX_2_0_PAGE_SPECIFICATIONS.md`
+  - `docs/UI_UX_2_0_IMPLEMENTATION_PLAN.md`
+- **Principal finding**: The application has extensive implemented research capability, but advanced options/exposure, options opportunities, Stock360, fundamentals/news, opportunity board, and historical validation are hidden or poorly connected. `/market-data`, `/dashboard`, `/stocks/{symbol}`, and `/market-intelligence` are overloaded.
+- **P0 implementation sequence**: correct navigation and full-page destinations; separate Data Operations from Derivatives Research; repair scanner journey; productize Stock360 and hidden research partials; simplify Dashboard and Market Intelligence.
+- **Guardrail**: Future UI stages must reuse deterministic service/API output and must not change scores, analytics, models, migrations, or database data without separate approval.
 
-- Branch: `sprint-17-backtesting`
-- HEAD: `75640f4` (Sprint 16.8), tag `v0.12.1`
-- Working directory: `AIStockScanner/` (run via `uv run`)
-- Python 3.13, FastAPI, SQLAlchemy 2 async, PostgreSQL, Alembic
+---
 
-## What is verified complete
+**Authoritative Project Workspace:** `D:\SCTS\college_cert_sys_phase1\AIStockScanner_Stage1_2\AIStockScanner_Milestone2_3\AIStockScanner`
+**Current Version:** `0.14.0`
+**ORM Models:** **56**
+**Alembic Head:** `g7h8i9j0k1l2 (head)`
+**Pytest Collection:** **1309 tests** across 83 test modules
+**Full Test Suite:** 1309 passed, 0 failed, 0 errors, 0 skipped
+**Ruff Status:** 100% GREEN (`All checks passed!`)
 
-- **Task 17.1 — Backtesting database + domain foundation: COMPLETE**
-  - Models: `BacktestStrategy`, `BacktestRun`, `BacktestTrade`, `BacktestEquityPoint`, `BacktestMetric`
-  - Repository layer: `app/repositories/backtest.py` (create/get, get-by-code, list, status update, eager `get_with_details`, bulk inserts, metric upsert)
-  - Schemas: `app/schemas/backtest.py`; tests: `tests/test_backtest_models.py`
-  - Migration `d7b4cc79fd45` applied to dev + test DBs
-- **Task 17.2 — Historical NSE fetch + replay: VERIFIED** (audit + tests, no new downloader/mirror)
-  - `app/services/nse_historical.py`, `app/services/backtest_replay.py`, parsers, `tests/test_nse_historical.py` + `tests/test_backtest_replay.py` + `tests/test_nse_parser.py` + `tests/test_market_data.py`
-  - No-look-ahead guarantees (rows strictly `<= D`), 403 surfaced as `blocked_403`, no NSE bypass, manual local-file import preserved
-- **Task 17.3 — Trade simulation: COMPLETE (with bug fixes)**
-  - `app/services/backtest_simulator.py`: fixed `_close_position` exit-commission (was using `entry_slippage`; now uses `commission_rate`) and cash settlement (`cash += trade.net_pnl` in both normal-exit and end-of-backtest paths)
-  - `tests/test_backtest_simulator.py`: 23 tests covering entry modes, sizing, one-position-per-stock, duplicate-signal skip, exit conditions (stop/target/max_holding/opposite/end_of_backtest), cost math, equity curve, run-state and rerun rejection
-- **CLI regression (create_admin): FIXED**
-  - Root cause: prior Typer conversion deleted the module-level `_create_admin` and the int-returning `main(argv)` that `tests/test_auth_api.py` imports
-  - Fix in `app/cli/create_admin.py`: Typer app preserved AND legacy `main(argv) -> int` + async `_create_admin` restored
-  - `tests/test_auth_api.py::test_create_admin_cli_reads_password_from_environment_without_printing_it` now passes
-  - Added `main()` guards to `app/cli/import_nse.py`, `app/cli/nse_history.py`, `app/cli/backtest_replay.py`, `app/cli/backtest.py`; fixed an `app.db.session.async_session_factory()` reference bug in `app/cli/backtest.py`
+---
 
-## Quarantined as WIP (NOT verified / not yet tested)
+## 1. Executive Summary
 
-- **Task 17.4 — Performance metrics: WIP, UNVERIFIED**
-  - `app/services/backtest_metrics.py` (`BacktestMetricCalculator`) exists but has **no** tests and is **not wired** into the CLI/simulator. `_compute_benchmark_return` is a TODO stub returning `None`. Leave as-is; do not extend or ship as "complete".
+Sprint 19.1G-QA-PRELIVE (PRELIVE-R2 — Real Playwright Browser Certification) is **COMPLETE & CERTIFIED**.
 
-## Manual local-file NSE fallback (verified present)
+Key Real Browser QA Accomplishments:
+1. **Real Application Execution**:
+   - Running live Uvicorn app at `http://127.0.0.1:8004` against PostgreSQL.
+2. **Playwright Chromium E2E Automation**:
+   - Engine: Chromium `151.0.7922.34`.
+   - Login flow verified: Form POST at `/login` $\to$ redirect `303` $\to$ `/dashboard` $\to$ cookies (`access_token`, `refresh_token`) set and retained.
+3. **Real Page Rendering & Navigation**:
+   - 6/6 pages rendered at HTTP `200`: `/dashboard`, `/market-data`, `/market-data/coverage`, `/analytics`, `/stocks`, `/backtests`.
+4. **DOM Data & NO_TRADE UI Contract**:
+   - Verified presentation of `NO_TRADE` decision, reference ATM strike (`24550`), and `NONE` preferred actionable contract.
+   - Badge labels verified: `SOURCE: NSE OFFICIAL`, `MODE: REPLAY`, `MARKET_CLOSED`. No fake `LIVE` labels.
+5. **Responsive Real Viewports**:
+   - Desktop (1440x900), Tablet (768x1024), Mobile (390x844) verified with zero page-wide layout overflow.
+6. **Error Capture & Role Security**:
+   - 0 page errors, 0 500 errors, 0 404 errors, 0 HTMX failures.
+   - Unauthenticated browser access to `/dashboard` redirects to `/login`.
+7. **Code Status**:
+   - Production code changes: **NONE** (`CODE_CHANGED = NO`). Software test suite baseline preserved: **1309 / 1309 passed**.
 
-The project already provides a manual local-file import path through the existing NSE import
-infrastructure (no new downloader/mirror added). Used with historical bhavcopy CSV/ZIP files:
+---
 
-```bash
-uv run python -m app.cli.import_nse file <path-to-csv-or-zip>
-```
+## AI HANDOFF STATE
 
-- `file` subcommand: imports a local bhavcopy CSV/ZIP into `daily_prices` using the existing
-  alias-based parser (`app/services/nse_import.py` / parser ALIASES map).
-- Modern CM-UDiFF column names and legacy aliases are normalized; legacy pre-08-Jul-2024 formats
-  are supported by the same parser.
-- `date` and `latest` subcommands download from NSE; `file` is the manual/offline path used on
-  403 or air-gapped networks.
-- Replay and simulation read exclusively from already-imported `daily_prices`/`indicator_results`
-  rows, so historical runs work entirely from local data.
+- **Sprint**: `19.1J-R5-R2`
+- **Task**: Official Historical Source Discovery + Real Missing-Session Acquisition Pilot
+- **Status**: `19.1J-R5-R2 COMPLETE & AUDITED`
+- **Software Baseline**: ORM 56 | Alembic `g7h8i9j0k1l2` | 1310 / 1310 tests pass (100% PASS) | `CODE_CHANGED = NO`
+- **Remote Discovery Pilot**:
+  - Tested 4 Target Dates: `2025-09-15`, `2025-12-15`, `2026-03-16`, `2026-06-15`
+  - Direct Equity & F&O Historical ZIP Archives: `OFFICIAL_REMOTE_NOT_FOUND` (404 on official NSE historical paths)
+  - Participant OI (`fao_participant_oi_DDMMYYYY.csv`): `OFFICIAL_REMOTE_FOUND` (200 OK)
+  - FII Statistics (`fii_derivatives_DDMMYYYY.csv`): `OFFICIAL_REMOTE_NOT_FOUND` (404)
+- **Real Import Pilot**:
+  - Successfully acquired and imported 21 missing sessions of Participant OI data for June 2026 (`2026-06-01` to `2026-06-30`).
+  - DB Size Delta: +0.28 MB (+294,912 bytes).
+- **Readiness State**: `PARTIAL` / `INSUFFICIENT` across all strategy domains.
+- **Pending Action**: `R1D` market-hours real WebSocket live certification when Upstox / NSE market status is `NORMAL_OPEN`.
 
-## Verification (Step 8)
+---
 
-- `alembic current` = `alembic heads` = `d7b4cc79fd45 (head)`; `alembic check` = "No new upgrade operations detected."
-- `ruff check .` → All checks passed!
-- `pytest` three consecutive runs → **481 passed, 1 warning** each (warning is an unrelated Starlette/httpx deprecation in fastapi's TestClient).
-- `git diff --check` → clear (only benign LF→CRLF EOL-normalization warnings, no whitespace/error lines).
+## 2. Status Decision
 
-## Uncommitted change inventory
-
-Tracked & modified (` M`):
-- `.gitignore`, `CHANGELOG.md`, `app/cli/__init__.py`, `app/cli/create_admin.py`,
-  `app/cli/import_nse.py`, `app/cli/seed_auth.py`, `app/models/__init__.py`,
-  `app/models/stock.py`, `docs/05_Development/PROJECT_STATE.md`, `tests/conftest.py`,
-  `tests/test_nse_parser.py` (3 new parser format-proof tests added by me).
-
-Untracked (`??`, prior session + my additions):
-- `app/cli/backtest.py`, `app/cli/backtest_replay.py`, `app/cli/nse_history.py`,
-  `app/models/backtest.py`, `app/repositories/backtest.py`, `app/schemas/backtest.py`,
-  `app/services/backtest_metrics.py`, `app/services/backtest_replay.py`,
-  `app/services/backtest_simulator.py`, `app/services/nse_historical.py`,
-  `docs/05_Development/Sprint_17.md`,
-  `migrations/versions/d7b4cc79fd45_add_backtesting_foundation_tables.py`,
-  `tests/test_backtest_models.py`, `tests/test_backtest_replay.py`,
-  `tests/test_backtest_simulator.py` (rewritten with 23 tests by me),
-  `tests/test_nse_historical.py`.
-
-## Recommended next task
-
-**Task 17.4 completion (NOT yet started per WIP policy)**: add `tests/test_backtest_metrics.py`
-and wire `BacktestMetricCalculator.compute_metrics` into the backtest CLI/API. Until then leave the
-module quarantined — it computes metrics but is untested and uncalled.
-
-## Notes / gotchas
-
-- `BacktestRun.position_size_value` column is `NUMERIC(10,6)`; do not use values > 9999.99 in tests.
-- Stored `Decimal` columns round to 4 dp (prices) / 6 dp (rates); assert with +/- 1e-3 tolerance.
-- `signal_close` records `entry_date` as the *next* session (entry price uses the signal-date close).
-- On Windows the async test event loop must use `WindowsSelectorEventLoopPolicy`
-  (handled by `tests/conftest.py`); run pytest via `uv run pytest`, not bare `python -m pytest`.
-- Do NOT commit/push/stash/reset/clean — leave the working tree intact for the next AI.
+`19.1G-QA-PRELIVE COMPLETE & CERTIFIED` (Real Playwright browser E2E certification verified against running application; 1309/1309 tests green; real Upstox market-hours WebSocket certification R1D remains PENDING until NORMAL_OPEN).

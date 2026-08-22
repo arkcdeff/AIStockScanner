@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from app.models.index_membership import IndexMembership
     from app.models.market_index_price import MarketIndexPrice
 
 
@@ -38,6 +39,9 @@ class MarketIndex(TimestampMixin, Base):
 
     # Relationships
     index_prices: Mapped[list[MarketIndexPrice]] = relationship(
+        back_populates="market_index", cascade="all, delete-orphan"
+    )
+    memberships: Mapped[list[IndexMembership]] = relationship(
         back_populates="market_index", cascade="all, delete-orphan"
     )
 

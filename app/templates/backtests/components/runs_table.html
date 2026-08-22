@@ -45,7 +45,7 @@
                 </tbody>
             </table>
         </div>
-        {% if total_pages > 1 %}
+        {% if total_pages is defined and total_pages > 1 %}
         <div class="card-footer bg-white d-flex justify-content-between align-items-center">
             <span class="text-muted small">Page {{ page }} of {{ total_pages }}</span>
             <div class="btn-group btn-group-sm">

@@ -1,35 +1,67 @@
-/* Authentication UI */
+/* Authentication UI - uses design-system.css variables */
 
-.avatar-initials {
-    width: 22px;
-    height: 22px;
-    padding: 2px 0;
-    font-size: 0.75rem;
-    line-height: 1.1;
-    text-align: center;
-    display: inline-block;
-    vertical-align: middle;
+.auth-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--color-bg-secondary, #f8f9fa);
+    padding: var(--space-4, 1rem);
 }
 
 .auth-card {
-    max-width: 440px;
+    width: 100%;
+    max-width: 420px;
+    background: var(--color-bg-card, #fff);
+    border: 1px solid var(--color-border, #dee2e6);
+    border-radius: var(--radius-lg, 0.75rem);
+    box-shadow: var(--shadow-md, 0 4px 12px rgba(0,0,0,0.08));
+    padding: var(--space-8, 2rem);
 }
 
-.chip {
-    display: inline-block;
-    padding: 0.15rem 0.6rem;
-    margin: 0.1rem 0.2rem 0.1rem 0;
-    border-radius: 1rem;
-    font-size: 0.8rem;
+.auth-brand {
+    text-align: center;
+    margin-bottom: var(--space-6, 1.5rem);
 }
 
-.flash-message {
-    margin-top: 1rem;
+.auth-logo {
+    width: 64px;
+    height: 64px;
+    background: var(--color-primary-50, #eff6ff);
+    color: var(--color-primary, #3b82f6);
+    border-radius: var(--radius-lg, 0.75rem);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    margin: 0 auto var(--space-3, 0.75rem);
 }
 
-@media (prefers-color-scheme: dark) {
-    body[data-bs-theme="light"].theme-system-auto,
-    body[data-bs-theme="light"] {
-        color-scheme: light;
-    }
+.auth-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-text, #111827);
+    margin: 0 0 0.25rem;
+}
+
+.auth-subtitle {
+    color: var(--color-text-muted, #6b7280);
+    margin: 0;
+}
+
+.auth-footer {
+    text-align: center;
+    margin-top: var(--space-6, 1.5rem);
+    padding-top: var(--space-4, 1rem);
+    border-top: 1px solid var(--color-border, #dee2e6);
+}
+
+/* Dark mode support */
+[data-bs-theme="dark"] .auth-container {
+    background: var(--color-bg, #0f1117);
+}
+
+[data-bs-theme="dark"] .auth-card {
+    background: var(--color-surface, #1a1d23);
+    border-color: var(--color-border, #2d3340);
 }

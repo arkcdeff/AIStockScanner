@@ -11,6 +11,7 @@ from loguru import logger
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import settings
 from app.db.session import get_session_factory
 from app.models.daily_price import DailyPrice
 from app.models.eod_pipeline_run import EODPipelineRun
@@ -58,6 +59,7 @@ class EODPipelineService:
         bhavcopy_name: str,
         delivery: bytes | None = None,
         delivery_name: str | None = None,
+        run_scanners: bool | None = None,
     ) -> EODPipelineRun:
         async def _import(session: AsyncSession) -> Any:
             return await NSEImportService(session).import_bytes(
@@ -65,23 +67,36 @@ class EODPipelineService:
                 bhavcopy_name=bhavcopy_name,
                 delivery=delivery,
                 delivery_name=delivery_name,
+                mode="UPLOAD",
             )
 
-        return await self._run_pipeline(PIPELINE_SOURCE_FILE, _import)
+        return await self._run_pipeline(
+            PIPELINE_SOURCE_FILE, _import, run_scanners=run_scanners
+        )
 
-    async def run_from_date(self, trade_date: date) -> EODPipelineRun:
+    async def run_from_date(
+        self, trade_date: date, *, run_scanners: bool | None = None
+    ) -> EODPipelineRun:
         async def _import(session: AsyncSession) -> Any:
             path: Path = await asyncio.to_thread(self._download, trade_date)
-            return await NSEImportService(session).import_files(path)
+            return await NSEImportService(session).import_files(
+                path, mode="DATE_DOWNLOAD"
+            )
 
-        return await self._run_pipeline(PIPELINE_SOURCE_DATE, _import)
+        return await self._run_pipeline(
+            PIPELINE_SOURCE_DATE, _import, run_scanners=run_scanners
+        )
 
-    async def run_latest(self) -> EODPipelineRun:
+    async def run_latest(self, *, run_scanners: bool | None = None) -> EODPipelineRun:
         async def _import(session: AsyncSession) -> Any:
             _, path = await asyncio.to_thread(self._download_latest)
-            return await NSEImportService(session).import_files(path)
+            return await NSEImportService(session).import_files(
+                path, mode="AUTO_EOD"
+            )
 
-        return await self._run_pipeline(PIPELINE_SOURCE_LATEST, _import)
+        return await self._run_pipeline(
+            PIPELINE_SOURCE_LATEST, _import, run_scanners=run_scanners
+        )
 
     @staticmethod
     def _download(trade_date: date) -> Path:
@@ -99,7 +114,11 @@ class EODPipelineService:
         self,
         source: str,
         import_fn: Callable[[AsyncSession], Awaitable[Any]],
+        run_scanners: bool | None = None,
     ) -> EODPipelineRun:
+        should_run_scanners = (
+            settings.eod_scheduler_run_scanners if run_scanners is None else run_scanners
+        )
         async with get_session_factory()() as session:
             active = await session.scalar(
                 select(EODPipelineRun).where(EODPipelineRun.status == "running").limit(1)
@@ -172,15 +191,20 @@ class EODPipelineService:
             metrics["indicators_calculated"] = summary["calculated"]
             metrics["stocks_processed"] = int(stocks_processed)
 
-            # Stage 3: run all active scanners and persist results
+            # Stage 3: run all active scanners and persist results (toggleable)
             current_stage = "scanners"
-            await self._update(run_id, current_stage="scanners")
-            async with get_session_factory()() as session:
-                service = ScannerService(session)
-                results = await service.run_all()
-                await service.persist_results(results)
-            metrics["scanners_executed"] = len(results)
-            metrics["scanner_matches"] = sum(len(entries) for entries in results.values())
+            if should_run_scanners:
+                await self._update(run_id, current_stage="scanners")
+                async with get_session_factory()() as session:
+                    service = ScannerService(session)
+                    results = await service.run_all()
+                    await service.persist_results(results)
+                metrics["scanners_executed"] = len(results)
+                metrics["scanner_matches"] = sum(len(entries) for entries in results.values())
+            else:
+                await self._update(run_id, current_stage="scanners")
+                metrics["scanners_executed"] = 0
+                metrics["scanner_matches"] = 0
 
             # Stage 4: compute technical analytics for affected stocks
             current_stage = "analytics"

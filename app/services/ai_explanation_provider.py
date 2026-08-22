@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from abc import abstractmethod
+from datetime import UTC, datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -43,7 +44,7 @@ class AIExplanationResult(BaseModel):
         description="Structured explanation data (regime, scores, factors, etc.)",
     )
     generated_at: str = Field(
-        default_factory=lambda: __import__("datetime").datetime.utcnow().isoformat(),
+        default_factory=lambda: datetime.now(UTC).isoformat(),
         description="When the explanation was generated",
     )
     latency_ms: float | None = Field(

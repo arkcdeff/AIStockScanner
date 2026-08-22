@@ -1,22 +1,17 @@
-{% extends "layouts/app.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Sessions - AI Stock Scanner{% endblock %}
+{% block page_title %}Sessions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Active sessions</h1>
-</div>
-
-<div class="mb-3">
-    <form method="post" action="/sessions/revoke-all" hx-post="/sessions/revoke-all" hx-target="body" hx-swap="outerHTML">
+<div class="page-header">
+    <div><h1>Sessions</h1><p class="page-subtitle">Active login sessions</p></div>
+    <form method="post" action="/sessions/revoke-all">
         <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-        <button type="submit" class="btn btn-outline-danger" onclick="return confirm('Sign out all sessions, including this one?');">
-            <i class="bi bi-x-circle me-1"></i>Sign out all sessions
-        </button>
+        <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Sign out all sessions?')"><i class="bi bi-box-arrow-right me-1"></i>Revoke All</button>
     </form>
 </div>
 
-<div id="sessions-table">
-    {% include "auth/components/sessions_table.html" %}
+<div class="card">
+    <div class="card-body">{% include "auth/components/sessions_table.html" %}</div>
 </div>
 {% endblock %}

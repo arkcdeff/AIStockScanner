@@ -15,12 +15,8 @@ class Settings(BaseSettings):
     api_v1_prefix: str = "/api/v1"
     log_level: str = "INFO"
 
-    database_url_async: str = Field(
-        default="postgresql+asyncpg://postgres:postgres@localhost:5432/ai_stock_scanner"
-    )
-    database_url_sync: str = Field(
-        default="postgresql+psycopg://postgres:postgres@localhost:5432/ai_stock_scanner"
-    )
+    database_url_async: str = Field()
+    database_url_sync: str = Field()
     database_echo: bool = False
     database_pool_size: int = 10
     database_max_overflow: int = 20
@@ -35,12 +31,30 @@ class Settings(BaseSettings):
     max_upload_size: int = 50 * 1024 * 1024
     base_dir: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[2])
 
+    # Multi-source market data & Upstox read-only provider configuration
+    upstox_analytics_token: str = Field(default="", validation_alias="UPSTOX_ANALYTICS_TOKEN")
+    upstox_base_url: str = Field(default="https://api.upstox.com/v2")
+    upstox_v3_base_url: str = Field(default="https://api.upstox.com/v3")
+    upstox_v3_feed_authorize_url: str = Field(default="https://api.upstox.com/v3/feed/market-data-feed/authorize")
+    upstox_ws_url: str = Field(default="wss://api.upstox.com/v3/feed/market-data-feed")
+    live_mode: str = Field(default="LIVE_READ_ONLY")
+
+    freshness_live_seconds: float = 5.0
+    freshness_delayed_seconds: float = 30.0
+    freshness_stale_seconds: float = 30.0
+
     eod_scheduler_enabled: bool = False
     eod_scheduler_timezone: str = "Asia/Kolkata"
     eod_scheduler_hour: int = 18
     eod_scheduler_minute: int = 30
     eod_scheduler_max_instances: int = 1
     eod_scheduler_coalesce: bool = True
+    eod_scheduler_retry_enabled: bool = True
+    eod_scheduler_max_retries: int = 3
+    eod_scheduler_retry_minutes: int = 15
+    eod_scheduler_run_scanners: bool = True
+    eod_scheduler_auto_catchup: bool = False
+    eod_scheduler_catchup_max_days: int = 7
 
     ai_provider: str = "mock"
     ai_timeout: int = 60

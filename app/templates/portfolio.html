@@ -1,91 +1,46 @@
-{% extends "base.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Portfolio - AI Stock Scanner{% endblock %}
+{% block page_title %}Portfolio{% endblock %}
 
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <nav class="col-md-2 d-md-block bg-light sidebar">
-            {% include "components/sidebar.html" %}
-        </nav>
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            {% include "components/navbar.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Portfolio</h1>
+        <p class="page-subtitle">Track your holdings and performance</p>
+    </div>
+</div>
 
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="bi bi-briefcase me-2"></i>Portfolio</h1>
-                <form method="post" action="/portfolio" class="row g-2 align-items-center">
-                    <div class="col-auto">
-                        <input type="text" class="form-control form-control-sm" name="account_name" placeholder="Account name">
-                    </div>
-                    <div class="col-auto">
-                        <input type="text" class="form-control form-control-sm" name="broker" placeholder="Broker">
-                    </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-primary btn-sm">
-                            <i class="bi bi-plus-lg me-1"></i>Create Portfolio
-                        </button>
-                    </div>
+{% include "components/flash.html" %}
+
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="card mb-3">
+            <div class="card-header"><i class="bi bi-plus-circle me-1"></i> Create Portfolio</div>
+            <div class="card-body">
+                <form method="post" action="/portfolio">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                    <div class="mb-2"><input type="text" class="form-control form-control-sm" name="name" placeholder="Portfolio name" required></div>
+                    <button type="submit" class="btn btn-sm btn-primary w-100">Create</button>
                 </form>
             </div>
-
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card text-white bg-primary">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-cash-stack me-1"></i> Total Value</h6>
-                            <h3 class="card-text">{{ '%.2f'|format(summary.total_value) }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-success">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-graph-up-arrow me-1"></i> Today's Profit</h6>
-                            <h3 class="card-text {% if summary.today_pl < 0 %}text-danger{% endif %}">{{ '%.2f'|format(summary.today_pl) }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-info">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-pie-chart me-1"></i> Total P/L</h6>
-                            <h3 class="card-text {% if summary.total_pl < 0 %}text-danger{% endif %}">{{ '%.2f'|format(summary.total_pl) }}</h3>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card text-white bg-warning">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-percent me-1"></i> ROI</h6>
-                            <h3 class="card-text">{{ '%.2f'|format(summary.total_roi_pct) }}%</h3>
-                        </div>
-                    </div>
-                </div>
+        </div>
+        {% for p in portfolios %}
+        <a href="/portfolio?selected={{ p.id }}" class="card mb-2 text-decoration-none {{ 'border-primary' if selected_portfolio and selected_portfolio.id == p.id else '' }}">
+            <div class="card-body py-2 px-3">
+                <div class="fw-semibold">{{ p.name }}</div>
+                <small class="text-muted">{{ p.holdings|length }} holdings</small>
             </div>
-
-            <div class="row">
-                <div class="col-md-3">
-                    {% for pf in portfolios %}
-                    <div class="card mb-2 {% if selected_portfolio and pf.id == selected_portfolio.id %}border-primary{% endif %}">
-                        <div class="card-body py-2 d-flex align-items-center justify-content-between">
-                            <a href="/portfolio?selected={{ pf.id }}" class="text-decoration-none fw-bold">
-                                <i class="bi bi-briefcase me-1"></i>{{ pf.account_name or pf.broker or ('Portfolio ' ~ pf.id) }}
-                            </a>
-                            <form method="post" action="/portfolio/{{ pf.id }}/delete" onsubmit="return confirm('Delete portfolio?');">
-                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                            </form>
-                        </div>
-                    </div>
-                    {% else %}
-                    <div class="alert alert-light">No portfolios yet.</div>
-                    {% endfor %}
-                </div>
-
-                <div class="col-md-9">
-                    {% include "components/portfolio_detail.html" %}
-                </div>
-            </div>
-        </main>
+        </a>
+        {% endfor %}
+    </div>
+    <div class="col-lg-8">
+        {% if selected_portfolio %}
+            {% include "components/portfolio_detail.html" %}
+        {% else %}
+            <div class="card"><div class="card-body">
+                <div class="empty-state"><i class="bi bi-briefcase"></i><p>Select a portfolio or create one.</p></div>
+            </div></div>
+        {% endif %}
     </div>
 </div>
 {% endblock %}

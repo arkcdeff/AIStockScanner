@@ -1,103 +1,50 @@
-{% extends "base.html" %}
+{% extends "layouts/shell.html" %}
+{% block title %}{{ symbol }} - AI Stock Scanner{% endblock %}
+{% block extra_head %}<link href="/static/css/stock_detail.css" rel="stylesheet">{% endblock %}
+{% block page_title %}{{ symbol }}{% endblock %}
 
-{% block title %}{{ stock.symbol }} - AI Stock Scanner{% endblock %}
-
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <!-- Sidebar -->
-        <nav class="col-md-2 d-md-block bg-light sidebar">
-            {% include "components/sidebar.html" %}
-        </nav>
-
-        <!-- Main Content -->
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            <!-- Navbar -->
-            {% include "components/navbar.html" %}
-
-            <!-- Page Title -->
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <div>
-                    <h1 class="h2">{{ stock.symbol }}</h1>
-                    <p class="text-muted mb-0">{{ stock.company_name }} | {{ sector_name or 'N/A' }} | {{ stock.industry or 'N/A' }}</p>
-                </div>
-                <div class="btn-group">
-                    <button class="btn btn-sm btn-outline-primary" onclick="document.body.dispatchEvent(new Event('refresh'))">
-                        <i class="bi bi-arrow-clockwise me-1"></i>Refresh
-                    </button>
-                </div>
-            </div>
-
-            <!-- Stock Overview -->
-            <div id="stock-overview-panel" hx-get="/stocks/{{ stock.symbol }}/overview" hx-trigger="refresh from:body" hx-swap="innerHTML">
-                {% include "components/stock_overview.html" %}
-            </div>
-
-            <!-- Price Chart -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    {% include "components/price_chart.html" with context %}
-                </div>
-            </div>
-
-            <!-- AI Explanation -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div id="stock-ai-panel" hx-get="/stocks/{{ stock.symbol }}/ai" hx-trigger="refresh from:body" hx-swap="innerHTML">
-                        {% include "components/stock_ai.html" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Technical Analytics -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div id="stock-analytics-panel" hx-get="/stocks/{{ stock.symbol }}/analytics" hx-trigger="refresh from:body" hx-swap="innerHTML">
-                        {% include "components/stock_analytics.html" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Indicator Cards -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div id="stock-indicators-panel" hx-get="/stocks/{{ stock.symbol }}/indicators" hx-trigger="refresh from:body" hx-swap="innerHTML">
-                        {% include "components/indicator_cards.html" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Scanner Matches -->
-            <div class="row mt-4">
-                <div class="col-12">
-                    <div id="stock-scanner-matches-panel" hx-get="/stocks/{{ stock.symbol }}/scanner-results" hx-trigger="refresh from:body" hx-swap="innerHTML">
-                        {% include "components/stock_scanner_matches.html" %}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Watchlist / Portfolio / Alerts -->
-            <div class="row mt-4">
-                <div class="col-lg-4">
-                    {% include "components/stock_watchlist_panel.html" %}
-                </div>
-                <div class="col-lg-4">
-                    {% include "components/stock_portfolio_panel.html" %}
-                </div>
-                <div class="col-lg-4">
-                    {% include "components/stock_alerts_panel.html" %}
-                </div>
-            </div>
-
-            <!-- Recent Notifications -->
-            <div class="row mt-4">
-                <div class="col-12" id="stock-notifications-panel"
-                     hx-get="/stocks/{{ stock.symbol }}/notifications"
-                     hx-trigger="refresh from:body" hx-swap="innerHTML">
-                    {% include "components/stock_notifications_panel.html" %}
-                </div>
-            </div>
-        </main>
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>{{ symbol }}</h1>
+        <p class="page-subtitle">{{ company_name or '' }}</p>
     </div>
+    <a href="/stocks" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Back to Stocks</a>
+</div>
+
+<ul class="nav nav-tabs mb-3" id="stockTabs">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#analytics">Analytics</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ai">AI</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#indicators">Indicators</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#scanners">Scanners</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#portfolio">Portfolio</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#alerts">Alerts</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#notifications">Notifications</a></li>
+</ul>
+
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="overview">
+        <div class="row g-3">
+            <div class="col-lg-8">
+                <div class="card" id="chart-container" style="min-height:500px;">
+                    <div class="card-header">Price Chart</div>
+                    <div class="card-body p-0">
+                        <div id="stock-chart"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div id="stock-overview-panel">{% include "components/stock_overview.html" %}</div>
+            </div>
+        </div>
+    </div>
+    <div class="tab-pane fade" id="analytics"><div id="stock-analytics-panel">{% include "components/stock_analytics.html" %}</div></div>
+    <div class="tab-pane fade" id="ai"><div id="stock-ai-panel">{% include "components/stock_ai.html" %}</div></div>
+    <div class="tab-pane fade" id="indicators"><div id="stock-indicators-panel">{% include "components/indicator_cards.html" %}</div></div>
+    <div class="tab-pane fade" id="scanners"><div id="stock-scanners-panel">{% include "components/stock_scanner_matches.html" %}</div></div>
+    <div class="tab-pane fade" id="portfolio"><div id="stock-portfolio-panel">{% include "components/stock_portfolio_panel.html" %}</div></div>
+    <div class="tab-pane fade" id="alerts"><div id="stock-alerts-panel">{% include "components/stock_alerts_panel.html" %}</div></div>
+    <div class="tab-pane fade" id="notifications"><div id="stock-notifications-panel">{% include "components/stock_notifications_panel.html" %}</div></div>
 </div>
 {% endblock %}

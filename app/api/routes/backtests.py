@@ -82,7 +82,7 @@ async def _validate_scanner_code(session: AsyncSession, scanner_code: str | None
     )
     if scan_def is None or not scan_def.is_active:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="scanner_code must reference an active scanner",
         )
 
@@ -280,7 +280,7 @@ async def create_run(
     strategy = await _get_strategy_or_404(session, payload.strategy_id)
     if not strategy.is_active:
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Strategy is inactive"
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT, detail="Strategy is inactive"
         )
     await _validate_scanner_code(session, strategy.scanner_code)
     if payload.benchmark_symbol:
@@ -289,12 +289,12 @@ async def create_run(
         )
         if benchmark is None or not benchmark.is_active:
             raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
                 detail="benchmark_symbol must reference an active stock",
             )
     if payload.end_date > date.today():
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="end_date cannot be in the future",
         )
 

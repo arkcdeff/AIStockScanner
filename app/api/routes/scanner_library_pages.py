@@ -42,6 +42,7 @@ async def scanner_library_page(
         {
             "request": request,
             "grouped": dict(grouped),
+            "scanners_by_category": dict(grouped),
             "total_scanners": len(definitions),
         },
     )

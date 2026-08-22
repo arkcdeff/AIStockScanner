@@ -16,4 +16,9 @@ build/
 dist/
 *.egg-info/
 data/raw/
+scratch/
+/20260727_BSE.csv
+/20260727_NSE.csv
+/20260728_BSE.csv
+/20260728_NSE.csv
 admin_password.txt

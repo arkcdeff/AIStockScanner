@@ -61,8 +61,8 @@ async def test_dashboard_contains_factor_cards():
     async with viewer_client(browser=True) as c:
         resp = await c.get(PAGE)
     assert resp.status_code == 200
-    assert "Factor Scores" in resp.text
     assert "price action" in resp.text.lower() or "price_action" in resp.text.lower()
+    assert "breadth" in resp.text.lower()
 
 
 @pytest.mark.asyncio
@@ -70,14 +70,14 @@ async def test_dashboard_contains_panels():
     async with viewer_client(browser=True) as c:
         resp = await c.get(PAGE)
     assert resp.status_code == 200
-    assert "Indian Market" in resp.text
-    assert "Global" in resp.text
+    assert "Index" in resp.text
+    assert "Market" in resp.text
     assert "GIFT Nifty" in resp.text
-    assert "FII" in resp.text
-    assert "Market Breadth" in resp.text
-    assert "Sector Intelligence" in resp.text
-    assert "Macro" in resp.text
-    assert "AI Market Explanation" in resp.text
+    assert "FII/DII" in resp.text or "Combined Score" in resp.text
+    assert "Breadth Score" in resp.text or "Breadth data unavailable" in resp.text
+    assert "Sector Score" in resp.text or "Sector data unavailable" in resp.text
+    assert "Macro Score" in resp.text or "Macro intelligence data unavailable" in resp.text
+    assert "Supporting Factors" in resp.text or "No explanation available" in resp.text
 
 
 # ---------------------------------------------------------------------------

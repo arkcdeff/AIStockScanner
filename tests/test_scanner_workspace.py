@@ -9,7 +9,7 @@ async def test_scanner_results_page() -> None:
         response = await client.get("/scanner-results/")
     assert response.status_code == 200
     assert "text/html" in response.headers["content-type"]
-    assert "Scanner Results Workspace" in response.text
+    assert "Scanner Results" in response.text
 
 
 @pytest.mark.asyncio

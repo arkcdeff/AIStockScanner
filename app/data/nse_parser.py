@@ -65,6 +65,26 @@ DELIVERY_ALIASES: dict[str, tuple[str, ...]] = {
     "percentage": ("DELIV_PER", "DELIVERYPERCENTAGE", "DLVRYPER"),
 }
 
+# Detected source formats. ``detect_format`` distinguishes these so the
+# import pipeline can record exactly what it consumed.
+FORMAT_LEGACY = "legacy"
+FORMAT_UDIFF = "udiff"
+FORMAT_CM_UDIFF = "cm_udiff"
+FORMAT_DELIVERY = "delivery"
+FORMAT_UNKNOWN = "unknown"
+
+
+@dataclass(frozen=True, slots=True)
+class BhavcopyParseResult:
+    records: list[PriceRecord]
+    errors: list[str]
+    total_rows: int
+    skipped_series: int
+    detected_format: str
+    delivery_rows: int
+    delivery_missing: int
+    has_delivery_columns: bool = False
+
 
 def _normalise_header(value: str) -> str:
     return "".join(ch for ch in value.strip().upper() if ch.isalnum() or ch == "_")
@@ -132,6 +152,65 @@ def _rows(payload: bytes, file_name: str) -> list[dict[str, str]]:
     return result
 
 
+def detect_format(file_name: str, payload: bytes) -> str:
+    """Identify the source format of an NSE bhavcopy/delivery file."""
+    try:
+        text = _read_csv_bytes(payload, file_name)
+    except (NSEParseError, UnicodeDecodeError, zipfile.BadZipFile, NotImplementedError):
+        return FORMAT_UNKNOWN
+    header_line = text.splitlines()[0] if text.splitlines() else ""
+    headers = {_normalise_header(part) for part in header_line.split(",")}
+    if not headers:
+        return FORMAT_UNKNOWN
+    has_delivery = any(alias in headers for alias in DELIVERY_ALIASES["quantity"]) or any(
+        alias in headers for alias in DELIVERY_ALIASES["percentage"]
+    )
+    has_prices = any(alias in headers for alias in ALIASES["open"]) and any(
+        alias in headers for alias in ALIASES["close"]
+    )
+    if has_delivery:
+        if not has_prices:
+            return FORMAT_DELIVERY
+        return FORMAT_LEGACY if "SYMBOL" in headers else FORMAT_CM_UDIFF
+    if "SYMBOL" in headers or "TIMESTAMP" in headers:
+        return FORMAT_LEGACY
+    if "TCKRSYMB" in headers or "SCTYSRS" in headers:
+        if "LASTPRIC" in headers:
+            return FORMAT_CM_UDIFF
+        return FORMAT_UDIFF
+    return FORMAT_UNKNOWN
+
+
+def _same_file_delivery(
+    rows: list[dict[str, str]],
+) -> tuple[dict[tuple[str, str], DeliveryRecord] | None, int]:
+    """Build a delivery map from bhavcopy rows that already carry delivery columns."""
+    has_columns = any(
+        _value(row, DELIVERY_ALIASES["quantity"]) is not None
+        or _value(row, DELIVERY_ALIASES["percentage"]) is not None
+        for row in rows
+    )
+    if not has_columns:
+        return None, 0
+    records: dict[tuple[str, str], DeliveryRecord] = {}
+    for row in rows:
+        try:
+            symbol = _value(row, DELIVERY_ALIASES["symbol"])
+            if not symbol:
+                continue
+            series = (_value(row, DELIVERY_ALIASES["series"]) or "EQ").upper()
+            quantity = _integer(_value(row, DELIVERY_ALIASES["quantity"]), "delivery quantity")
+            percentage = _decimal(
+                _value(row, DELIVERY_ALIASES["percentage"]), "delivery percentage"
+            )
+            records[(symbol.upper(), series)] = DeliveryRecord(
+                symbol=symbol.upper(), series=series, quantity=quantity, percentage=percentage
+            )
+        except NSEParseError:
+            continue
+    return records, len(records)
+
+
 def parse_delivery(
     payload: bytes, file_name: str = "delivery.csv"
 ) -> dict[tuple[str, str], DeliveryRecord]:
@@ -157,16 +236,51 @@ def parse_bhavcopy(
     delivery: dict[tuple[str, str], DeliveryRecord] | None = None,
     allowed_series: set[str] | None = None,
 ) -> tuple[list[PriceRecord], list[str]]:
+    """Parse a bhavcopy file into (records, errors).
+
+    Kept for backward compatibility; use :func:`parse_bhavcopy_detailed` for
+    full reporting (format, skipped series, delivery coverage).
+    """
+    result = parse_bhavcopy_detailed(
+        payload, file_name=file_name, delivery=delivery, allowed_series=allowed_series
+    )
+    return result.records, result.errors
+
+
+def parse_bhavcopy_detailed(
+    payload: bytes,
+    file_name: str = "bhavcopy.csv",
+    delivery: dict[tuple[str, str], DeliveryRecord] | None = None,
+    allowed_series: set[str] | None = None,
+) -> BhavcopyParseResult:
+    """Parse a bhavcopy file with full audit reporting.
+
+    Delivery columns embedded in the same file (DELIV_QTY / DELIV_PER) are
+    merged into the price records; an explicit ``delivery`` map takes
+    precedence when both sources are present.
+    """
     delivery = delivery or {}
     allowed_series = allowed_series or {"EQ", "BE", "BZ", "SM", "ST"}
+    detected_format = detect_format(file_name, payload)
+
+    rows = _rows(payload, file_name)
+    same_file_delivery, same_file_delivery_rows = _same_file_delivery(rows)
+    effective_delivery: dict[tuple[str, str], DeliveryRecord] = {}
+    if same_file_delivery:
+        effective_delivery.update(same_file_delivery)
+    effective_delivery.update(delivery)
+
     records: list[PriceRecord] = []
     errors: list[str] = []
+    skipped_series = 0
+    delivery_missing = 0
 
-    for row_number, row in enumerate(_rows(payload, file_name), start=2):
+    for row_number, row in enumerate(rows, start=2):
         try:
             symbol = _value(row, ALIASES["symbol"], required=True).upper()  # type: ignore[union-attr]
             series = (_value(row, ALIASES["series"]) or "EQ").upper()
             if series not in allowed_series:
+                skipped_series += 1
                 continue
             trade_date = _date(_value(row, ALIASES["trade_date"], required=True))  # type: ignore[arg-type]
             open_price = _decimal(
@@ -182,7 +296,9 @@ def parse_bhavcopy(
             assert close is not None and volume is not None
             if min(open_price, high, low, close) < 0 or high < low or volume < 0:
                 raise NSEParseError("Invalid OHLC or volume values")
-            delivery_record = delivery.get((symbol, series))
+            delivery_record = effective_delivery.get((symbol, series))
+            if delivery_record is None:
+                delivery_missing += 1
             records.append(
                 PriceRecord(
                     symbol=symbol,
@@ -206,7 +322,16 @@ def parse_bhavcopy(
             )
         except (NSEParseError, AssertionError) as exc:
             errors.append(f"Row {row_number}: {exc}")
-    return records, errors
+    return BhavcopyParseResult(
+        records=records,
+        errors=errors,
+        total_rows=len(rows),
+        skipped_series=skipped_series,
+        detected_format=detected_format,
+        delivery_rows=same_file_delivery_rows + len(delivery),
+        delivery_missing=delivery_missing,
+        has_delivery_columns=same_file_delivery is not None,
+    )
 
 
 def load_bytes(path: str | Path | BinaryIO) -> tuple[bytes, str]:

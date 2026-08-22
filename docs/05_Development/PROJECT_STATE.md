@@ -1,7 +1,8 @@
 # Project State
 
-AIStockScanner after Sprint 18 Task 18.12 (Scheduler + Notifications + v0.14.0 Release) — COMPLETE & VERIFIED. Sprint 18 COMPLETE.
-Sprint 17 was released as v0.13.0. Latest alembic head: `5f7b2c9d4e3a`.
+AIStockScanner after Sprint 19 Task 19.1J (Real Historical Data Expansion + Coverage Certification Engine) COMPLETE & VERIFIED (1283 tests). Sprint 18 COMPLETE (released v0.14.0). Sprint 19 IN PROGRESS.
+Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest alembic head: `g7h8i9j0k1l2`.
+
 
 ## Stack
 
@@ -12,38 +13,29 @@ Sprint 17 was released as v0.13.0. Latest alembic head: `5f7b2c9d4e3a`.
 
 ## Data
 
-- 37 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 51 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
   NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
   UserSession, UserPreference, AuditLog, BacktestStrategy, BacktestRun, BacktestTrade,
   BacktestEquityPoint, BacktestMetric, MarketIndex, MarketIndexPrice, InstitutionalFlow,
-  MarketIntelligenceSnapshot
-- 18 indicator series per stock/date stored in `indicator_results`
-- 36 active scanners registered in `app/services/scanner_engine.py`
-- `scan_results` is unique on `(scan_definition_id, stock_id, scan_date)`
-- `technical_analysis` stores composite scores, pivots, ratings, and trend/breakout flags
-- `ai_explanations` is unique on `(stock_id, trade_date, provider)`
-- `watchlist_stocks` is unique on `(watchlist_id, stock_id)`
-- `holdings` is unique on `(portfolio_id, stock_id)`
-- Notification channel names and channel/event preferences are unique
-- `daily_summary_runs.summary_date` is unique, preventing duplicate summary execution per date
-- Auth: `users` with `is_superuser`, `is_active`, `is_verified`; `user_sessions` with revocation;
-  `audit_logs` with JSON metadata
-- Auth: `roles`, `permissions`, `user_roles`, `role_permissions` for RBAC
-- Backtesting: `backtest_strategies` (unique code), `backtest_runs`, `backtest_trades`,
-  `backtest_equity_points` (unique run+date), `backtest_metrics` (unique run)
+  MarketIntelligenceSnapshot, TradingAccount, TradingOrder, TradingExecution, TradingPosition,
+  SecurityAlias, CorporateAction, IndexMembership, DataQualityIssue, DerivativeContract,
+  DerivativeLotSizeHistory, DerivativeDailyPrice, DerivativeParticipantPosition, FiiDerivativeStatistic
 
 ## Migrations
 
-- Alembic current: `25e6f159a646 (head)`
-- Alembic heads: `25e6f159a646 (head)`
-- Linear history: 17 revisions
+- Alembic current: `e91f4a5678ab (head)`
+- Alembic heads: `e91f4a5678ab (head)`
+- Linear history: 24 revisions
 - Sprint 17 Task 17.1 migration: backtesting foundation tables (strategies, runs, trades, equity_points, metrics)
 - Sprint 18 Task 18.1 migration `25e6f159a646`: market intelligence foundation tables
-  (market_indices, market_index_prices, institutional_flows, market_intelligence_snapshots)
-- Sprint 18 Tasks 18.3–18.5 extend/reuse the existing market-intelligence tables and catalog;
-  migrations created after Task 18.1: NONE
+- Sprint 18 Task 18.8 migration `5f7b2c9d4e3a`: econ_events table
+- Sprint 19 Task 19.1 migration `95a0be65d4a7`: trading foundation tables
+- Sprint 19 Task 19.1C migration `ac9c6a6767be`: historical data core tables (security_aliases, corporate_actions, index_memberships, data_quality_issues, stocks.lifecycle_status)
+- Sprint 19 Task 19.1D-1 migration `b71d9e2a3456`: derivative contract master tables (derivative_contracts, derivative_lot_size_histories)
+- Sprint 19 Task 19.1D-2 migration `c82e3f4a5678`: derivative daily prices table (derivative_daily_prices)
+- Sprint 19 Task 19.1D-7 migration `e91f4a5678ab`: derivative participant tables (derivative_participant_positions, fii_derivative_statistics)
 
 ## EOD pipeline
 
@@ -204,8 +196,13 @@ Sprint 17 was released as v0.13.0. Latest alembic head: `5f7b2c9d4e3a`.
 
 - Real PostgreSQL test persistence with database cleanup between tests
 - Scan definitions are seeded idempotently
-- **810 total tests passing**,
+- **1100 total tests passing**,
   three consecutive full-suite passes
+- 34 Task 19.1A tests in `tests/test_market_data_19a.py` covering format detection, parser +
+  delivery merge, importer audit fields, upload archival, coverage, readiness, status, backfill
+  API validation, CSRF/security, page actions, pipeline scanner-skip, and scheduler retry/catch-up
+- 34 Task 19.1 tests in `tests/test_trading_foundation.py` (order lifecycle, live rejection,
+  idempotency, Decimal precision, time-aware timestamps, backtest separation)
 - 31 Sprint 18 Task 18.5 tests: 13 in `tests/test_institutional_intelligence.py` covering
   FII/FPI and DII exact labels/unit/dataset, Decimal net recomputation, 1/3/5/20-session rollups,
   FII 65%/DII 35% weighting, missing-not-zero, one bulk query, ordered provider/DB fallback,
@@ -306,7 +303,38 @@ Sprint 17 was released as v0.13.0. Latest alembic head: `5f7b2c9d4e3a`.
 
 ## Current Sprint
 
-Sprint 18: Market Intelligence — IN PROGRESS
+Sprint 19: Trading Foundation & Paper Trading — IN PROGRESS
+- Task 19.1A — NSE Market Data Ingestion + Historical Backfill + EOD Automation —
+  **COMPLETE & VERIFIED**. Root cause of the owner complaint was the **UI layer** (hardcoded
+  `nse_download_blocked`, no CSRF/size guards, no download/backfill/coverage UX). Unified UI,
+  REST API, CLI, and scheduler onto one code path via `MarketDataService`
+  (`app/services/market_data_service.py`): upload archival (`data/raw/nse/YYYY/MM` + `.sha256`
+  sidecar), date/latest download+import, range backfill of missing weekdays (≤ `MAX_RANGE_DAYS`),
+  per-day coverage, scanner readiness (20/50/100/200-session), data status. Parser
+  `detect_format` (legacy/UDiFF/CM-UDiFF/delivery) + `parse_bhavcopy_detailed` with same-day
+  delivery merge; importer mode constants + full audit `details`. New REST endpoints
+  `POST /backfill`, `GET /coverage`, `GET /readiness`, `GET /status`; rewritten
+  `market_data_pages.py` with CSRF/size-guarded writes + flash alerts + HTMX partials;
+  `market_data.html` reworked + `market_coverage_table.html` (new) +
+  `market_imports_table.html` (enhanced). EOD: pipeline `run_scanners` gate; scheduler bounded
+  import-stage retry (max 3, every 15 min) + startup catch-up (auto, 7-day window); new config
+  `eod_scheduler_{retry_enabled,max_retries,retry_minutes,run_scanners,auto_catchup,
+  catchup_max_days}`. CLI `range`/`missing`/`status`. 34 tests in `tests/test_market_data_19a.py`
+  (zero live network); full suite **1100 passed ×3**; ruff + alembic (head `95a0be65d4a7`, no
+  migration) + import + diff gates clean. Real owner files `20260727_NSE.csv` /
+  `20260728_NSE.csv` parse with 0 errors (legacy; EQ/BE/BZ/SM/ST imported; GB/bond skipped;
+  no delivery columns). BSE files out of scope. Guide: `docs/MARKET_DATA_GUIDE.md`.
+- Task 19.1 — Trading Foundation (PAPER ONLY) — **COMPLETE & VERIFIED** (no live broker, no execution
+  engine, no risk, no signal-to-order, no API/UI). Four SQLAlchemy 2.0 models (`TradingAccount`,
+  `TradingOrder`, `TradingExecution`, `TradingPosition`) with enums as `str` tuples + `CheckConstraint`,
+  Decimal money, integer quantity, aware timestamps; live execution mode hard-rejected at both
+  account- and order-creation; `TradingOrder` lifecycle NEW→PARTIALLY_FILLED→FILLED/REJECTED/CANCELLED/
+  CANCEL_PENDING/REPLACED with explicit `ORDER_STATUS_TRANSITIONS`; idempotent order creation on
+  `(account_id, client_order_id)`; repositories (`app/repositories/trading.py`), schemas
+  (`app/schemas/trading.py`, 3-layer + validators), `TradingAccountService`/`TradingOrderService`
+  (`app/services/trading_foundation.py`); one Alembic migration `95a0be65d4a7` (single head);
+  34 focused tests; full suite **1066 passed ×3**; ruff + alembic + import + diff gates clean.
+  Positions are persistence-only (no avg-price recompute or P&L — deferred to Task 19.4+).
 - Task 18.1 — Market Intelligence Foundation — COMPLETE & VERIFIED (models, repositories, schemas,
   migration 25e6f159a646, provider interfaces, freshness/status conventions, configuration,
   72 foundation tests; full suite 642 passed x3; ruff + alembic gates clean). Do NOT fetch every
@@ -388,4 +416,11 @@ Sprint 18: Market Intelligence — IN PROGRESS
 ## Next Task
 
 Sprint 18 — Market Intelligence — COMPLETE & RELEASED as **v0.14.0**.
-Tasks 18.1–18.12 all COMPLETE & VERIFIED. No Sprint 19 work started.
+Tasks 18.1–18.12 all COMPLETE & VERIFIED.
+Sprint 19 — Trading Foundation & Paper Trading — IN PROGRESS.
+Task 19.1 — Trading Foundation (PAPER ONLY) — **COMPLETE & VERIFIED**.
+Task 19.1A — NSE Market Data Ingestion + Historical Backfill + EOD Automation —
+**COMPLETE & VERIFIED**.
+Next: Sprint 19 Task 19.2 — Broker Abstraction (paper-only; define `BrokerAdapter` interface +
+paper broker mock + fill/order lifecycle wiring; still no live, no execution-engine internals).
+Version remains 0.14.0 (Sprint 19 target release = v0.15.0; do NOT bump until the sprint completes).

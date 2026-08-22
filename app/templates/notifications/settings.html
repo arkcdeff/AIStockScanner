@@ -1,41 +1,52 @@
-{% extends "base.html" %}
+{% extends "layouts/shell.html" %}
 {% block title %}Notification Settings - AI Stock Scanner{% endblock %}
 {% block extra_head %}<link href="/static/css/notifications.css" rel="stylesheet">{% endblock %}
-{% block body %}
-<div class="container-fluid"><div class="row">
-    <nav class="col-md-2 d-md-block bg-light sidebar">{% include "components/sidebar.html" %}</nav>
-    <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-        {% include "components/navbar.html" %}
-        <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-            <div><h1 class="h2 mb-1">Notification settings</h1><p class="text-muted mb-0">Channels use masked, provider-safe configuration.</p></div>
-            <a href="/notifications" class="btn btn-outline-primary">Back to notifications</a>
-        </div>
-
-        <div class="alert alert-secondary small"><i class="bi bi-shield-lock me-1"></i>Tokens and passwords are write-only. Existing secrets are never placed in HTML. This project currently has no CSRF framework; these forms follow the application’s existing same-origin HTMX convention.</div>
-
-        <section id="summary-scheduler-panel" class="mb-4">
-            {% set show_run_action = false %}
-            {% include "notifications/components/summary_scheduler.html" %}
-        </section>
-
-        <section class="card mb-4">
-            <div class="card-header bg-white"><h2 class="h5 mb-0">Create channel</h2></div>
-            <div class="card-body">{% set channel = none %}{% include "notifications/components/channel_form.html" %}</div>
-        </section>
-        <section class="card mb-4">
-            <div class="card-header bg-white d-flex justify-content-between"><h2 class="h5 mb-0">Channels</h2><button class="btn btn-sm btn-outline-secondary" hx-get="/notifications/channels" hx-target="#channel-list">Refresh</button></div>
-            <div id="channel-list" class="card-body p-0">{% include "notifications/components/channel_list.html" %}</div>
-        </section>
-
-        <section class="card mb-4">
-            <div class="card-header bg-white"><h2 class="h5 mb-0">Create preference</h2></div>
-            <div class="card-body">{% set preference = none %}{% include "notifications/components/preference_form.html" %}</div>
-        </section>
-        <section class="card">
-            <div class="card-header bg-white d-flex justify-content-between"><h2 class="h5 mb-0">Preferences</h2><button class="btn btn-sm btn-outline-secondary" hx-get="/notifications/preferences" hx-target="#preference-list">Refresh</button></div>
-            <div id="preference-list" class="card-body p-0">{% include "notifications/components/preference_list.html" %}</div>
-        </section>
-    </main>
-</div></div>
-{% endblock %}
 {% block extra_scripts %}<script src="/static/js/notifications.js"></script>{% endblock %}
+{% block page_title %}Notification Settings{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Notification Settings</h1>
+        <p class="page-subtitle">Configure channels, preferences, and summary scheduler</p>
+    </div>
+    <a href="/notifications" class="btn btn-sm btn-outline-primary">Back to Notifications</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-broadcast me-1"></i> Channels</span>
+            </div>
+            <div class="card-body">
+                <div id="channels-list">{% include "notifications/components/channel_list.html" %}</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Add Channel</div>
+            <div class="card-body">{% include "notifications/components/channel_form.html" %}</div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card mb-3">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-bell me-1"></i> Preferences</span>
+            </div>
+            <div class="card-body">
+                <div id="preferences-list">{% include "notifications/components/preference_list.html" %}</div>
+            </div>
+        </div>
+        <div class="card mb-3">
+            <div class="card-header">Daily Summary</div>
+            <div class="card-body">
+                <div id="summary-scheduler">{% include "notifications/components/summary_scheduler.html" %}</div>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-header">Add Preference</div>
+            <div class="card-body">{% include "notifications/components/preference_form.html" %}</div>
+        </div>
+    </div>
+</div>
+{% endblock %}

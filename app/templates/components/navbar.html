@@ -9,57 +9,74 @@
         </button>
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
+                <!-- Dashboard -->
                 <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path in ['/', '/dashboard'] else '' }}" href="/dashboard">Dashboard</a>
+                    <a class="nav-link {{ 'active' if current_path in ['/', '/dashboard'] else '' }}" href="/dashboard">
+                        <i class="bi bi-speedometer2 me-1"></i>Dashboard
+                    </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/market-data') else '' }}" href="/market-data">Market Data</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/stocks') else '' }}" href="/stocks">Stocks</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/scanner-library') or current_path.startswith('/scanner-run') or current_path.startswith('/scanner-results') else '' }}" href="/scanner-library">Scanners</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/analytics') else '' }}" href="/analytics">Analytics</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/ai') else '' }}" href="/ai">AI</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/pipeline') else '' }}" href="/pipeline">Pipeline</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/scanner-results') else '' }}" href="/scanner-results">Scanner Results</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/watchlists') else '' }}" href="/watchlists">Watchlists</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/portfolio') else '' }}" href="/portfolio">Portfolio</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {{ 'active' if current_path.startswith('/alerts') else '' }}" href="/alerts">Alerts</a>
-                </li>
+
+                <!-- Market Dropdown -->
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/notifications') else '' }}" href="#" role="button" data-bs-toggle="dropdown">Notifications</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/notifications">Overview</a></li>
-                        <li><a class="dropdown-item" href="/notifications/settings">Settings</a></li>
-                        <li><a class="dropdown-item" href="/notifications/history">History</a></li>
+                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/market-data') or current_path.startswith('/market-intelligence') else '' }}" href="#" id="navbarDropdownMarket" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-graph-up me-1"></i>Market
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownMarket">
+                        <li><a class="dropdown-item" href="/market-data"><i class="bi bi-activity me-2"></i>Live Market</a></li>
+                        <li><a class="dropdown-item" href="/market-data"><i class="bi bi-database me-2"></i>Market Data</a></li>
+                        <li><a class="dropdown-item" href="/market-data"><i class="bi bi-clock-history me-2"></i>Historical Data</a></li>
+                        <li><a class="dropdown-item" href="/market-data/coverage"><i class="bi bi-shield-check me-2"></i>Data Coverage</a></li>
                     </ul>
                 </li>
-                {% if browser_user and (browser_user.user.is_superuser or 'super_admin' in browser_user.roles) %}
+
+                <!-- Stocks Dropdown -->
                 <li class="nav-item dropdown">
-                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/admin') else '' }}" href="#" role="button" data-bs-toggle="dropdown">Admin</a>
-                    <ul class="dropdown-menu">
-                        <li><a class="dropdown-item" href="/admin/users">Users</a></li>
-                        <li><a class="dropdown-item" href="/admin/roles">Roles</a></li>
-                        <li><a class="dropdown-item" href="/admin/permissions">Permissions</a></li>
+                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/stocks') or current_path.startswith('/watchlists') else '' }}" href="#" id="navbarDropdownStocks" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-card-checklist me-1"></i>Stocks
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownStocks">
+                        <li><a class="dropdown-item" href="/stocks"><i class="bi bi-search me-2"></i>Stock Analysis</a></li>
+                        <li><a class="dropdown-item" href="/stocks"><i class="bi bi-pie-chart me-2"></i>Stock360</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-trophy me-2"></i>Opportunity Board</a></li>
+                        <li><a class="dropdown-item" href="/watchlists"><i class="bi bi-bookmark-star me-2"></i>Watchlists</a></li>
                     </ul>
                 </li>
-                {% endif %}
+
+                <!-- Derivatives Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/analytics') or current_path.startswith('/market-data') else '' }}" href="#" id="navbarDropdownDerivatives" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-layers me-1"></i>Derivatives
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownDerivatives">
+                        <li><a class="dropdown-item" href="/market-data"><i class="bi bi-file-earmark-bar-graph me-2"></i>Futures</a></li>
+                        <li><a class="dropdown-item" href="/market-data"><i class="bi bi-list-ol me-2"></i>Option Chain</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-calculator me-2"></i>PCR / Max Pain</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-bar-chart-steps me-2"></i>OI Walls</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-cpu me-2"></i>Advanced Options</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-lightning-charge me-2"></i>Exposure / GEX</a></li>
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-bullseye me-2"></i>Options Opportunity</a></li>
+                    </ul>
+                </li>
+
+                <!-- Research Dropdown -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {{ 'active' if current_path.startswith('/analytics') or current_path.startswith('/backtests') or current_path.startswith('/ai') else '' }}" href="#" id="navbarDropdownResearch" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="bi bi-journal-richtext me-1"></i>Research
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdownResearch">
+                        <li><a class="dropdown-item" href="/analytics"><i class="bi bi-bar-chart-line me-2"></i>Analytics</a></li>
+                        <li><a class="dropdown-item" href="/backtests"><i class="bi bi-play-circle me-2"></i>Backtesting</a></li>
+                        <li><a class="dropdown-item" href="/backtests"><i class="bi bi-vial me-2"></i>Validation Lab</a></li>
+                        <li><a class="dropdown-item" href="/ai"><i class="bi bi-robot me-2"></i>AI Explanations</a></li>
+                    </ul>
+                </li>
+
+                <!-- Portfolio -->
+                <li class="nav-item">
+                    <a class="nav-link {{ 'active' if current_path.startswith('/portfolio') else '' }}" href="/portfolio">
+                        <i class="bi bi-wallet2 me-1"></i>Portfolio
+                    </a>
+                </li>
             </ul>
             {% if browser_user %}
             <ul class="navbar-nav">

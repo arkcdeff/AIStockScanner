@@ -109,7 +109,7 @@ async def test_notification_pages_and_empty_history_render_html() -> None:
 
     assert all(response.status_code == 200 for response in responses)
     assert all("text/html" in response.headers["content-type"] for response in responses)
-    assert "Notification history" in responses[2].text
+    assert "Notification History" in responses[2].text
     assert "No deliveries match these filters" in responses[3].text
 
 

@@ -1,53 +1,40 @@
-{% extends "base.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Scanner Library - AI Stock Scanner{% endblock %}
+{% block page_title %}Scanners{% endblock %}
 
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <nav class="col-md-2 d-md-block bg-light sidebar">
-            {% include "components/sidebar.html" %}
-        </nav>
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            {% include "components/navbar.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Scanner Library</h1>
+        <p class="page-subtitle">Available scanners grouped by category</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="/scanner-run" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>Run Scanner</a>
+        <a href="/scanner-results" class="btn btn-sm btn-outline-primary">Results</a>
+    </div>
+</div>
 
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="bi bi-search me-2"></i>Scanner Library</h1>
-                <span class="badge bg-primary">{{ total_scanners }} scanners</span>
-            </div>
-
-            {% for category, scanners in grouped.items() %}
-            <div class="card mb-4">
-                <div class="card-header fw-semibold"><i class="bi bi-tag me-1"></i>{{ category }}</div>
+<div id="scanner-library-content">
+    {% for category, scanners in scanners_by_category.items() %}
+    <div class="section-title mt-3"><i class="bi bi-folder2"></i> {{ category }}</div>
+    <div class="row g-3 mb-3">
+        {% for scanner in scanners %}
+        <div class="col-md-4 col-lg-3">
+            <div class="card h-100">
                 <div class="card-body">
-                    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-3">
-                        {% for scanner in scanners %}
-                        <div class="col">
-                            <div class="card h-100">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start">
-                                        <h6 class="card-title mb-1">{{ scanner.name }}</h6>
-                                        <a href="/scanner-run?scan_code={{ scanner.code }}"
-                                           class="btn btn-sm btn-outline-primary"
-                                           title="Run {{ scanner.name }}">
-                                            <i class="bi bi-play"></i>
-                                        </a>
-                                    </div>
-                                    <div class="small text-muted"><code>{{ scanner.code }}</code></div>
-                                    <div class="card-text small">{{ scanner.description or '' }}</div>
-                                </div>
-                            </div>
-                        </div>
-                        {% else %}
-                        <div class="col"><div class="text-muted small">No scanners in this category.</div></div>
-                        {% endfor %}
-                    </div>
+                    <h6 class="card-title">{{ scanner.name }}</h6>
+                    <p class="card-text small text-muted">{{ scanner.description or 'No description' }}</p>
+                    <a href="/scanner-run?scanner={{ scanner.code }}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-play me-1"></i>Run
+                    </a>
                 </div>
             </div>
-            {% else %}
-            <div class="alert alert-light">No scanner definitions available.</div>
-            {% endfor %}
-        </main>
+        </div>
+        {% endfor %}
     </div>
+    {% endfor %}
+    {% if not scanners_by_category %}
+    <div class="empty-state"><i class="bi bi-search"></i><p>No scanners defined yet.</p></div>
+    {% endif %}
 </div>
 {% endblock %}

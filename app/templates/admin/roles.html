@@ -1,52 +1,31 @@
-{% extends "layouts/app.html" %}
-
-{% block title %}Roles - Admin - AI Stock Scanner{% endblock %}
+{% extends "layouts/shell.html" %}
+{% block title %}Roles - AI Stock Scanner{% endblock %}
+{% block page_title %}Roles &amp; Permissions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Roles</h1>
-    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createRoleModal">
-        <i class="bi bi-plus-lg me-1"></i>New role
-    </button>
+<div class="page-header">
+    <div>
+        <h1>Roles</h1>
+        <p class="page-subtitle">Manage roles and their permissions</p>
+    </div>
+    <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createRoleModal"><i class="bi bi-plus me-1"></i>Create Role</button>
 </div>
 
-<div id="roles-table">
-    {% include "admin/components/roles_table.html" %}
-</div>
-
-<div class="modal fade" id="createRoleModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <form method="post" action="/admin/roles/create" hx-post="/admin/roles/create" hx-target="#roles-table" hx-swap="innerHTML">
-                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
-                <div class="modal-header">
-                    <h5 class="modal-title">New role</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="mb-2">
-                        <label class="form-label">Name</label>
-                        <input type="text" class="form-control" name="name" required maxlength="64">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="description" rows="2"></textarea>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label">Permissions</label>
-                        <select class="form-select" name="permission_ids" multiple size="6">
-                            {% for p in permissions %}
-                            <option value="{{ p.id }}">{{ p.code }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create</button>
-                </div>
-            </form>
-        </div>
+<div class="card">
+    <div class="card-body">
+        <div id="roles-table">{% include "admin/components/roles_table.html" %}</div>
     </div>
 </div>
+
+<div class="modal fade" id="createRoleModal" tabindex="-1"><div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Create Role</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <form method="post" action="/admin/roles/create" hx-post="/admin/roles/create" hx-target="#roles-table" hx-swap="innerHTML">
+        <div class="modal-body">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="mb-3"><label class="form-label">Name</label><input type="text" class="form-control" name="name" required></div>
+            <div class="mb-3"><label class="form-label">Description</label><input type="text" class="form-control" name="description"></div>
+        </div>
+        <div class="modal-footer"><button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-sm btn-primary">Create</button></div>
+    </form>
+</div></div></div>
 {% endblock %}

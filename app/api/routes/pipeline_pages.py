@@ -45,6 +45,7 @@ async def pipeline_page(
         {
             "request": request,
             "status": status,
+            "pipeline_status": status,
             "runs": runs,
         },
     )

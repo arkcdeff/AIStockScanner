@@ -6,18 +6,25 @@
                 <th>ID</th>
                 <th>File</th>
                 <th>Trade Date</th>
+                <th>Mode</th>
+                <th>Format</th>
                 <th>Status</th>
-                <th>Rows</th>
+                <th>Read</th>
                 <th>Inserted</th>
+                <th>Updated</th>
                 <th>Rejected</th>
+                <th>Delivery</th>
+                <th>Duration</th>
             </tr>
         </thead>
         <tbody>
             {% for job in imports %}
             <tr>
                 <td>{{ job.id }}</td>
-                <td class="text-truncate" style="max-width: 220px;">{{ job.file_name }}</td>
+                <td class="text-truncate" style="max-width: 200px;" title="{{ job.file_name }}">{{ job.file_name }}</td>
                 <td>{{ job.trade_date or '—' }}</td>
+                <td><span class="badge bg-light text-dark border">{{ job.details.get('mode', 'UPLOAD') }}</span></td>
+                <td><span class="badge bg-light text-dark border">{{ job.details.get('format', '—') }}</span></td>
                 <td>
                     {% if job.status == 'completed' %}
                         <span class="badge bg-success">{{ job.status }}</span>
@@ -31,8 +38,28 @@
                 </td>
                 <td>{{ job.rows_read }}</td>
                 <td>{{ job.rows_inserted }}</td>
+                <td>{{ job.rows_updated }}</td>
                 <td>{{ job.rows_rejected }}</td>
+                <td title="Applied delivery rows / price rows missing delivery">
+                    {% if job.details.get('delivery_rows') is not none %}
+                        {{ job.details.get('delivery_rows') }}/{{ job.details.get('delivery_missing', '—') }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.details.get('duration_ms') %}
+                        {{ '%.1f'|format(job.details.get('duration_ms') / 1000) }}s
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
             </tr>
+            {% if job.error_message %}
+            <tr class="table-danger">
+                <td colspan="12" class="small text-danger">{{ job.error_message }}</td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </tbody>
     </table>

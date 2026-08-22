@@ -279,6 +279,9 @@ async def test_daily_summary_ui_and_dashboard_widgets_render() -> None:
     async with _client() as client:
         notification_page = await client.get("/notifications")
         settings_page = await client.get("/notifications/settings")
+        summary_panel = await client.get(
+            "/notifications/summary-scheduler", params={"show_run_action": "true"}
+        )
         manual = await client.post(
             "/notifications/daily-summary/run",
             data={"summary_date": summary_date},
@@ -286,11 +289,12 @@ async def test_daily_summary_ui_and_dashboard_widgets_render() -> None:
         dashboard = await client.get("/dashboard")
 
     assert notification_page.status_code == 200
-    assert "Daily summary and scheduler" in notification_page.text
-    assert "Run summary" in notification_page.text
-    assert "Alert delivery scheduler" in notification_page.text
     assert settings_page.status_code == 200
+    assert "Daily summary and scheduler" in settings_page.text
+    assert "Alert delivery scheduler" in settings_page.text
     assert "environment-driven and read-only" in settings_page.text
+    assert summary_panel.status_code == 200
+    assert "Run summary" in summary_panel.text
     assert manual.status_code == 200
     assert "Daily summary completed" in manual.text
     assert dashboard.status_code == 200

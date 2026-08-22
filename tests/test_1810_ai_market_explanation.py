@@ -7,7 +7,7 @@ Mandatory categories covered: 1-28 as specified in 18.10M.
 from __future__ import annotations
 
 import json
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 
@@ -269,6 +269,18 @@ class TestAIProviderContract:
         error_msg2 = "password=secret123 failed"
         sanitized2 = sanitize_provider_error(error_msg2)
         assert "password=***" in sanitized2
+
+    def test_ai_explanation_result_generated_at_is_timezone_aware(self):
+        """Regression: AIExplanationResult default generated_at must be timezone-aware."""
+        result = AIExplanationResult(
+            provider_name="test_provider",
+            model_name="test-model",
+            status="success",
+        )
+        assert result.generated_at is not None
+        assert result.generated_at.endswith("+00:00") or "Z" in result.generated_at
+        parsed_dt = datetime.fromisoformat(result.generated_at)
+        assert parsed_dt.tzinfo is not None
 
 
 # ---------------------------------------------------------------------------

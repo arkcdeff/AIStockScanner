@@ -1,116 +1,67 @@
-{% extends "base.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Pipeline - AI Stock Scanner{% endblock %}
+{% block page_title %}Pipeline{% endblock %}
 
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <nav class="col-md-2 d-md-block bg-light sidebar">
-            {% include "components/sidebar.html" %}
-        </nav>
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            {% include "components/navbar.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>EOD Pipeline</h1>
+        <p class="page-subtitle">Import, calculate indicators, run scanners, and compute analytics</p>
+    </div>
+</div>
 
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="bi bi-diagram-3 me-2"></i>EOD Pipeline</h1>
-            </div>
+{% include "components/flash.html" %}
 
-            {% set flash = request.query_params.get('level') %}
-            {% set message = request.query_params.get('message') %}
-            {% if message %}
-            <div class="alert alert-{{ flash or 'info' }} alert-dismissible fade show" role="alert">
-                {{ message }}
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-            {% endif %}
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(59,130,246,0.1);color:var(--color-info);"><i class="bi bi-arrow-repeat"></i></div>
+            <div><div class="kpi-label">Status</div><div class="kpi-value">{{ pipeline_status.get('status', 'N/A')|title }}</div></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(34,197,94,0.1);color:var(--color-success);"><i class="bi bi-check-circle"></i></div>
+            <div><div class="kpi-label">Indicators</div><div class="kpi-value">{{ pipeline_status.get('indicators_calculated', 0) }}</div></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(245,158,11,0.1);color:var(--color-warning);"><i class="bi bi-search"></i></div>
+            <div><div class="kpi-label">Scanner Matches</div><div class="kpi-value">{{ pipeline_status.get('scanner_matches', 0) }}</div></div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="kpi-card">
+            <div class="kpi-icon" style="background:rgba(239,68,68,0.1);color:var(--color-danger);"><i class="bi bi-graph-up"></i></div>
+            <div><div class="kpi-label">Analytics</div><div class="kpi-value">{{ pipeline_status.get('analytics_calculated', 0) }}</div></div>
+        </div>
+    </div>
+</div>
 
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
-                    <div class="card"><div class="card-body">
-                        <div class="text-muted small">Total Runs</div>
-                        <div class="fs-4 fw-bold">{{ status.total_runs }}</div>
-                    </div></div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card"><div class="card-body">
-                        <div class="text-muted small">Running</div>
-                        <div class="fs-4 fw-bold">{{ status.running_runs }}</div>
-                    </div></div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card"><div class="card-body">
-                        <div class="text-muted small">Scheduler</div>
-                        <div>
-                            {% if status.scheduler_running %}
-                                <span class="badge bg-success">Running</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Stopped</span>
-                            {% endif %}
-                        </div>
-                    </div></div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card"><div class="card-body">
-                        <div class="text-muted small">Latest Run Status</div>
-                        <div>
-                            {% if status.latest_run %}
-                                <span class="badge bg-{{ 'success' if status.latest_run.status == 'completed' else ('danger' if status.latest_run.status == 'failed' else 'warning') }}">
-                                    {{ status.latest_run.status }}
-                                </span>
-                                <span class="small text-muted ms-1">{{ status.latest_run.trade_date }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Never</span>
-                            {% endif %}
-                        </div>
-                    </div></div>
-                </div>
-            </div>
+<div class="card mb-4">
+    <div class="card-header"><i class="bi bi-play-circle me-1"></i> Run Pipeline</div>
+    <div class="card-body">
+        <div class="d-flex gap-2 flex-wrap">
+            <form method="post" action="/pipeline/run-latest">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-play-fill me-1"></i>Run Latest</button>
+            </form>
+            <form method="post" action="/pipeline/run-file" class="d-flex gap-2">
+                <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+                <input type="file" class="form-control form-control-sm" name="file" accept=".csv,.zip" required>
+                <button type="submit" class="btn btn-outline-primary btn-sm">Run File</button>
+            </form>
+        </div>
+    </div>
+</div>
 
-            <div class="alert alert-info d-flex align-items-start" role="alert">
-                <i class="bi bi-info-circle me-2"></i>
-                <div>
-                    <strong>Live NSE download is blocked by NSE.</strong>
-                    The pipeline normally imports the bhavcopy, computes indicators,
-                    runs scanners, calculates analytics, then triggers alerts and
-                    notifications. Use the <em>Run from File</em> option to start a run
-                    from an uploaded bhavcopy instead of downloading from NSE.
-                </div>
-            </div>
-
-            <div class="card mb-4">
-                <div class="card-header"><i class="bi bi-play-circle me-1"></i>Run Pipeline</div>
-                <div class="card-body">
-                    <div class="row g-2">
-                        <div class="col-md-3">
-                            <form method="post" action="/pipeline/run-latest">
-                                <button type="submit" class="btn btn-primary w-100" title="Downloads latest NSE bhavcopy (may be blocked by NSE)">
-                                    <i class="bi bi-arrow-down-circle me-1"></i>Run Latest
-                                </button>
-                            </form>
-                        </div>
-                        <div class="col-md-9">
-                            <form method="post" action="/pipeline/run-file" enctype="multipart/form-data" class="row g-2">
-                                <div class="col-md-8">
-                                    <input type="file" class="form-control form-control-sm" name="file" accept=".csv,.zip,application/zip" required>
-                                </div>
-                                <div class="col-md-4 d-flex align-items-end">
-                                    <button type="submit" class="btn btn-outline-primary btn-sm w-100">
-                                        <i class="bi bi-upload me-1"></i>Run From File
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header"><i class="bi bi-clock-history me-1"></i>Recent Runs</div>
-                <div class="card-body">
-                    {% include "components/pipeline_runs_table.html" %}
-                </div>
-            </div>
-        </main>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-clock-history me-1"></i> Pipeline Runs</span>
+    </div>
+    <div class="card-body">
+        {% include "components/pipeline_runs_table.html" %}
     </div>
 </div>
 {% endblock %}

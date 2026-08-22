@@ -459,7 +459,7 @@ async def _workspace_response(
 ) -> HTMLResponse:
     strategies = await BacktestStrategyRepository(session).list(is_active=True, limit=500)
     scan_definitions = await ScanDefinitionRepository(session).list_active()
-    recent_runs, _ = await _runs_visible_to(session, user, limit=10)
+    recent_runs, total = await _runs_visible_to(session, user, limit=10)
     active_symbols = await _active_symbols(session, limit=300)
     defaults = {
         "start_date": (date.today() - timedelta(days=180)).isoformat(),
@@ -482,6 +482,10 @@ async def _workspace_response(
             "strategies": strategies,
             "scan_definitions": scan_definitions,
             "recent_runs": await _run_view(session, recent_runs),
+            "recent_runs_total": total,
+            "recent_runs_page": 1,
+            "recent_runs_page_size": 10,
+            "recent_runs_total_pages": 1,
             "active_symbols": active_symbols,
             "run_defaults": defaults,
             "run_values": run_values,

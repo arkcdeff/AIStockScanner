@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
+import asyncio
+from datetime import UTC, date, datetime, timedelta
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -8,8 +9,10 @@ from apscheduler.triggers.interval import IntervalTrigger
 from loguru import logger
 
 from app.core.config import settings
+from app.db.session import get_session_factory
 from app.services.daily_summary import current_summary_date
 from app.services.eod_pipeline import EODPipelineService, PipelineOverlapError
+from app.services.market_data_service import MarketDataService
 from app.services.market_intelligence_jobs import (
     run_daily_snapshot_intelligence_job,
     run_postmarket_intelligence_job,
@@ -22,6 +25,7 @@ from app.services.notification_jobs import (
 )
 
 EOD_JOB_ID = "eod_pipeline_daily"
+MARKET_DATA_CATCHUP_ID = "market_data_catchup"
 NOTIFICATION_DELIVERY_JOB_ID = "notification_delivery_interval"
 DAILY_SUMMARY_JOB_ID = "notification_daily_summary"
 MARKET_INTELLIGENCE_PREMARKET_JOB_ID = "market_intelligence_premarket"
@@ -218,7 +222,12 @@ class EODScheduler:
             "market_intelligence_premarket_enabled": mi_pre,
             "market_intelligence_postmarket_enabled": mi_post,
             "market_intelligence_snapshot_enabled": mi_snap,
+            "eod_retry_enabled": settings.eod_scheduler_retry_enabled,
+            "eod_max_retries": settings.eod_scheduler_max_retries,
+            "eod_run_scanners": settings.eod_scheduler_run_scanners,
+            "eod_auto_catchup": settings.eod_scheduler_auto_catchup,
             "registered_job_ids": sorted(registered),
+            "last_catchup": self._last_execution.get(MARKET_DATA_CATCHUP_ID),
             "jobs": {
                 "eod_pipeline": eod,
                 "alert_delivery": delivery,
@@ -248,35 +257,104 @@ class EODScheduler:
         started = datetime.now(UTC)
         logger.info("Scheduled EOD pipeline execution started")
         service = EODPipelineService()
-        try:
-            run = await service.run_latest()
-        except PipelineOverlapError as exc:
-            logger.warning("Scheduled EOD pipeline skipped (overlap): {}", exc)
-            self._last_execution[EOD_JOB_ID] = {
-                "status": "skipped",
-                "finished_at": datetime.now(UTC).isoformat(),
-            }
-            return
-        except Exception as exc:
-            logger.error("Scheduled EOD pipeline failed: {}", sanitize_job_error(exc))
-            self._last_execution[EOD_JOB_ID] = {
-                "status": "failed",
-                "finished_at": datetime.now(UTC).isoformat(),
-            }
+        max_retries = (
+            settings.eod_scheduler_max_retries if settings.eod_scheduler_retry_enabled else 0
+        )
+        attempt = 0
+        run = None
+        while True:
+            try:
+                run = await service.run_latest(
+                    run_scanners=settings.eod_scheduler_run_scanners
+                )
+            except PipelineOverlapError as exc:
+                logger.warning("Scheduled EOD pipeline skipped (overlap): {}", exc)
+                self._last_execution[EOD_JOB_ID] = {
+                    "status": "skipped",
+                    "finished_at": datetime.now(UTC).isoformat(),
+                }
+                return
+            except Exception as exc:
+                logger.error("Scheduled EOD pipeline failed: {}", sanitize_job_error(exc))
+                self._last_execution[EOD_JOB_ID] = {
+                    "status": "failed",
+                    "finished_at": datetime.now(UTC).isoformat(),
+                }
+                return
+
+            # Retry only when the import stage failed (e.g. the bhavcopy was not
+            # yet published by NSE at the scheduled time). Bound the total effort.
+            retryable = run is not None and run.status == "failed" and run.failed_stage == "import"
+            if not retryable or attempt >= max_retries:
+                break
+            attempt += 1
+            delay_seconds = settings.eod_scheduler_retry_minutes * 60
+            logger.warning(
+                "Scheduled EOD pipeline import attempt {} failed; retrying in {}s",
+                attempt,
+                delay_seconds,
+            )
+            if delay_seconds > 0:
+                await asyncio.sleep(delay_seconds)
+
+        if run is None:
             return
         duration_ms = (datetime.now(UTC) - started).total_seconds() * 1000
         self._last_execution[EOD_JOB_ID] = {
             "status": run.status,
             "run_id": run.id,
+            "retry_attempts": attempt,
             "duration_ms": round(duration_ms, 1),
             "finished_at": datetime.now(UTC).isoformat(),
         }
         logger.info(
-            "Scheduled EOD pipeline completed: run_id={} status={} duration_ms={:.1f}",
+            "Scheduled EOD pipeline completed: run_id={} status={} retries={} duration_ms={:.1f}",
             run.id,
             run.status,
+            attempt,
             duration_ms,
         )
+
+    async def run_market_data_catchup(self) -> dict[str, object]:
+        """Backfill trailing missing trading days on startup (config gated)."""
+        if not settings.eod_scheduler_auto_catchup:
+            return {"status": "disabled", "message": "Auto catch-up is disabled"}
+        started = datetime.now(UTC)
+        end_date = started.date()
+        start_date = end_date - timedelta(days=settings.eod_scheduler_catchup_max_days)
+        logger.info(
+            "Market data catch-up started window={}..{}",
+            start_date.isoformat(),
+            end_date.isoformat(),
+        )
+        try:
+            async with get_session_factory()() as session:
+                summary = await MarketDataService(session, request_delay=1.0).backfill(
+                    start_date, end_date
+                )
+            payload: dict[str, object] = {
+                "status": "completed",
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                **summary,
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        except Exception as exc:
+            logger.error("Market data catch-up failed: {}", sanitize_job_error(exc))
+            payload = {
+                "status": "failed",
+                "start_date": start_date.isoformat(),
+                "end_date": end_date.isoformat(),
+                "duration_ms": round((datetime.now(UTC) - started).total_seconds() * 1000, 1),
+                "finished_at": datetime.now(UTC).isoformat(),
+            }
+        self._last_execution[MARKET_DATA_CATCHUP_ID] = payload
+        logger.info(
+            "Market data catch-up completed status={} finished_at={}",
+            payload["status"],
+            payload["finished_at"],
+        )
+        return payload
 
     async def _run_notification_delivery(self) -> dict[str, object]:
         result = await run_pending_delivery_job()

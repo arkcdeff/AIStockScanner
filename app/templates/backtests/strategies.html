@@ -1,40 +1,27 @@
-{% extends "layouts/app.html" %}
-{% block title %}Backtest Strategies - AI Stock Scanner{% endblock %}
-{% block extra_head %}
-<link href="/static/css/backtests.css" rel="stylesheet">
-{% endblock %}
+{% extends "layouts/shell.html" %}
+{% block title %}Strategies - AI Stock Scanner{% endblock %}
+{% block extra_head %}<link href="/static/css/backtests.css" rel="stylesheet">{% endblock %}
+{% block page_title %}Strategies{% endblock %}
+
 {% block content %}
-<div class="d-flex flex-wrap justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+<div class="page-header">
     <div>
-        <h1 class="h2 mb-1"><i class="bi bi-diagram-3 me-2"></i>Backtest strategies</h1>
-        <p class="text-muted mb-0">Define shared strategies and link them to scanners.</p>
+        <h1>Strategies</h1>
+        <p class="page-subtitle">Manage backtesting strategies</p>
     </div>
-    <div class="btn-group mt-2 mt-md-0">
-        <a href="/backtests" class="btn btn-outline-primary"><i class="bi bi-graph-up-arrow me-1"></i>Backtesting</a>
-        <a href="/backtests/runs" class="btn btn-outline-primary"><i class="bi bi-clock-history me-1"></i>Run history</a>
-    </div>
+    <a href="/backtests" class="btn btn-sm btn-outline-primary">Back to Backtesting</a>
 </div>
 
-{% if can_write %}
-<div class="card mb-4" id="create-strategy-card">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="bi bi-plus-circle me-2"></i>Create strategy</h5>
-    </div>
+<div class="card">
+    <div class="card-header"><i class="bi bi-plus-circle me-1"></i> Create Strategy</div>
     <div class="card-body">
         {% include "backtests/components/strategy_form.html" %}
     </div>
 </div>
-{% else %}
-<div class="alert alert-info">You have read-only access to strategies. Ask an administrator to grant <code>backtests.write</code> to create or edit strategies.</div>
-{% endif %}
 
-<div id="edit-panel"></div>
-
-<div class="card">
-    <div class="card-header bg-white">
-        <h5 class="mb-0"><i class="bi bi-list-ul me-2"></i>Strategies</h5>
-    </div>
-    <div id="strategies-table">
+<div class="card mt-3">
+    <div class="card-header"><i class="bi bi-list me-1"></i> Strategies</div>
+    <div class="card-body">
         {% include "backtests/components/strategies_table.html" %}
     </div>
 </div>

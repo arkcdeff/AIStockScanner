@@ -59,6 +59,8 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
             if recovered:
                 logger.warning("Recovered {} abandoned daily summary run(s)", recovered)
         scheduler.start()
+        if settings.eod_scheduler_auto_catchup:
+            await scheduler.run_market_data_catchup()
     else:
         logger.info("Application scheduler disabled; not starting")
 

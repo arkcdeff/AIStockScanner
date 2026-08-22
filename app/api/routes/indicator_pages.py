@@ -61,6 +61,7 @@ async def indicators_page(
         {
             "request": request,
             "status": status,
+            "summary": status,
         },
     )
     return HTMLResponse(content=html)

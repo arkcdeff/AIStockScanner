@@ -1,15 +1,111 @@
 import asyncio
 import os
+from pathlib import Path
+from urllib.parse import urlparse, urlunparse
 
 import pytest
 
 if os.name == "nt":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
+
+def _read_env_file_var(var_name: str) -> str | None:
+    """Safely extract a variable from project .env file if present without exposing it."""
+    env_path = Path(__file__).resolve().parents[1] / ".env"
+    if not env_path.is_file():
+        return None
+    try:
+        with open(env_path, encoding="utf-8") as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                if k.strip() == var_name:
+                    return v.strip().strip("'\"")
+    except Exception:
+        return None
+def _sanitize_url_for_display(url: str) -> str:
+    """Mask password from database URL for safe error messages / logs."""
+    try:
+        parsed = urlparse(url)
+        if parsed.password:
+            netloc = f"{parsed.username}:***@{parsed.hostname}"
+            if parsed.port:
+                netloc += f":{parsed.port}"
+            return urlunparse(parsed._replace(netloc=netloc))
+    except Exception:
+        pass
+    return "postgresql://***@localhost/test"
+
+
+def _configure_test_database_urls() -> tuple[str, str]:
+    """Resolve and validate async and sync test database URLs without hardcoded passwords.
+
+    Resolution order:
+    1. TEST_DATABASE_URL_ASYNC / TEST_DATABASE_URL_SYNC from os.environ
+    2. Derived from DATABASE_URL_ASYNC / DATABASE_URL_SYNC in os.environ or .env
+       (switching target db name to 'test')
+    3. Safe development default (postgresql+asyncpg://postgres:postgres@localhost:5432/test)
+
+    Safety enforcement:
+    - Target database name must contain 'test' (e.g. 'test', 'ai_stock_scanner_test').
+    - Target database name cannot be 'ai_stock_scanner', 'postgres', 'production',
+      'prod', or 'master'.
+    - Prevents accidental execution of destructive test truncate against production/dev DB.
+    """
+    raw_async = (
+        os.environ.get("TEST_DATABASE_URL_ASYNC")
+        or os.environ.get("DATABASE_URL_ASYNC")
+        or _read_env_file_var("TEST_DATABASE_URL_ASYNC")
+        or _read_env_file_var("DATABASE_URL_ASYNC")
+        or "postgresql+asyncpg://postgres:postgres@localhost:5432/test"
+    )
+
+    parsed = urlparse(raw_async)
+    path = parsed.path.lstrip("/")
+    if path == "ai_stock_scanner" or not path:
+        path = "test"
+        raw_async = urlunparse(parsed._replace(path=f"/{path}"))
+    else:
+        path = parsed.path.lstrip("/")
+
+    db_name = path.lower()
+    FORBIDDEN_DB_NAMES = {"ai_stock_scanner", "postgres", "production", "prod", "master"}
+    if db_name in FORBIDDEN_DB_NAMES or "test" not in db_name:
+        raise RuntimeError(
+            f"SAFETY ERROR: Refusing to run destructive tests against non-test database: "
+            f"'{db_name}'. The database name must contain 'test' and cannot be a production "
+            "or main development database."
+        )
+
+    raw_sync = (
+        os.environ.get("TEST_DATABASE_URL_SYNC")
+        or os.environ.get("DATABASE_URL_SYNC")
+        or _read_env_file_var("TEST_DATABASE_URL_SYNC")
+        or _read_env_file_var("DATABASE_URL_SYNC")
+    )
+    if raw_sync:
+        parsed_sync = urlparse(raw_sync)
+        sync_path = parsed_sync.path.lstrip("/")
+        if sync_path == "ai_stock_scanner" or not sync_path:
+            sync_path = path
+            raw_sync = urlunparse(parsed_sync._replace(path=f"/{sync_path}"))
+    else:
+        sync_scheme = parsed.scheme.replace("+asyncpg", "+psycopg")
+        if "+psycopg" not in sync_scheme:
+            sync_scheme = "postgresql+psycopg"
+        raw_sync = urlunparse(parsed._replace(scheme=sync_scheme, path=f"/{path}"))
+
+    return raw_async, raw_sync
+
+
+_TEST_DB_ASYNC, _TEST_DB_SYNC = _configure_test_database_urls()
+
 os.environ["APP_ENV"] = "testing"
-os.environ["DATABASE_URL_ASYNC"] = "postgresql+asyncpg://postgres:ramki12345@localhost/test"
-os.environ["DATABASE_URL_SYNC"] = "postgresql+psycopg://postgres:ramki12345@localhost/test"
-os.environ["JWT_SECRET_KEY"] = "test-only-jwt-signing-key-" + ("x" * 48)
+os.environ["DATABASE_URL_ASYNC"] = _TEST_DB_ASYNC
+os.environ["DATABASE_URL_SYNC"] = _TEST_DB_SYNC
+os.environ.setdefault("JWT_SECRET_KEY", "test-only-jwt-signing-key-" + ("x" * 48))
 
 
 @pytest.fixture(autouse=True)
@@ -24,8 +120,9 @@ def _clear_db_engine_cache() -> None:
 @pytest.fixture(autouse=True)
 def _clean_test_db() -> None:
     from sqlalchemy import create_engine, text
+    from sqlalchemy.pool import NullPool
 
-    engine = create_engine(os.environ["DATABASE_URL_SYNC"])
+    engine = create_engine(os.environ["DATABASE_URL_SYNC"], poolclass=NullPool)
     tables = (
         "audit_logs, user_preferences, user_sessions, role_permissions, user_roles, "
         "permissions, roles, users, notification_deliveries, notification_preferences, "
@@ -36,11 +133,18 @@ def _clean_test_db() -> None:
         "backtest_metrics, backtest_trades, backtest_equity_points, backtest_runs, "
         "backtest_strategies, "
         "market_indices, market_index_prices, institutional_flows, "
-        "market_intelligence_snapshots, econ_events"
+        "market_intelligence_snapshots, econ_events, "
+        "trading_positions, trading_executions, trading_orders, trading_accounts, "
+        "index_memberships, security_aliases, corporate_actions, data_quality_issues, "
+        "derivative_daily_prices, derivative_lot_size_histories, derivative_contracts, "
+        "derivative_participant_positions, fii_derivative_statistics, "
+        "financial_statements, corporate_announcements, shareholding_patterns, "
+        "news_entity_links, news_events"
     )
     with engine.connect() as conn:
         conn.execute(text(f"TRUNCATE TABLE {tables} RESTART IDENTITY CASCADE"))
         conn.commit()
+    engine.dispose()
 
 
 @pytest.fixture(autouse=True)

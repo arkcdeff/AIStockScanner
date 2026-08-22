@@ -1,39 +1,27 @@
-{% extends "base.html" %}
-
+{% extends "layouts/shell.html" %}
 {% block title %}Stocks - AI Stock Scanner{% endblock %}
+{% block page_title %}Stock Analysis{% endblock %}
 
-{% block body %}
-<div class="container-fluid">
-    <div class="row">
-        <nav class="col-md-2 d-md-block bg-light sidebar">
-            {% include "components/sidebar.html" %}
-        </nav>
-        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
-            {% include "components/navbar.html" %}
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1>Stock Analysis</h1>
+        <p class="page-subtitle">Browse and analyze stocks in your database</p>
+    </div>
+</div>
 
-            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="bi bi-building me-2"></i>Stocks</h1>
-            </div>
-
-            <div class="card mb-3">
-                <div class="card-body">
-                    <form class="row g-2" hx-get="/stocks/table" hx-target="#stocks-container" hx-swap="innerHTML" hx-trigger="submit">
-                        <div class="col-md-8">
-                            <input type="text" class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Search by symbol or company name...">
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary btn-sm w-100">
-                                <i class="bi bi-search me-1"></i>Search
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <div id="stocks-container">
-                {% include "components/stocks_table.html" %}
-            </div>
-        </main>
+<div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span><i class="bi bi-building me-1"></i> Stocks</span>
+        <form class="d-flex" hx-get="/stocks/table" hx-target="#stocks-table" hx-swap="innerHTML" hx-trigger="submit">
+            <input type="text" class="form-control form-control-sm me-2" name="q" placeholder="Search symbol or name..." hx-get="/stocks/table" hx-trigger="keyup changed delay:400ms" hx-target="#stocks-table" hx-params="q">
+            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+        </form>
+    </div>
+    <div class="card-body">
+        <div id="stocks-table">
+            {% include "components/stocks_table.html" %}
+        </div>
     </div>
 </div>
 {% endblock %}

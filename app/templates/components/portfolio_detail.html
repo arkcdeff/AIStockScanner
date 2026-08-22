@@ -7,7 +7,7 @@
         </h5>
         {% if detail_summary %}
         <div class="text-end">
-            <span class="badge bg-light text-dark me-1">Value {{ '%.2f'|format(detail_summary.total_value) }}</span>
+            <span class="badge bg-light text-dark me-1">Total Value {{ '%.2f'|format(detail_summary.total_value) }}</span>
             <span class="badge bg-{{ 'success' if detail_summary.total_pl >= 0 else 'danger' }}">
                 P/L {{ '%.2f'|format(detail_summary.total_pl) }}
             </span>

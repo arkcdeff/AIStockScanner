@@ -59,3 +59,26 @@ class DownloadResponse(BaseModel):
     size: int
     checksum: str
     downloaded: bool
+
+
+class BackfillRequest(BaseModel):
+    start_date: date
+    end_date: date
+
+
+class CoverageRow(BaseModel):
+    trade_date: date
+    weekday: str
+    status: str
+    price_count: int
+    stock_count: int
+    delivery_count: int
+    indicator_count: int
+    scan_count: int
+
+
+class ScannerReadiness(BaseModel):
+    latest_trade_date: date | None
+    readiness: dict[str, int]
+    latest_price_count: int
+    latest_delivery_count: int
