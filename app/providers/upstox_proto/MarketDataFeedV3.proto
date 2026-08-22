@@ -1,0 +1,86 @@
+syntax = "proto3";
+
+package com.upstox.marketdata.v3;
+
+enum Type {
+  initial_feed = 0;
+  live_feed = 1;
+}
+
+enum Mode {
+  ltpc = 0;
+  full = 1;
+}
+
+message FeedResponse {
+  Type type = 1;
+  map<string, Feed> feeds = 2;
+  int64 current_ts = 3;
+}
+
+message Feed {
+  oneof FeedUnion {
+    LTPC ltpc = 1;
+    FullFeed full_feed = 2;
+  }
+}
+
+message LTPC {
+  double ltp = 1;
+  int64 ltt = 2;
+  double close = 3;
+}
+
+message FullFeed {
+  MarketFullFeed market_ff = 1;
+  IndexFullFeed index_ff = 2;
+}
+
+message MarketFullFeed {
+  LTPC ltpc = 1;
+  MarketLevel market_level = 2;
+  OptionGreeks option_greeks = 3;
+  MarketOHLC market_ohlc = 4;
+  int64 eoi = 5;
+  int64 eoi_day_high = 6;
+  int64 eoi_day_low = 7;
+}
+
+message IndexFullFeed {
+  LTPC ltpc = 1;
+  MarketOHLC market_ohlc = 2;
+}
+
+message MarketLevel {
+  repeated Quote bid_ask = 1;
+}
+
+message Quote {
+  int32 qtn = 1;
+  double price = 2;
+  int32 orders = 3;
+}
+
+message OptionGreeks {
+  double op = 1;
+  double iv = 2;
+  double delta = 3;
+  double theta = 4;
+  double gamma = 5;
+  double vega = 6;
+  double rho = 7;
+}
+
+message MarketOHLC {
+  repeated OHLC ohlc = 1;
+}
+
+message OHLC {
+  string interval = 1;
+  double open = 2;
+  double high = 3;
+  double low = 4;
+  double close = 5;
+  int64 volume = 6;
+  int64 ts = 7;
+}

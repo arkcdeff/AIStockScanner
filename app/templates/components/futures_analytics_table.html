@@ -1,0 +1,110 @@
+{% if snapshot and snapshot.items %}
+<!-- Futures Summary Bar -->
+<div class="row g-2 mb-3 align-items-center bg-light p-2 rounded border mx-0">
+    <div class="col-md-3">
+        <span class="text-muted small">Spot Reference:</span>
+        <strong class="fs-6 text-primary">{{ snapshot.spot_value if snapshot.spot_value else '—' }}</strong>
+        {% if snapshot.spot_source %}
+        <span class="badge bg-secondary ms-1 small">{{ snapshot.spot_source }}</span>
+        {% endif %}
+    </div>
+    <div class="col-md-3">
+        <span class="text-muted small">Term Structure:</span>
+        {% if snapshot.curve_slope == 'UPWARD_SLOPING' %}
+        <span class="badge bg-primary ms-1"><i class="bi bi-graph-up-arrow me-1"></i>Upward Sloping</span>
+        {% elif snapshot.curve_slope == 'DOWNWARD_SLOPING' %}
+        <span class="badge bg-warning text-dark ms-1"><i class="bi bi-graph-down-arrow me-1"></i>Downward Sloping</span>
+        {% else %}
+        <span class="badge bg-secondary ms-1">Flat Curve</span>
+        {% endif %}
+    </div>
+    <div class="col-md-3">
+        <span class="text-muted small">Total Futures OI:</span>
+        <strong class="small text-dark">{{ snapshot.total_futures_oi }}</strong>
+    </div>
+    <div class="col-md-3 text-end">
+        {% if rollover %}
+        <span class="badge bg-dark">Rollover (Next): {{ '%.2f'|format(rollover.rollover_next_pct) if rollover.rollover_next_pct is not none else '—' }}%</span>
+        {% if rollover.is_expiry_window %}
+        <span class="badge bg-warning text-dark ms-1">Expiry Window</span>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<!-- Futures Term Structure & Contract Analytics Table -->
+<div class="table-responsive">
+    <table class="table table-sm table-hover table-bordered text-center align-middle mb-0 small">
+        <thead class="table-dark">
+            <tr>
+                <th>Rank</th>
+                <th>Expiry</th>
+                <th>DTE</th>
+                <th>Trading Symbol</th>
+                <th>Futures Price</th>
+                <th>OI (Contracts)</th>
+                <th>OI Share %</th>
+                <th>Volume</th>
+                <th>Basis</th>
+                <th>Basis %</th>
+                <th>Price / OI Pattern</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in snapshot.items %}
+            {% set analytics = contract_analytics_map.get(item.contract_id) if contract_analytics_map else None %}
+            <tr>
+                <td><span class="badge bg-outline-dark fw-bold">{{ item.expiry_rank }}</span></td>
+                <td><strong>{{ item.expiry_date }}</strong></td>
+                <td><span class="badge bg-info text-dark">{{ item.calendar_days_to_expiry }}d</span></td>
+                <td class="fw-semibold">{{ item.trading_symbol }}</td>
+                <td class="fw-bold">{{ item.price }}</td>
+                <td>{{ item.open_interest }}</td>
+                <td>{{ '%.1f'|format(item.oi_share_pct) }}%</td>
+                <td>{{ item.volume_contracts }}</td>
+                <td>{{ item.basis_absolute if item.basis_absolute is not none else '—' }}</td>
+                <td>{{ '%.2f'|format(item.basis_pct) if item.basis_pct is not none else '—' }}%</td>
+                <td>
+                    {% if analytics %}
+                        {% if analytics.buildup_state == 'LONG_BUILDUP' %}
+                        <span class="badge bg-success" title="Price UP + OI UP">LONG BUILDUP</span>
+                        {% elif analytics.buildup_state == 'SHORT_BUILDUP' %}
+                        <span class="badge bg-danger" title="Price DOWN + OI UP">SHORT BUILDUP</span>
+                        {% elif analytics.buildup_state == 'SHORT_COVERING' %}
+                        <span class="badge bg-info text-dark" title="Price UP + OI DOWN">SHORT COVERING</span>
+                        {% elif analytics.buildup_state == 'LONG_UNWINDING' %}
+                        <span class="badge bg-warning text-dark" title="Price DOWN + OI DOWN">LONG UNWINDING</span>
+                        {% else %}
+                        <span class="badge bg-secondary">{{ analytics.buildup_state }}</span>
+                        {% endif %}
+                    {% else %}
+                        <span class="text-muted">—</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="text-muted small mt-2 d-flex justify-content-between">
+    <div>
+        Trade Date: <strong>{{ snapshot.trade_date }}</strong> · 
+        As-Of: <strong>{{ snapshot.as_of_date }}</strong> · 
+        Algorithm: <strong>FUTURES_ANALYTICS_V1</strong>
+    </div>
+    <div class="fst-italic">
+        Note: Long/Short buildup badges classify deterministic Price/OI patterns and do not imply participant identity.
+    </div>
+</div>
+
+{% elif snapshot %}
+<div class="alert alert-info my-3">
+    <i class="bi bi-info-circle me-1"></i> No futures contract records found for <strong>{{ snapshot.underlying_symbol }}</strong> on trade date <strong>{{ snapshot.trade_date }}</strong>.
+</div>
+{% else %}
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-search fs-3 d-block mb-2"></i>
+    Select an Underlying Symbol and Trade Date to inspect futures term structure and buildup analytics.
+</div>
+{% endif %}

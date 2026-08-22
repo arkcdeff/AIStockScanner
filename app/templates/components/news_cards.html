@@ -1,0 +1,165 @@
+<!-- News + Government Policy Intelligence Component — Sprint 19.1F -->
+<div class="space-y-6">
+
+    <!-- News & Policy Overview Header Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-xl font-bold text-slate-100">{{ snapshot.symbol }} — News & Policy Intelligence</h2>
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                        PIT Safe
+                    </span>
+                </div>
+                <p class="text-sm text-slate-400 mt-1">
+                    Evaluation Cutoff: <span class="font-mono text-slate-200">{{ snapshot.evaluation_datetime.strftime('%Y-%m-%d %H:%M UTC') if snapshot.evaluation_datetime else snapshot.as_of_date }}</span>
+                </p>
+            </div>
+
+            <!-- Sentiment Context Pill Grid -->
+            <div class="flex items-center gap-2">
+                <div class="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-center">
+                    <div class="text-xs text-slate-400">Positive Context</div>
+                    <div class="text-base font-bold text-emerald-400">{{ snapshot.positive_context_count }}</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-rose-950/60 border border-rose-800/50 text-center">
+                    <div class="text-xs text-slate-400">Negative Context</div>
+                    <div class="text-base font-bold text-rose-400">{{ snapshot.negative_context_count }}</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-amber-950/60 border border-amber-800/50 text-center">
+                    <div class="text-xs text-slate-400">Mixed</div>
+                    <div class="text-base font-bold text-amber-400">{{ snapshot.mixed_context_count }}</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-center">
+                    <div class="text-xs text-slate-400">Neutral</div>
+                    <div class="text-base font-bold text-slate-300">{{ snapshot.neutral_context_count }}</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risk Flags Banner -->
+        <div class="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-3">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Event Risk Flags:</span>
+            {% if snapshot.overnight_event_risk %}
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                    Overnight Risk Active
+                </span>
+            {% endif %}
+            {% if snapshot.policy_headwind %}
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    Policy Headwind
+                </span>
+            {% endif %}
+            {% if snapshot.policy_tailwind %}
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    Policy Tailwind
+                </span>
+            {% endif %}
+            {% if snapshot.regulatory_flag %}
+                <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                    Regulatory Disclosure
+                </span>
+            {% endif %}
+            {% if not snapshot.overnight_event_risk and not snapshot.policy_headwind and not snapshot.policy_tailwind and not snapshot.regulatory_flag %}
+                <span class="text-xs text-slate-400 italic">No critical event risk flags detected.</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Upcoming Event Risks Calendar -->
+    {% if snapshot.upcoming_event_risks %}
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <h3 class="text-md font-semibold text-slate-200 mb-3 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-amber-400"></span> Upcoming Scheduled Event Risks
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {% for risk in snapshot.upcoming_event_risks %}
+            <div class="bg-slate-950/60 border border-slate-800 p-3.5 rounded-lg flex items-center justify-between">
+                <div>
+                    <div class="text-xs font-bold text-amber-400 uppercase tracking-wider">{{ risk.category }}</div>
+                    <div class="text-sm text-slate-200 font-medium mt-0.5">{{ risk.title }}</div>
+                    <div class="text-xs text-slate-400 mt-1">Scheduled: <span class="font-mono text-slate-300">{{ risk.scheduled_at }}</span></div>
+                </div>
+                <span class="px-2 py-1 text-xs font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {{ risk.event_risk_flag }}
+                </span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Recent News & Policy Disclosures Table -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <h3 class="text-md font-semibold text-slate-200 mb-4">Recent Disclosures & Policy Events</h3>
+        {% if snapshot.recent_events %}
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-300">
+                <thead class="bg-slate-950 text-xs font-semibold text-slate-400 uppercase border-b border-slate-800">
+                    <tr>
+                        <th class="py-3 px-4">Published At</th>
+                        <th class="py-3 px-4">Event Type</th>
+                        <th class="py-3 px-4">Headline</th>
+                        <th class="py-3 px-4">Source</th>
+                        <th class="py-3 px-4 text-center">Context</th>
+                        <th class="py-3 px-4 text-center">Severity</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-800/60">
+                    {% for evt in snapshot.recent_events %}
+                    <tr class="hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-mono text-xs text-slate-400 whitespace-nowrap">
+                            {{ evt.published_at.strftime('%Y-%m-%d %H:%M') if evt.published_at else '-' }}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <span class="px-2 py-0.5 text-xs font-medium rounded bg-slate-800 text-slate-300 border border-slate-700">
+                                {{ evt.event_type }}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4 max-w-md">
+                            <div class="font-medium text-slate-200">{{ evt.headline }}</div>
+                            {% if evt.summary %}
+                            <div class="text-xs text-slate-400 truncate mt-0.5">{{ evt.summary }}</div>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 whitespace-nowrap text-xs text-slate-400">
+                            <div>{{ evt.source_name }}</div>
+                            <div class="text-[10px] text-slate-400">{{ evt.source_type }}</div>
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            {% if evt.deterministic_context == 'POSITIVE_CONTEXT' %}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    Positive Context
+                                </span>
+                            {% elif evt.deterministic_context == 'NEGATIVE_CONTEXT' %}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                                    Negative Context
+                                </span>
+                            {% elif evt.deterministic_context == 'MIXED' %}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                                    Mixed
+                                </span>
+                            {% else %}
+                                <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-400">
+                                    Neutral / Unknown
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3 px-4 text-center whitespace-nowrap">
+                            <span class="px-2 py-0.5 text-xs font-semibold rounded bg-slate-800 text-slate-300">
+                                {{ evt.event_severity }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-6 text-center text-slate-400 text-sm">
+            No point-in-time safe news or policy events found for this evaluation cutoff.
+        </div>
+        {% endif %}
+    </div>
+
+</div>

@@ -1,0 +1,200 @@
+{% if not analytics %}
+<div class="alert alert-warning text-center my-3">
+  No options analytics available for the selected underlying, trade date, and expiry.
+</div>
+{% else %}
+
+{% if analytics.quality_warnings %}
+<div class="alert alert-warning alert-dismissible fade show my-2" role="alert">
+  <strong>Data Quality Warnings:</strong>
+  <ul class="mb-0 ps-3">
+    {% for w in analytics.quality_warnings %}
+      <li><code>{{ w }}</code></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div class="row g-3 mb-4">
+  <!-- Spot Reference -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Spot Reference</div>
+        <div class="fs-4 fw-bold text-info">
+          {% if analytics.resolved_spot %}{{ "{:,.2f}".format(analytics.resolved_spot) }}{% else %}N/A{% endif %}
+        </div>
+        <div class="small text-secondary">{{ analytics.underlying_symbol }} • {{ analytics.trade_date }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Put-Call Ratios -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Put-Call Ratio (PCR)</div>
+        <div class="fs-5 fw-bold text-light">
+          OI: {% if analytics.pcr.pcr_oi is not none %}{{ "{:.2f}".format(analytics.pcr.pcr_oi) }}{% else %}N/A{% endif %}
+          <span class="ms-2 text-secondary fs-6">Vol: {% if analytics.pcr.pcr_volume is not none %}{{ "{:.2f}".format(analytics.pcr.pcr_volume) }}{% else %}N/A{% endif %}</span>
+        </div>
+        <div class="small text-secondary">
+          Call OI: {{ "{:,}".format(analytics.pcr.total_call_oi) }} | Put OI: {{ "{:,}".format(analytics.pcr.total_put_oi) }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Max Pain Strike -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small" title="Strike minimizing aggregate expiry payout">Max Pain Strike</div>
+        <div class="fs-4 fw-bold text-warning">
+          {% if analytics.max_pain.max_pain_strike %}{{ "{:,.2f}".format(analytics.max_pain.max_pain_strike) }}{% else %}N/A{% endif %}
+        </div>
+        <div class="small text-secondary">
+          {% if analytics.max_pain.distance_pct is not none %}
+            Dist: {{ "{:+.2f}%".format(analytics.max_pain.distance_pct) }}
+          {% endif %}
+          {% if analytics.max_pain.tie_count > 1 %}
+            ({{ analytics.max_pain.tie_count }} tied)
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Static OI Walls -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">OI Concentration Walls</div>
+        <div class="small fw-semibold text-light">
+          Call Wall: 
+          {% if analytics.static_call_wall %}
+            <span class="text-warning fw-bold">{{ "{:,.0f}".format(analytics.static_call_wall.strike_price) }}</span>
+            <span class="text-muted">({{ "{:.1f}%".format(analytics.static_call_wall.oi_share_pct) }})</span>
+          {% else %}N/A{% endif %}
+        </div>
+        <div class="small fw-semibold text-light mt-1">
+          Put Wall: 
+          {% if analytics.static_put_wall %}
+            <span class="text-warning fw-bold">{{ "{:,.0f}".format(analytics.static_put_wall.strike_price) }}</span>
+            <span class="text-muted">({{ "{:.1f}%".format(analytics.static_put_wall.oi_share_pct) }})</span>
+          {% else %}N/A{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Secondary Analytics: Fresh ΔOI Walls & Unwinding -->
+<div class="row g-3 mb-4">
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary text-white">
+      <div class="card-header bg-dark border-secondary py-2">
+        <h6 class="mb-0 text-light fs-7 fw-semibold">Fresh Open-Interest Build Walls (+ΔOI)</h6>
+      </div>
+      <div class="card-body py-2">
+        <div class="row">
+          <div class="col-6">
+            <span class="text-muted small d-block">Fresh Call Build:</span>
+            {% if analytics.fresh_call_wall %}
+              <span class="fw-bold text-light">{{ "{:,.0f}".format(analytics.fresh_call_wall.strike_price) }}</span>
+              <span class="badge bg-secondary ms-1">+{{ "{:,}".format(analytics.fresh_call_wall.change_in_open_interest) }}</span>
+            {% else %}
+              <span class="text-secondary small">No positive Call ΔOI</span>
+            {% endif %}
+          </div>
+          <div class="col-6">
+            <span class="text-muted small d-block">Fresh Put Build:</span>
+            {% if analytics.fresh_put_wall %}
+              <span class="fw-bold text-light">{{ "{:,.0f}".format(analytics.fresh_put_wall.strike_price) }}</span>
+              <span class="badge bg-secondary ms-1">+{{ "{:,}".format(analytics.fresh_put_wall.change_in_open_interest) }}</span>
+            {% else %}
+              <span class="text-secondary small">No positive Put ΔOI</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary text-white">
+      <div class="card-header bg-dark border-secondary py-2">
+        <h6 class="mb-0 text-light fs-7 fw-semibold">Open-Interest Unwinding Levels (-ΔOI)</h6>
+      </div>
+      <div class="card-body py-2">
+        <div class="row">
+          <div class="col-6">
+            <span class="text-muted small d-block">Call Unwinding:</span>
+            {% if analytics.largest_call_unwinding %}
+              <span class="fw-bold text-light">{{ "{:,.0f}".format(analytics.largest_call_unwinding.strike_price) }}</span>
+              <span class="badge bg-danger ms-1">{{ "{:,}".format(analytics.largest_call_unwinding.change_in_open_interest) }}</span>
+            {% else %}
+              <span class="text-secondary small">No Call Unwinding</span>
+            {% endif %}
+          </div>
+          <div class="col-6">
+            <span class="text-muted small d-block">Put Unwinding:</span>
+            {% if analytics.largest_put_unwinding %}
+              <span class="fw-bold text-light">{{ "{:,.0f}".format(analytics.largest_put_unwinding.strike_price) }}</span>
+              <span class="badge bg-danger ms-1">{{ "{:,}".format(analytics.largest_put_unwinding.change_in_open_interest) }}</span>
+            {% else %}
+              <span class="text-secondary small">No Put Unwinding</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Term Structure Expiry Summary -->
+{% if expiry_analytics and expiry_analytics.expiries %}
+<div class="card bg-dark border-secondary text-white mb-4">
+  <div class="card-header bg-dark border-secondary py-2">
+    <h6 class="mb-0 text-light fs-7 fw-semibold">Term Structure Expiry Distribution</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-dark table-hover table-striped align-middle mb-0 small">
+      <thead>
+        <tr>
+          <th>Expiry Date</th>
+          <th>DTE</th>
+          <th class="text-end">Call OI</th>
+          <th class="text-end">Put OI</th>
+          <th class="text-end">Total OI</th>
+          <th class="text-end">OI Share %</th>
+          <th class="text-end">Volume</th>
+          <th class="text-end">PCR (OI)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for exp in expiry_analytics.expiries %}
+        <tr {% if exp.expiry_date == analytics.expiry_date %}class="table-active"{% endif %}>
+          <td class="fw-semibold">{{ exp.expiry_date }}</td>
+          <td>{{ exp.calendar_days_to_expiry }}d</td>
+          <td class="text-end">{{ "{:,}".format(exp.total_call_oi) }}</td>
+          <td class="text-end">{{ "{:,}".format(exp.total_put_oi) }}</td>
+          <td class="text-end fw-semibold">{{ "{:,}".format(exp.total_oi) }}</td>
+          <td class="text-end">{{ "{:.1f}%".format(exp.oi_share_pct) }}</td>
+          <td class="text-end">{{ "{:,}".format(exp.total_volume) }}</td>
+          <td class="text-end">{% if exp.pcr_oi is not none %}{{ "{:.2f}".format(exp.pcr_oi) }}{% else %}N/A{% endif %}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+<!-- Disclaimer Banner -->
+<div class="alert alert-secondary py-2 small mb-3">
+  <i class="bi bi-info-circle me-1"></i>
+  <strong>Methodology Disclaimer:</strong> Calculated open-interest metrics (PCR, Max Pain, OI Walls) are structural pattern classifications derived from official EOD market data (Methodology Version: <code>{{ analytics.algorithm_version }}</code>). They do not represent participant identity, proprietary trading positions, or directional price forecasts.
+</div>
+
+{% endif %}

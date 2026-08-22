@@ -1,0 +1,42 @@
+{% if coverage %}
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Status</th>
+                <th class="text-end">Prices</th>
+                <th class="text-end">Stocks</th>
+                <th class="text-end">Delivery</th>
+                <th class="text-end">Indicators</th>
+                <th class="text-end">Scans</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in coverage %}
+            <tr>
+                <td>{{ row.trade_date }} <span class="text-muted small">({{ row.weekday }})</span></td>
+                <td>
+                    {% if row.status == 'complete' %}
+                        <span class="badge bg-success">complete</span>
+                    {% elif row.status == 'partial' %}
+                        <span class="badge bg-warning text-dark">partial</span>
+                    {% elif row.status == 'missing' %}
+                        <span class="badge bg-danger">missing</span>
+                    {% else %}
+                        <span class="badge bg-secondary">weekend</span>
+                    {% endif %}
+                </td>
+                <td class="text-end">{{ row.price_count }}</td>
+                <td class="text-end">{{ row.stock_count }}</td>
+                <td class="text-end">{{ row.delivery_count }}</td>
+                <td class="text-end">{{ row.indicator_count }}</td>
+                <td class="text-end">{{ row.scan_count }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="text-muted small">No coverage data for the selected window.</div>
+{% endif %}

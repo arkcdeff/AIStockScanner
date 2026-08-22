@@ -1,0 +1,197 @@
+{% if snapshot %}
+<!-- Non-Participant Methodology Disclaimer Banner -->
+<div class="alert alert-info border-0 shadow-sm mb-4">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-info-circle-fill me-2 fs-5"></i>
+        <div>
+            <strong>Official Participant Category Positions</strong> — Reports broad aggregate exchange categories (Client, DII, FII, Pro).
+            These figures represent structural open interest &amp; trading volume facts, NOT dealer identity tracking or directional price targets.
+        </div>
+    </div>
+</div>
+
+<!-- FII Index Futures Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm bg-body-tertiary">
+            <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase mb-1">FII Index Futures Long</div>
+                <div class="h3 mb-1 fw-bold text-success">{{ "{:,}".format(snapshot.fii_index_futures.long_contracts) }}</div>
+                <div class="small text-muted">
+                    {% if snapshot.fii_index_futures.day_over_day_long_change is not none %}
+                        DoD: <span class="{% if snapshot.fii_index_futures.day_over_day_long_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,}".format(snapshot.fii_index_futures.day_over_day_long_change) }}
+                        </span>
+                    {% else %}
+                        DoD: N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm bg-body-tertiary">
+            <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase mb-1">FII Index Futures Short</div>
+                <div class="h3 mb-1 fw-bold text-danger">{{ "{:,}".format(snapshot.fii_index_futures.short_contracts) }}</div>
+                <div class="small text-muted">
+                    {% if snapshot.fii_index_futures.day_over_day_short_change is not none %}
+                        DoD: <span class="{% if snapshot.fii_index_futures.day_over_day_short_change <= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,}".format(snapshot.fii_index_futures.day_over_day_short_change) }}
+                        </span>
+                    {% else %}
+                        DoD: N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm bg-body-tertiary">
+            <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase mb-1">FII Index Futures Net</div>
+                <div class="h3 mb-1 fw-bold {% if snapshot.fii_index_futures.net_contracts >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ "{:+,}".format(snapshot.fii_index_futures.net_contracts) }}
+                </div>
+                <div class="small text-muted">
+                    {% if snapshot.fii_index_futures.day_over_day_net_change is not none %}
+                        DoD: <span class="{% if snapshot.fii_index_futures.day_over_day_net_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,}".format(snapshot.fii_index_futures.day_over_day_net_change) }}
+                        </span>
+                    {% else %}
+                        DoD: N/A
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card h-100 border-0 shadow-sm bg-body-tertiary">
+            <div class="card-body">
+                <div class="text-muted small fw-semibold text-uppercase mb-1">FII Long / Short Ratio</div>
+                <div class="h3 mb-1 fw-bold">
+                    {% if snapshot.fii_index_futures.long_short_ratio is not none %}
+                        {{ "%.2f"|format(snapshot.fii_index_futures.long_short_ratio) }}
+                    {% else %}
+                        N/A
+                    {% endif %}
+                </div>
+                <div class="small text-muted">Ratio > 1.0 = Net Long</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Participant Category Breakdown Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-transparent py-3">
+        <h5 class="card-title mb-0 fw-semibold">
+            Participant Category Positioning breakdown — {{ snapshot.dataset_type }} ({{ snapshot.report_date }})
+        </h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-center">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Participant</th>
+                    <th>Index Fut Long</th>
+                    <th>Index Fut Short</th>
+                    <th>Index Fut Net</th>
+                    <th>Stock Fut Long</th>
+                    <th>Stock Fut Short</th>
+                    <th>Stock Fut Net</th>
+                    <th>Index Call Long</th>
+                    <th>Index Call Short</th>
+                    <th>Index Put Long</th>
+                    <th>Index Put Short</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for part in ['CLIENT', 'DII', 'FII', 'PRO'] %}
+                    {% set fut_idx_l = 0 %}
+                    {% set fut_idx_s = 0 %}
+                    {% set fut_stk_l = 0 %}
+                    {% set fut_stk_s = 0 %}
+                    {% set opt_idx_c_l = 0 %}
+                    {% set opt_idx_c_s = 0 %}
+                    {% set opt_idx_p_l = 0 %}
+                    {% set opt_idx_p_s = 0 %}
+
+                    {% for item in snapshot.items %}
+                        {% if item.participant_type == part %}
+                            {% if item.instrument_bucket == 'INDEX_FUTURE' %}{% set fut_idx_l = item.long_contracts %}{% set fut_idx_s = item.short_contracts %}{% endif %}
+                            {% if item.instrument_bucket == 'STOCK_FUTURE' %}{% set fut_stk_l = item.long_contracts %}{% set fut_stk_s = item.short_contracts %}{% endif %}
+                            {% if item.instrument_bucket == 'INDEX_OPTION_CALL' %}{% set opt_idx_c_l = item.long_contracts %}{% set opt_idx_c_s = item.short_contracts %}{% endif %}
+                            {% if item.instrument_bucket == 'INDEX_OPTION_PUT' %}{% set opt_idx_p_l = item.long_contracts %}{% set opt_idx_p_s = item.short_contracts %}{% endif %}
+                        {% endif %}
+                    {% endfor %}
+
+                    <tr>
+                        <td class="text-start fw-bold">{{ part }}</td>
+                        <td>{{ "{:,}".format(fut_idx_l) }}</td>
+                        <td>{{ "{:,}".format(fut_idx_s) }}</td>
+                        <td class="fw-bold {% if (fut_idx_l - fut_idx_s) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,}".format(fut_idx_l - fut_idx_s) }}
+                        </td>
+                        <td>{{ "{:,}".format(fut_stk_l) }}</td>
+                        <td>{{ "{:,}".format(fut_stk_s) }}</td>
+                        <td class="fw-bold {% if (fut_stk_l - fut_stk_s) >= 0 %}text-success{% else %}text-danger{% endif %}">
+                            {{ "{:+,}".format(fut_stk_l - fut_stk_s) }}
+                        </td>
+                        <td>{{ "{:,}".format(opt_idx_c_l) }}</td>
+                        <td>{{ "{:,}".format(opt_idx_c_s) }}</td>
+                        <td>{{ "{:,}".format(opt_idx_p_l) }}</td>
+                        <td>{{ "{:,}".format(opt_idx_p_s) }}</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if snapshot.fii_statistics %}
+<!-- FII Derivatives Statistics Summary -->
+<div class="card border-0 shadow-sm">
+    <div class="card-header bg-transparent py-3">
+        <h5 class="card-title mb-0 fw-semibold">FII Derivatives Activity Statistics</h5>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-center">
+            <thead class="table-light">
+                <tr>
+                    <th class="text-start">Category</th>
+                    <th>Buy Contracts</th>
+                    <th>Buy Amount (Cr)</th>
+                    <th>Sell Contracts</th>
+                    <th>Sell Amount (Cr)</th>
+                    <th>Net Buy/Sell (Cr)</th>
+                    <th>OI Contracts</th>
+                    <th>OI Amount (Cr)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for st in snapshot.fii_statistics %}
+                <tr>
+                    <td class="text-start fw-semibold">{{ st.instrument_category }}</td>
+                    <td>{% if st.buy_contracts is not none %}{{ "{:,}".format(st.buy_contracts) }}{% else %}-{% endif %}</td>
+                    <td>{% if st.buy_amount is not none %}{{ "%.2f"|format(st.buy_amount) }}{% else %}-{% endif %}</td>
+                    <td>{% if st.sell_contracts is not none %}{{ "{:,}".format(st.sell_contracts) }}{% else %}-{% endif %}</td>
+                    <td>{% if st.sell_amount is not none %}{{ "%.2f"|format(st.sell_amount) }}{% else %}-{% endif %}</td>
+                    <td class="fw-bold {% if st.net_buy_sell_amount and st.net_buy_sell_amount >= 0 %}text-success{% elif st.net_buy_sell_amount %}text-danger{% endif %}">
+                        {% if st.net_buy_sell_amount is not none %}{{ "{:+.2f}".format(st.net_buy_sell_amount) }}{% else %}-{% endif %}
+                    </td>
+                    <td>{% if st.open_interest_contracts is not none %}{{ "{:,}".format(st.open_interest_contracts) }}{% else %}-{% endif %}</td>
+                    <td>{% if st.open_interest_amount is not none %}{{ "%.2f"|format(st.open_interest_amount) }}{% else %}-{% endif %}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+{% else %}
+<div class="alert alert-warning border-0 shadow-sm">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i> No participant derivative positioning data available for this date.
+</div>
+{% endif %}

@@ -1,0 +1,87 @@
+<!-- Stock 360° Research Component — Sprint 19.1G -->
+<div class="space-y-6">
+
+    <!-- Header Card -->
+    <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-3">
+                    <h2 class="text-2xl font-bold text-slate-100">{{ snapshot.symbol }}</h2>
+                    <span class="text-sm font-medium text-slate-400">({{ snapshot.company_name }})</span>
+                    {% if snapshot.is_fno %}
+                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                        F&O Listed
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-4 text-xs text-slate-400 mt-2">
+                    <span>Sector: <strong class="text-slate-200">{{ snapshot.sector_name or 'Unassigned' }}</strong></span>
+                    <span>Evaluation Cutoff: <strong class="text-slate-200 font-mono">{{ snapshot.evaluation_date }}</strong></span>
+                </div>
+            </div>
+
+            <!-- Data Completeness Gauge -->
+            <div class="flex items-center gap-3 bg-slate-950/60 p-3 rounded-lg border border-slate-800">
+                <div class="text-right">
+                    <div class="text-xs text-slate-400">Data Coverage</div>
+                    <div class="text-lg font-bold text-indigo-400">{{ snapshot.data_completeness_pct }}%</div>
+                </div>
+                <div class="w-12 h-12 rounded-full border-4 border-indigo-500 flex items-center justify-center font-bold text-xs text-slate-200">
+                    360°
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10-Dimensional Snapshot Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+        <!-- 1. Technical & Trend -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-3">1. Technical & Trend</h3>
+            {% if snapshot.technicals %}
+            <div class="space-y-2 text-sm text-slate-300">
+                <div class="flex justify-between"><span>Close:</span> <strong class="font-mono text-slate-100">₹{{ snapshot.technicals.close }}</strong></div>
+                <div class="flex justify-between"><span>EMA 20:</span> <strong class="font-mono">₹{{ snapshot.technicals.ema20 or '-' }}</strong></div>
+                <div class="flex justify-between"><span>EMA 50:</span> <strong class="font-mono">₹{{ snapshot.technicals.ema50 or '-' }}</strong></div>
+                <div class="flex justify-between"><span>Trend State:</span> <strong class="text-emerald-400">{{ snapshot.technicals.trend_state }}</strong></div>
+                <div class="flex justify-between"><span>From 52w High:</span> <strong class="font-mono">{{ snapshot.technicals.pct_from_52w_high }}%</strong></div>
+            </div>
+            {% else %}
+            <div class="text-xs text-slate-500">No technical data available</div>
+            {% endif %}
+        </div>
+
+        <!-- 2. Volume & Delivery -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-3">2. Volume & Delivery</h3>
+            {% if snapshot.volume_delivery %}
+            <div class="space-y-2 text-sm text-slate-300">
+                <div class="flex justify-between"><span>Relative Volume:</span> <strong class="font-mono">{{ snapshot.volume_delivery.relative_volume_20d }}x</strong></div>
+                <div class="flex justify-between"><span>Delivery %:</span> <strong class="font-mono">{{ snapshot.volume_delivery.delivery_pct }}%</strong></div>
+                <div class="flex justify-between"><span>Volume Breakout:</span> <strong class="{{ 'text-emerald-400' if snapshot.volume_delivery.volume_breakout else 'text-slate-400' }}">{{ snapshot.volume_delivery.volume_breakout }}</strong></div>
+                <div class="flex justify-between"><span>Accumulation Signal:</span> <strong class="{{ 'text-emerald-400' if snapshot.volume_delivery.accumulation_signal else 'text-slate-400' }}">{{ snapshot.volume_delivery.accumulation_signal }}</strong></div>
+            </div>
+            {% else %}
+            <div class="text-xs text-slate-500">No volume/delivery data available</div>
+            {% endif %}
+        </div>
+
+        <!-- 3. Relative Strength -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
+            <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-3">3. Relative Strength</h3>
+            {% if snapshot.relative_strength %}
+            <div class="space-y-2 text-sm text-slate-300">
+                <div class="flex justify-between"><span>vs Nifty (20D):</span> <strong class="font-mono">{{ snapshot.relative_strength.stock_vs_nifty_20d_pct or '-' }}%</strong></div>
+                <div class="flex justify-between"><span>vs Nifty (60D):</span> <strong class="font-mono">{{ snapshot.relative_strength.stock_vs_nifty_60d_pct or '-' }}%</strong></div>
+                <div class="flex justify-between"><span>vs Nifty (120D):</span> <strong class="font-mono">{{ snapshot.relative_strength.stock_vs_nifty_120d_pct or '-' }}%</strong></div>
+                <div class="flex justify-between"><span>RS Trend:</span> <strong class="text-emerald-400">{{ snapshot.relative_strength.rs_trend }}</strong></div>
+            </div>
+            {% else %}
+            <div class="text-xs text-slate-500">No relative strength data</div>
+            {% endif %}
+        </div>
+
+    </div>
+
+</div>

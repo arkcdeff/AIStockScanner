@@ -1,0 +1,114 @@
+<!-- Advanced Exposure & GEX Analytics Tab Component -->
+<div id="advanced-exposure-container" class="space-y-6">
+
+  <!-- Mandatory OI Disclaimer -->
+  <div class="bg-amber-900/30 border border-amber-600/50 rounded-lg p-4 text-xs text-amber-200">
+    <div class="font-semibold text-amber-100 mb-1">Exposure Analytics Disclaimer & positioning Notice</div>
+    Exposure analytics are derived from aggregate open interest and Black-Scholes option Greeks. Aggregate open interest does NOT reveal actual dealer or market-maker position direction. Signed exposure metrics and Gamma Flip levels are hypothetical scenario-based estimates under the selected positioning profile. They do NOT guarantee market reversals, support, or resistance.
+  </div>
+
+  {% if snapshot %}
+  <!-- Exposure KPI Cards Header -->
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
+    <!-- Gross GEX Card -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gross GEX</div>
+      <div class="text-xl font-bold text-slate-100 mt-1">₹ {{ snapshot.gross_total_gex }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">INR Notional per 1% move</div>
+    </div>
+
+    <!-- Scenario Net GEX Card -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Scenario Net GEX</div>
+      <div class="text-xl font-bold {% if snapshot.scenario_net_gex > 0 %}text-emerald-400{% elif snapshot.scenario_net_gex < 0 %}text-rose-400{% else %}text-slate-200{% endif %} mt-1">
+        ₹ {{ snapshot.scenario_net_gex }}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">{{ snapshot.assumption_profile }}</div>
+    </div>
+
+    <!-- Gamma Flip Level Card -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gamma Flip</div>
+      <div class="text-xl font-bold text-cyan-400 mt-1">
+        {% if snapshot.gamma_flip.gamma_flip_level %}
+          {{ snapshot.gamma_flip.gamma_flip_level }}
+        {% else %}
+          N/A
+        {% endif %}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">
+        {% if snapshot.gamma_flip.distance_pct %}
+          {{ snapshot.gamma_flip.distance_pct }}% from spot
+        {% else %}
+          {{ snapshot.gamma_flip.status }}
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Gross DEX Card -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gross DEX</div>
+      <div class="text-xl font-bold text-indigo-400 mt-1">₹ {{ snapshot.gross_total_dex }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">INR Delta Notional</div>
+    </div>
+
+    <!-- Top Strike Concentration -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Top Strike Share</div>
+      <div class="text-xl font-bold text-purple-400 mt-1">{{ snapshot.concentration.top1_share_pct }}%</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Strike: {{ snapshot.concentration.top1_strike }}</div>
+    </div>
+
+    <!-- Exposure Quality -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Data Quality</div>
+      <div class="text-xl font-bold text-emerald-400 mt-1">{{ snapshot.exposure_quality }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">PIT Verified</div>
+    </div>
+
+  </div>
+  {% endif %}
+
+  <!-- Strike Exposure Table -->
+  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+    <h3 class="text-sm font-semibold text-slate-200 mb-3">Strike Exposure & GEX Breakdown</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left text-slate-300">
+        <thead class="text-[11px] uppercase bg-slate-900 text-slate-400 border-b border-slate-700">
+          <tr>
+            <th class="p-2">Strike</th>
+            <th class="p-2 text-right">CE OI</th>
+            <th class="p-2 text-right">PE OI</th>
+            <th class="p-2 text-right">CE Gross GEX</th>
+            <th class="p-2 text-right">PE Gross GEX</th>
+            <th class="p-2 text-right">Total Gross GEX</th>
+            <th class="p-2 text-right">Scenario Net GEX</th>
+            <th class="p-2 text-right">Gross DEX</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+          {% for r in strikes %}
+          <tr class="{% if r.is_atm %}bg-indigo-950/40 font-semibold text-indigo-300{% else %}hover:bg-slate-700/30{% endif %}">
+            <td class="p-2 font-mono">{{ r.strike_price }} {% if r.is_atm %}<span class="text-[10px] px-1 bg-indigo-500/30 text-indigo-200 rounded ml-1">ATM</span>{% endif %}</td>
+            <td class="p-2 text-right font-mono">{{ r.ce_open_interest }}</td>
+            <td class="p-2 text-right font-mono">{{ r.pe_open_interest }}</td>
+            <td class="p-2 text-right font-mono">₹ {{ r.ce_gross_gex }}</td>
+            <td class="p-2 text-right font-mono">₹ {{ r.pe_gross_gex }}</td>
+            <td class="p-2 text-right font-mono font-semibold">₹ {{ r.total_gross_gex }}</td>
+            <td class="p-2 text-right font-mono {% if r.net_scenario_gex > 0 %}text-emerald-400{% elif r.net_scenario_gex < 0 %}text-rose-400{% endif %}">
+              ₹ {{ r.net_scenario_gex }}
+            </td>
+            <td class="p-2 text-right font-mono">₹ {{ r.gross_dex }}</td>
+          </tr>
+          {% else %}
+          <tr>
+            <td colspan="8" class="p-4 text-center text-slate-500">No options exposure data available for selected contract.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>

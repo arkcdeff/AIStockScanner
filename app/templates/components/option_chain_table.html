@@ -1,0 +1,132 @@
+{% if chain and chain.rows %}
+<!-- Chain Header Summary -->
+<div class="row g-2 mb-3 align-items-center bg-light p-2 rounded border mx-0">
+    <div class="col-md-3">
+        <span class="text-muted small">Spot Reference:</span>
+        <strong class="fs-6 text-primary">{{ chain.resolved_spot if chain.resolved_spot else '—' }}</strong>
+        {% if chain.source_underlying_value %}
+        <span class="badge bg-secondary ms-1 small" title="Official Source EOD Underlying Value">Source EOD</span>
+        {% elif chain.independent_spot %}
+        <span class="badge bg-outline-secondary ms-1 small" title="Independent Spot Reference">Spot Fallback</span>
+        {% endif %}
+    </div>
+    <div class="col-md-3">
+        <span class="text-muted small">Expiry / DTE:</span>
+        <strong class="small">{{ chain.expiry_date }}</strong>
+        <span class="badge bg-info text-dark ms-1">{{ chain.calendar_days_to_expiry }}d DTE</span>
+    </div>
+    <div class="col-md-3">
+        <span class="text-muted small">ATM Reference:</span>
+        <strong class="small text-dark">{{ chain.atm_reference_strike if chain.atm_reference_strike else '—' }}</strong>
+    </div>
+    <div class="col-md-3 text-end">
+        <span class="badge bg-dark">{{ chain.completeness.total_strikes }} Strikes</span>
+        <span class="badge bg-success" title="Paired CE/PE strikes">{{ chain.completeness.paired_strikes }} Paired</span>
+    </div>
+</div>
+
+{% if chain.quality_warnings %}
+<div class="mb-3">
+    {% for warning in chain.quality_warnings %}
+    <span class="badge bg-warning text-dark me-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>{{ warning }}</span>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Option Chain Table (CALLS | STRIKE | PUTS) -->
+<div class="table-responsive" style="max-height: 600px;">
+    <table class="table table-sm table-hover table-bordered text-center align-middle mb-0 small">
+        <thead class="table-dark sticky-top">
+            <tr>
+                <th colspan="5" class="bg-primary text-white border-end">CALLS</th>
+                <th class="bg-secondary text-white">STRIKE</th>
+                <th colspan="5" class="bg-dark text-white border-start">PUTS</th>
+            </tr>
+            <tr class="table-secondary small">
+                <!-- CALLS Header -->
+                <th>OI</th>
+                <th>Chg OI</th>
+                <th>Vol</th>
+                <th>Close</th>
+                <th class="border-end">Settle</th>
+                <!-- STRIKE Header -->
+                <th>Price</th>
+                <!-- PUTS Header -->
+                <th class="border-start">Settle</th>
+                <th>Close</th>
+                <th>Vol</th>
+                <th>Chg OI</th>
+                <th>OI</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in chain.rows %}
+            <tr class="{% if row.is_atm %}table-warning fw-bold{% endif %}">
+                <!-- CALL SIDE -->
+                {% if row.call %}
+                <td class="{% if row.call.moneyness == 'ITM' %}bg-primary-subtle{% endif %}">{{ row.call.open_interest if row.call.open_interest is not none else '—' }}</td>
+                <td class="{% if row.call.moneyness == 'ITM' %}bg-primary-subtle{% endif %}">
+                    {% if row.call.change_in_open_interest is not none %}
+                        {{ row.call.change_in_open_interest }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="{% if row.call.moneyness == 'ITM' %}bg-primary-subtle{% endif %}">{{ row.call.volume_contracts }}</td>
+                <td class="{% if row.call.moneyness == 'ITM' %}bg-primary-subtle{% endif %} fw-semibold">{{ row.call.close if row.call.close is not none else '—' }}</td>
+                <td class="{% if row.call.moneyness == 'ITM' %}bg-primary-subtle{% endif %} border-end">{{ row.call.settlement_price if row.call.settlement_price is not none else '—' }}</td>
+                {% else %}
+                <td colspan="5" class="text-muted border-end bg-light small"><em>Call Unavailable</em></td>
+                {% endif %}
+
+                <!-- STRIKE PRICE CENTER -->
+                <td class="bg-body-secondary fw-bold text-dark text-nowrap">
+                    {{ row.strike_price }}
+                    {% if row.is_atm %}
+                    <span class="badge bg-warning text-dark ms-1 style-micro">ATM</span>
+                    {% endif %}
+                </td>
+
+                <!-- PUT SIDE -->
+                {% if row.put %}
+                <td class="{% if row.put.moneyness == 'ITM' %}bg-warning-subtle{% endif %} border-start">{{ row.put.settlement_price if row.put.settlement_price is not none else '—' }}</td>
+                <td class="{% if row.put.moneyness == 'ITM' %}bg-warning-subtle{% endif %} fw-semibold">{{ row.put.close if row.put.close is not none else '—' }}</td>
+                <td class="{% if row.put.moneyness == 'ITM' %}bg-warning-subtle{% endif %}">{{ row.put.volume_contracts }}</td>
+                <td class="{% if row.put.moneyness == 'ITM' %}bg-warning-subtle{% endif %}">
+                    {% if row.put.change_in_open_interest is not none %}
+                        {{ row.put.change_in_open_interest }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <td class="{% if row.put.moneyness == 'ITM' %}bg-warning-subtle{% endif %}">{{ row.put.open_interest if row.put.open_interest is not none else '—' }}</td>
+                {% else %}
+                <td colspan="5" class="text-muted border-start bg-light small"><em>Put Unavailable</em></td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="text-muted small mt-2 d-flex justify-content-between">
+    <div>
+        Source: <strong>{{ chain.rows[0].call.source if (chain.rows[0] and chain.rows[0].call) else 'NSE Bhavcopy' }}</strong> · 
+        Trade Date: <strong>{{ chain.trade_date }}</strong> · 
+        As-Of: <strong>{{ chain.as_of_date }}</strong>
+    </div>
+    <div>
+        Paired: {{ chain.completeness.paired_strikes }} / CE-only: {{ chain.completeness.ce_only_strikes }} / PE-only: {{ chain.completeness.pe_only_strikes }}
+    </div>
+</div>
+
+{% elif chain %}
+<div class="alert alert-info my-3">
+    <i class="bi bi-info-circle me-1"></i> No option chain records found for <strong>{{ chain.underlying_symbol }}</strong> on trade date <strong>{{ chain.trade_date }}</strong> for expiry <strong>{{ chain.expiry_date }}</strong> (as of <strong>{{ chain.as_of_date }}</strong>).
+</div>
+{% else %}
+<div class="text-center py-4 text-muted">
+    <i class="bi bi-search fs-3 d-block mb-2"></i>
+    Select an Underlying, Trade Date, and Expiry Date to reconstruct historical option chain.
+</div>
+{% endif %}

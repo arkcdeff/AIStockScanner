@@ -1,0 +1,165 @@
+<div id="fundamentals-container" class="space-y-6">
+    <!-- Header Summary Card -->
+    <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-800 backdrop-blur">
+        <div class="flex flex-col md:flex-row justify-between md:items-center gap-4">
+            <div>
+                <h3 class="text-xl font-bold text-slate-100 flex items-center gap-2">
+                    <span>{{ snapshot.symbol }}</span>
+                    <span class="text-xs px-2.5 py-0.5 rounded-full font-mono bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        {{ snapshot.statement_basis }}
+                    </span>
+                </h3>
+                <p class="text-xs text-slate-400 mt-1">
+                    Evaluation Date: <span class="font-mono text-slate-200">{{ snapshot.evaluation_date }}</span> |
+                    PIT Cutoff (as_of): <span class="font-mono text-slate-200">{{ snapshot.as_of_date }}</span>
+                </p>
+            </div>
+            {% if snapshot.quality_inputs %}
+            <div class="flex flex-wrap gap-3">
+                <div class="text-center px-3 py-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
+                    <span class="block text-[10px] uppercase text-slate-400 font-semibold">Fundamental Score</span>
+                    <span class="text-sm font-bold font-mono text-emerald-400">{{ snapshot.quality_inputs.fundamental_quality_score }} / 100</span>
+                </div>
+                <div class="text-center px-3 py-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
+                    <span class="block text-[10px] uppercase text-slate-400 font-semibold">Growth Score</span>
+                    <span class="text-sm font-bold font-mono text-cyan-400">{{ snapshot.quality_inputs.growth_quality_score }} / 100</span>
+                </div>
+                <div class="text-center px-3 py-1.5 bg-slate-800/80 rounded-lg border border-slate-700">
+                    <span class="block text-[10px] uppercase text-slate-400 font-semibold">Balance Sheet</span>
+                    <span class="text-sm font-bold font-mono text-purple-400">{{ snapshot.quality_inputs.balance_sheet_quality_score }} / 100</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if snapshot.quality_warnings %}
+        <div class="mt-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+            <h4 class="text-xs font-semibold text-amber-400 mb-1">Quality Warnings / Notes:</h4>
+            <ul class="list-disc list-inside text-xs text-amber-300/80 space-y-0.5">
+                {% for warn in snapshot.quality_warnings %}
+                <li>{{ warn }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Financial Facts Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Latest Revenue -->
+        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800">
+            <span class="text-xs text-slate-400">Quarterly Revenue</span>
+            <div class="text-lg font-bold text-slate-100 mt-1 font-mono">
+                {% if snapshot.latest_quarterly and snapshot.latest_quarterly.revenue %}
+                ₹ {{ snapshot.latest_quarterly.revenue }} Cr
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            {% if snapshot.growth and snapshot.growth.revenue_growth_yoy %}
+            <span class="text-xs font-mono text-emerald-400">YoY: +{{ snapshot.growth.revenue_growth_yoy }}%</span>
+            {% endif %}
+        </div>
+
+        <!-- Net Profit (PAT) -->
+        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800">
+            <span class="text-xs text-slate-400">Quarterly Net Profit (PAT)</span>
+            <div class="text-lg font-bold text-slate-100 mt-1 font-mono">
+                {% if snapshot.latest_quarterly and snapshot.latest_quarterly.pat %}
+                ₹ {{ snapshot.latest_quarterly.pat }} Cr
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            {% if snapshot.growth and snapshot.growth.profit_growth_yoy %}
+            <span class="text-xs font-mono text-emerald-400">YoY: +{{ snapshot.growth.profit_growth_yoy }}%</span>
+            {% endif %}
+        </div>
+
+        <!-- Operating Margin -->
+        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800">
+            <span class="text-xs text-slate-400">Operating Margin (OPM)</span>
+            <div class="text-lg font-bold text-cyan-400 mt-1 font-mono">
+                {% if snapshot.margins and snapshot.margins.operating_margin_pct %}
+                {{ snapshot.margins.operating_margin_pct }}%
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            {% if snapshot.margins and snapshot.margins.net_profit_margin_pct %}
+            <span class="text-xs text-slate-400 font-mono">NPM: {{ snapshot.margins.net_profit_margin_pct }}%</span>
+            {% endif %}
+        </div>
+
+        <!-- PIT Valuation P/E -->
+        <div class="bg-slate-900/60 rounded-xl p-4 border border-slate-800">
+            <span class="text-xs text-slate-400">PIT Valuation (P/E)</span>
+            <div class="text-lg font-bold text-purple-400 mt-1 font-mono">
+                {% if snapshot.valuation and snapshot.valuation.pe_ratio %}
+                {{ snapshot.valuation.pe_ratio }}x
+                {% else %}
+                -
+                {% endif %}
+            </div>
+            {% if snapshot.valuation and snapshot.valuation.close_price %}
+            <span class="text-xs text-slate-400 font-mono">Close: ₹ {{ snapshot.valuation.close_price }}</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Shareholding & Corporate Announcements Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Shareholding Pattern -->
+        <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-800">
+            <h4 class="text-sm font-bold text-slate-200 mb-3">Latest Shareholding Breakdown</h4>
+            {% if snapshot.latest_shareholding %}
+            <div class="space-y-3">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Promoter Holding</span>
+                    <span class="font-bold text-slate-100 font-mono">{{ snapshot.latest_shareholding.promoter_holding_pct }}%</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Foreign Institutional (FII)</span>
+                    <span class="font-bold text-slate-100 font-mono">{{ snapshot.latest_shareholding.fii_holding_pct }}%</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Domestic Institutional (DII)</span>
+                    <span class="font-bold text-slate-100 font-mono">{{ snapshot.latest_shareholding.dii_holding_pct }}%</span>
+                </div>
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-slate-400">Public & Others</span>
+                    <span class="font-bold text-slate-100 font-mono">{{ snapshot.latest_shareholding.public_holding_pct }}%</span>
+                </div>
+                {% if snapshot.latest_shareholding.promoter_pledged_pct is not none %}
+                <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
+                    <span class="text-amber-400">Promoter Pledged %</span>
+                    <span class="font-bold text-amber-400 font-mono">{{ snapshot.latest_shareholding.promoter_pledged_pct }}%</span>
+                </div>
+                {% endif %}
+            </div>
+            {% else %}
+            <p class="text-xs text-slate-500 italic">No shareholding records available as of cutoff date.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Announcements -->
+        <div class="bg-slate-900/80 rounded-xl p-5 border border-slate-800">
+            <h4 class="text-sm font-bold text-slate-200 mb-3">Recent Corporate Announcements</h4>
+            {% if snapshot.recent_announcements %}
+            <div class="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                {% for ann in snapshot.recent_announcements %}
+                <div class="p-2.5 bg-slate-800/40 rounded-lg border border-slate-800 text-xs">
+                    <div class="flex justify-between text-[10px] text-slate-400 mb-0.5">
+                        <span class="font-mono text-blue-400">{{ ann.category }}</span>
+                        <span>{{ ann.announcement_date }}</span>
+                    </div>
+                    <p class="font-semibold text-slate-200">{{ ann.title }}</p>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-xs text-slate-500 italic">No corporate announcements recorded as of cutoff date.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>

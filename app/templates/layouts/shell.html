@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block body %}
+<!-- Sidebar (desktop) -->
+<aside class="app-sidebar" id="appSidebar">
+    {% include "components/sidebar.html" %}
+</aside>
+
+<!-- Mobile offcanvas sidebar -->
+<div class="offcanvas offcanvas-start app-offcanvas" id="mobileSidebar" tabindex="-1">
+    <div class="offcanvas-header">
+        <span class="offcanvas-title fw-bold">
+            <i class="bi bi-graph-up-arrow me-2 text-primary"></i>AIStockScanner
+        </span>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body p-0">
+        {% include "components/sidebar.html" %}
+    </div>
+</div>
+
+<!-- Main area -->
+<div class="app-main" id="appMain">
+    <!-- Topbar -->
+    <header class="app-topbar" id="appTopbar">
+        {% include "components/topbar.html" %}
+    </header>
+
+    <!-- Content -->
+    <div class="app-content">
+        <div class="app-content-inner">
+            {% include "components/flash.html" %}
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}

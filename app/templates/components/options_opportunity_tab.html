@@ -1,0 +1,183 @@
+<!-- Options Research & Opportunity Decision Engine Component -->
+<div id="options-opportunity-container" class="space-y-6">
+
+  <!-- Disclaimer Header -->
+  <div class="bg-indigo-950/40 border border-indigo-700/50 rounded-lg p-4 text-xs text-indigo-200">
+    <div class="font-semibold text-indigo-100 mb-1">Quantitative Options Research & Ranking Engine</div>
+    This tab evaluates underlying directional setup quality, expiry suitability, moneyness, and contract liquidity to identify research candidates. This is an analytical decision-support layer and does NOT constitute financial advice or guaranteed trade instructions.
+  </div>
+
+  {% if assessment %}
+  <!-- Header KPI Row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+
+    <!-- Overall Assessment Badge -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Classification</div>
+      <div class="text-lg font-bold {% if 'STRONG' in assessment.overall_classification %}text-emerald-400{% elif 'CANDIDATE' in assessment.overall_classification %}text-cyan-400{% else %}text-amber-400{% endif %} mt-1">
+        {{ assessment.overall_classification }}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Methodology v1</div>
+    </div>
+
+    <!-- Directional Setup -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Direction</div>
+      <div class="text-lg font-bold {% if assessment.directional_assessment.direction == 'BULLISH' %}text-emerald-400{% elif assessment.directional_assessment.direction == 'BEARISH' %}text-rose-400{% else %}text-slate-300{% endif %} mt-1">
+        {{ assessment.directional_assessment.direction }}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Score: {{ assessment.directional_assessment.direction_score }}/100</div>
+    </div>
+
+    <!-- Recommended Side -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Selected Side</div>
+      <div class="text-lg font-bold {% if assessment.selected_side == 'CE' %}text-emerald-400{% elif assessment.selected_side == 'PE' %}text-rose-400{% else %}text-slate-400{% endif %} mt-1">
+        {{ assessment.selected_side }}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Quality: {{ assessment.directional_assessment.evidence_quality }}</div>
+    </div>
+
+    <!-- Preferred Expiry -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Preferred Expiry</div>
+      <div class="text-lg font-bold text-slate-100 mt-1">
+        {% if assessment.expiry_assessment.preferred_expiry %}
+          {{ assessment.expiry_assessment.preferred_expiry }}
+        {% else %}
+          N/A
+        {% endif %}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">
+        {% if assessment.expiry_assessment.dte != None %}
+          {{ assessment.expiry_assessment.dte }} DTE ({{ assessment.expiry_assessment.category }})
+        {% else %}
+          No Expiry
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Preferred Contract -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Preferred Strike</div>
+      <div class="text-lg font-bold text-cyan-400 mt-1">
+        {% if assessment.preferred_contract %}
+          {{ assessment.preferred_contract.trading_symbol }}
+        {% else %}
+          NO_TRADE
+        {% endif %}
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">
+        {% if assessment.preferred_contract %}
+          Score: {{ assessment.preferred_contract.strike_score }}/100
+        {% else %}
+          Vetoed / No Contract
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {% if assessment.preferred_contract %}
+  <!-- Preferred Contract Details Card -->
+  <div class="bg-slate-800 border border-cyan-500/40 rounded-lg p-5">
+    <div class="flex items-center justify-between border-b border-slate-700 pb-3 mb-4">
+      <div>
+        <h3 class="text-base font-bold text-slate-100">Preferred Research Candidate: {{ assessment.preferred_contract.trading_symbol }}</h3>
+        <p class="text-xs text-slate-400">Strike {{ assessment.preferred_contract.strike_price }} {{ assessment.preferred_contract.option_type }} | Moneyness: {{ assessment.preferred_contract.moneyness }} | DTE: {{ assessment.preferred_contract.greeks.dte if assessment.preferred_contract.greeks else 'N/A' }}</p>
+      </div>
+      <div class="text-right">
+        <div class="text-2xl font-bold text-emerald-400">₹ {{ assessment.preferred_contract.price or '0.00' }}</div>
+        <div class="text-[11px] text-slate-400">Est. Lot Cost: ₹ {{ assessment.preferred_contract.estimated_lot_premium_cost or 'N/A' }} (Lot: {{ assessment.preferred_contract.lot_size or '1' }})</div>
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+      <div>
+        <span class="text-slate-400">Delta:</span>
+        <span class="font-mono text-slate-200 ml-1">{{ assessment.preferred_contract.greeks.delta or 'N/A' }}</span>
+      </div>
+      <div>
+        <span class="text-slate-400">Theta/Day:</span>
+        <span class="font-mono text-rose-300 ml-1">{{ assessment.preferred_contract.greeks.theta_per_day or 'N/A' }}</span>
+      </div>
+      <div>
+        <span class="text-slate-400">IV:</span>
+        <span class="font-mono text-slate-200 ml-1">
+          {% if assessment.preferred_contract.iv %}
+            {{ (assessment.preferred_contract.iv * 100)|round(1) }}%
+          {% else %}
+            N/A
+          {% endif %}
+        </span>
+      </div>
+      <div>
+        <span class="text-slate-400">Breakeven Dist:</span>
+        <span class="font-mono text-cyan-300 ml-1">{{ assessment.preferred_contract.breakeven_distance_pct }}%</span>
+      </div>
+    </div>
+
+    <!-- Why Selected Section -->
+    <div class="mt-4 pt-3 border-t border-slate-700/60">
+      <div class="text-xs font-semibold text-slate-300 mb-1">Why Selected:</div>
+      <ul class="list-disc list-inside text-xs text-slate-300 space-y-0.5">
+        {% for reason in assessment.preferred_contract.why_selected %}
+          <li>{{ reason }}</li>
+        {% else %}
+          <li>Top-ranked strike matching directional setup and liquidity criteria</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if assessment.alternative_contracts %}
+  <!-- Alternative Contracts Table -->
+  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+    <h3 class="text-sm font-semibold text-slate-200 mb-3">Alternative Ranked Strike Candidates</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left text-slate-300">
+        <thead class="text-[11px] uppercase bg-slate-900 text-slate-400 border-b border-slate-700">
+          <tr>
+            <th class="p-2">Trading Symbol</th>
+            <th class="p-2">Moneyness</th>
+            <th class="p-2 text-right">Price</th>
+            <th class="p-2 text-right">Delta</th>
+            <th class="p-2 text-right">Theta/Day</th>
+            <th class="p-2 text-right">Score</th>
+            <th class="p-2">Liquidity</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+          {% for alt in assessment.alternative_contracts %}
+          <tr class="hover:bg-slate-700/30">
+            <td class="p-2 font-mono text-slate-100 font-semibold">{{ alt.trading_symbol }}</td>
+            <td class="p-2">{{ alt.moneyness }}</td>
+            <td class="p-2 text-right font-mono">₹ {{ alt.price or '0.00' }}</td>
+            <td class="p-2 text-right font-mono">{{ alt.greeks.delta or 'N/A' }}</td>
+            <td class="p-2 text-right font-mono text-rose-300">{{ alt.greeks.theta_per_day or 'N/A' }}</td>
+            <td class="p-2 text-right font-mono font-bold text-cyan-400">{{ alt.strike_score }}/100</td>
+            <td class="p-2">{{ alt.liquidity_classification }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if assessment.no_trade_reasons %}
+  <!-- NO_TRADE Reasons Warning -->
+  <div class="bg-rose-950/40 border border-rose-700/50 rounded-lg p-4 text-xs text-rose-200">
+    <div class="font-semibold text-rose-100 mb-1">NO_TRADE Recommendation Warnings & Veto Reasons:</div>
+    <ul class="list-disc list-inside space-y-0.5">
+      {% for reason in assessment.no_trade_reasons %}
+        <li>{{ reason }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+</div>

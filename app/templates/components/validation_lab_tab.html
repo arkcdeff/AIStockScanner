@@ -1,0 +1,157 @@
+<!-- Historical Opportunity Validation & Calibration Lab Component -->
+<div id="validation-lab-container" class="space-y-6">
+
+  <!-- Disclaimer Header -->
+  <div class="bg-cyan-950/40 border border-cyan-700/50 rounded-lg p-4 text-xs text-cyan-200">
+    <div class="font-semibold text-cyan-100 mb-1">Historical Out-Of-Sample Validation & Walk-Forward Calibration Lab</div>
+    This lab measures whether existing deterministic methodologies have historically provided useful out-of-sample signal value across market regimes, holding horizons, and score ranges. All signals are frozen at cutoff T before outcome prices are evaluated.
+  </div>
+
+  {% if coverage_cert %}
+  <!-- Domain Validation Readiness Certification Badges -->
+  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+    <h3 class="text-sm font-semibold text-slate-200 mb-2">Domain Coverage & Validation Readiness Certification</h3>
+    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3 text-xs">
+      {% for domain_key, domain_report in coverage_cert.domains.items() %}
+      <div class="bg-slate-900/60 border border-slate-700/60 rounded p-2 text-center">
+        <div class="text-[11px] font-medium text-slate-400 uppercase tracking-wider">{{ domain_key }}</div>
+        <div class="mt-1">
+          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase {% if domain_report.readiness == 'READY' %}bg-emerald-900/80 text-emerald-200 border border-emerald-500/50{% elif domain_report.readiness == 'PARTIAL' %}bg-amber-900/80 text-amber-200 border border-amber-500/50{% else %}bg-rose-900/80 text-rose-200 border border-rose-500/50{% endif %}">
+            {{ domain_report.readiness }}
+          </span>
+        </div>
+        <div class="text-[9px] text-slate-500 mt-1 font-mono">{{ domain_report.observed_sessions }}/{{ domain_report.expected_sessions }} Sessions</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if stock_summary %}
+  <!-- Header KPI Row -->
+  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+
+    <!-- Profile & Methodology -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Methodology Profile</div>
+      <div class="text-lg font-bold text-slate-100 mt-1">{{ stock_summary.profile }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">{{ stock_summary.methodology_version }}</div>
+    </div>
+
+    <!-- Sample Count -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Sample Count (n)</div>
+      <div class="text-lg font-bold text-cyan-400 mt-1">{{ stock_summary.sample_count }}</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Historical Cases</div>
+    </div>
+
+    <!-- Mean Return -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Mean Return</div>
+      <div class="text-lg font-bold {% if stock_summary.overall_mean_return_pct >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %} mt-1">
+        {{ stock_summary.overall_mean_return_pct }}%
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">Median: {{ stock_summary.overall_median_return_pct }}%</div>
+    </div>
+
+    <!-- Positive Outcome Rate -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Positive Rate</div>
+      <div class="text-lg font-bold text-emerald-400 mt-1">{{ stock_summary.overall_positive_rate }}%</div>
+      <div class="text-[10px] text-slate-400 mt-0.5">MFE: +{{ stock_summary.overall_mean_mfe_pct }}%</div>
+    </div>
+
+    <!-- Benchmark Excess Return -->
+    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
+      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Benchmark Excess</div>
+      <div class="text-lg font-bold {% if stock_summary.overall_benchmark_excess_pct >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %} mt-1">
+        {{ stock_summary.overall_benchmark_excess_pct }}%
+      </div>
+      <div class="text-[10px] text-slate-400 mt-0.5">vs NIFTY Broad</div>
+    </div>
+
+  </div>
+
+  {% if stock_summary.score_buckets %}
+  <!-- Score Buckets Performance Table -->
+  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+    <h3 class="text-sm font-semibold text-slate-200 mb-3">Score Bucket Calibration & Monotonicity</h3>
+    <div class="overflow-x-auto">
+      <table class="w-full text-xs text-left text-slate-300">
+        <thead class="text-[11px] uppercase bg-slate-900 text-slate-400 border-b border-slate-700">
+          <tr>
+            <th class="p-2">Score Range</th>
+            <th class="p-2 text-right">Sample (n)</th>
+            <th class="p-2 text-right">Mean Return</th>
+            <th class="p-2 text-right">Median Return</th>
+            <th class="p-2 text-right">Positive Rate</th>
+            <th class="p-2 text-right">Wilson 95% CI</th>
+            <th class="p-2 text-right">Mean MFE</th>
+            <th class="p-2 text-right">Mean MAE</th>
+            <th class="p-2">Sample Quality</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-700/50">
+          {% for bucket in stock_summary.score_buckets %}
+          <tr class="hover:bg-slate-700/30">
+            <td class="p-2 font-mono font-semibold text-slate-100">{{ bucket.score_range }}</td>
+            <td class="p-2 text-right font-mono">{{ bucket.sample_count }}</td>
+            <td class="p-2 text-right font-mono {% if bucket.mean_return_pct >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">{{ bucket.mean_return_pct }}%</td>
+            <td class="p-2 text-right font-mono">{{ bucket.median_return_pct }}%</td>
+            <td class="p-2 text-right font-mono font-bold text-emerald-400">{{ bucket.positive_outcome_rate }}%</td>
+            <td class="p-2 text-right font-mono text-slate-400">[{{ bucket.wilson_ci_lower }}%, {{ bucket.wilson_ci_upper }}%]</td>
+            <td class="p-2 text-right font-mono text-emerald-300">+{{ bucket.mean_mfe_pct }}%</td>
+            <td class="p-2 text-right font-mono text-rose-300">{{ bucket.mean_mae_pct }}%</td>
+            <td class="p-2">
+              <span class="px-2 py-0.5 rounded text-[10px] font-semibold {% if bucket.sample_quality_flag == 'SUFFICIENT' %}bg-emerald-900/60 text-emerald-200{% elif bucket.sample_quality_flag == 'LIMITED' %}bg-amber-900/60 text-amber-200{% else %}bg-rose-900/60 text-rose-200{% endif %}">
+                {{ bucket.sample_quality_flag }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if options_summary %}
+  <!-- Options Validation Section -->
+  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
+    <h3 class="text-sm font-semibold text-slate-200 mb-3">Options Strike & Directional Accuracy Summary</h3>
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+      <div>
+        <span class="text-slate-400">Directional Accuracy:</span>
+        <span class="font-mono text-emerald-400 ml-1 font-bold">{{ options_summary.directional_accuracy_rate or 'N/A' }}%</span>
+      </div>
+      <div>
+        <span class="text-slate-400">Mean Option Return:</span>
+        <span class="font-mono text-slate-100 ml-1 font-bold">{{ options_summary.overall_mean_return_pct }}%</span>
+      </div>
+      <div>
+        <span class="text-slate-400">Option MFE:</span>
+        <span class="font-mono text-emerald-300 ml-1">+{{ options_summary.overall_mean_mfe_pct }}%</span>
+      </div>
+      <div>
+        <span class="text-slate-400">Option MAE:</span>
+        <span class="font-mono text-rose-300 ml-1">{{ options_summary.overall_mean_mae_pct }}%</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if stock_summary.calibration_recommendations %}
+  <!-- Calibration Recommendations Box -->
+  <div class="bg-slate-800 border border-amber-500/40 rounded-lg p-4 text-xs text-amber-200">
+    <div class="font-semibold text-amber-100 mb-1">Out-Of-Sample Calibration Recommendations:</div>
+    <ul class="list-disc list-inside space-y-0.5 text-slate-300">
+      {% for rec in stock_summary.calibration_recommendations %}
+        <li>{{ rec }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  {% endif %}
+
+</div>

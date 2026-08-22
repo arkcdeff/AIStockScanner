@@ -1,0 +1,141 @@
+{% if replay and coverage %}
+<!-- Historical Derivatives Replay & Coverage HTMX Partial -->
+<div class="space-y-6">
+
+  <!-- Header Banner -->
+  <div class="rounded-lg bg-blue-900/30 p-4 border border-blue-700/50 flex items-center justify-between">
+    <div>
+      <h3 class="text-lg font-semibold text-blue-200">
+        Historical Replay State: {{ replay.underlying_symbol }} ({{ replay.trade_date }})
+      </h3>
+      <p class="text-sm text-blue-300/80">
+        Evaluation Cutoff: {{ replay.as_of_date }} | Status: <span class="font-mono font-medium text-white">{{ replay.replay_status }}</span>
+        {% if replay.spot_price %}
+          | Spot: <span class="font-mono text-emerald-400 font-semibold">{{ replay.spot_price }}</span> ({{ replay.spot_price_source }})
+        {% endif %}
+      </p>
+    </div>
+    <div class="text-right">
+      <span class="inline-block px-3 py-1 text-xs font-semibold rounded bg-blue-800 text-blue-100 border border-blue-600">
+        Point-in-Time Verified
+      </span>
+    </div>
+  </div>
+
+  <!-- Quality Warnings Banner -->
+  {% if replay.computed_warnings or replay.quality_warnings %}
+  <div class="rounded-lg bg-amber-900/20 p-3 border border-amber-700/40 text-sm text-amber-200">
+    <span class="font-semibold">Replay Warnings:</span>
+    <ul class="list-disc list-inside mt-1 space-y-0.5 text-xs text-amber-300">
+      {% for w in replay.computed_warnings %}
+        <li>{{ w }}</li>
+      {% endfor %}
+      {% for w in replay.quality_warnings %}
+        <li>{{ w }}</li>
+      {% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+
+  <!-- Data Coverage Table -->
+  <div class="rounded-lg bg-gray-900 border border-gray-800 p-4">
+    <h4 class="text-sm font-semibold text-gray-300 uppercase tracking-wider mb-3">Platform Derivatives Coverage</h4>
+    <div class="overflow-x-auto">
+      <table class="w-full text-left text-xs text-gray-300">
+        <thead class="bg-gray-800/80 text-gray-400 uppercase text-[10px] tracking-wider">
+          <tr>
+            <th class="p-2">Dataset</th>
+            <th class="p-2">Scope</th>
+            <th class="p-2">Status</th>
+            <th class="p-2 text-right">First Date</th>
+            <th class="p-2 text-right">Latest Date</th>
+            <th class="p-2 text-right">Rows</th>
+            <th class="p-2 text-right">Sessions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-800">
+          {% for ds in coverage.datasets %}
+          <tr class="hover:bg-gray-800/40">
+            <td class="p-2 font-medium text-white">{{ ds.dataset_name }}</td>
+            <td class="p-2 text-gray-400">{{ ds.scope_description }}</td>
+            <td class="p-2">
+              <span class="px-2 py-0.5 text-[10px] rounded font-semibold
+                {% if ds.status == 'COMPLETE_FOR_IMPORTED_SCOPE' %}bg-emerald-900/60 text-emerald-300 border border-emerald-700/50
+                {% elif ds.status == 'PARTIAL' %}bg-amber-900/60 text-amber-300 border border-amber-700/50
+                {% else %}bg-gray-800 text-gray-400 border border-gray-700{% endif %}">
+                {{ ds.status }}
+              </span>
+            </td>
+            <td class="p-2 text-right font-mono">{{ ds.first_date or '-' }}</td>
+            <td class="p-2 text-right font-mono">{{ ds.latest_date or '-' }}</td>
+            <td class="p-2 text-right font-mono">{{ ds.row_count }}</td>
+            <td class="p-2 text-right font-mono">{{ ds.session_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Replay Components Grid -->
+  <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <!-- Futures Overview Card -->
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-4">
+      <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Futures Snapshot</h5>
+      {% if replay.futures_snapshot %}
+        <div class="space-y-1.5 text-xs text-gray-300">
+          <div class="flex justify-between"><span>Underlying:</span><span class="font-mono text-white">{{ replay.futures_snapshot.underlying_symbol }}</span></div>
+          <div class="flex justify-between"><span>Contracts Count:</span><span class="font-mono text-white">{{ replay.futures_snapshot['items']|length }}</span></div>
+          <div class="flex justify-between"><span>Curve Shape:</span><span class="font-mono text-emerald-400">{{ replay.futures_snapshot.curve_shape or 'N/A' }}</span></div>
+        </div>
+      {% else %}
+        <p class="text-xs text-gray-500 italic">No futures data for requested date.</p>
+      {% endif %}
+    </div>
+
+    <!-- Options Overview Card -->
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-4">
+      <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Options Analytics</h5>
+      {% if replay.options_analytics %}
+        <div class="space-y-1.5 text-xs text-gray-300">
+          <div class="flex justify-between"><span>Selected Expiry:</span><span class="font-mono text-white">{{ replay.selected_expiry_date }}</span></div>
+          <div class="flex justify-between"><span>PCR (OI):</span><span class="font-mono text-emerald-400 font-semibold">{{ replay.options_analytics.pcr.pcr_oi if replay.options_analytics.pcr else 'N/A' }}</span></div>
+          <div class="flex justify-between"><span>Max Pain Strike:</span><span class="font-mono text-amber-400 font-semibold">{{ replay.options_analytics.max_pain.max_pain_strike if replay.options_analytics.max_pain else 'N/A' }}</span></div>
+        </div>
+      {% else %}
+        <p class="text-xs text-gray-500 italic">No options chain data for requested date.</p>
+      {% endif %}
+    </div>
+
+    <!-- Participant Overview Card -->
+    <div class="rounded-lg bg-gray-900 border border-gray-800 p-4">
+      <h5 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Participant Positioning</h5>
+      {% if replay.participant_positions %}
+        <div class="space-y-1.5 text-xs text-gray-300">
+          <div class="flex justify-between"><span>Report Date:</span><span class="font-mono text-white">{{ replay.participant_positions.report_date }}</span></div>
+          {% if replay.participant_positions.fii_index_futures %}
+            <div class="flex justify-between"><span>FII Index Fut Net:</span><span class="font-mono font-semibold {% if replay.participant_positions.fii_index_futures.net_contracts >= 0 %}text-emerald-400{% else %}text-rose-400{% endif %}">{{ replay.participant_positions.fii_index_futures.net_contracts }}</span></div>
+            <div class="flex justify-between"><span>FII L/S Ratio:</span><span class="font-mono text-white">{{ replay.participant_positions.fii_index_futures.long_short_ratio or 'N/A' }}</span></div>
+          {% endif %}
+        </div>
+      {% else %}
+        <p class="text-xs text-gray-500 italic">No participant position report for requested date.</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Provenance Audit Footer -->
+  <div class="rounded-lg bg-gray-900/60 border border-gray-800/80 p-3 text-xs text-gray-400">
+    <span class="font-semibold text-gray-300">Provenance Audit Trail:</span>
+    <div class="mt-2 space-y-1 font-mono text-[11px]">
+      {% for p in replay.provenance %}
+        <div class="flex justify-between border-b border-gray-800/40 pb-1">
+          <span>[{{ p.component }}] {{ p.source_name }} ({{ p.source_reference }})</span>
+          <span class="text-gray-500">Report: {{ p.report_or_trade_date }} | PIT Available: {{ p.available_at }}</span>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+{% endif %}

@@ -1,0 +1,101 @@
+<!-- Opportunity Board Component — Sprint 19.1G -->
+<div class="space-y-6">
+
+    <!-- Profile Tabs -->
+    <div class="flex flex-wrap gap-2 border-b border-slate-800 pb-3">
+        {% for prof in ['INVESTMENT_QUALITY', 'QUALITY_PULLBACK', 'BREAKOUT', 'SWING', 'BTST_READINESS'] %}
+        <button 
+            hx-get="/market-data/opportunities/board?profile={{ prof }}"
+            hx-target="#opportunity-board-container"
+            class="px-4 py-2 text-xs font-semibold rounded-lg transition-colors {{ 'bg-indigo-600 text-white' if summary.profile == prof else 'bg-slate-800 text-slate-300 hover:bg-slate-700' }}">
+            {{ prof | replace('_', ' ') }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3">
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-slate-400">Total Evaluated</div>
+            <div class="text-lg font-bold text-slate-200">{{ summary.total_evaluated }}</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-emerald-400">Strong Candidates</div>
+            <div class="text-lg font-bold text-emerald-400">{{ summary.strong_candidates_count }}</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-cyan-400">Candidates</div>
+            <div class="text-lg font-bold text-cyan-400">{{ summary.candidates_count }}</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-amber-400">Watch List</div>
+            <div class="text-lg font-bold text-amber-400">{{ summary.watch_count }}</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-rose-400">Rejected</div>
+            <div class="text-lg font-bold text-rose-400">{{ summary.rejected_count }}</div>
+        </div>
+        <div class="bg-slate-900 border border-slate-800 p-3 rounded-lg text-center">
+            <div class="text-xs text-slate-500">No Trade</div>
+            <div class="text-lg font-bold text-slate-400">{{ summary.no_trade_count }}</div>
+        </div>
+    </div>
+
+    <!-- Opportunity Cards Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {% for item in summary.candidates %}
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm hover:border-slate-700 transition-colors">
+            <div class="flex items-center justify-between border-b border-slate-800/80 pb-3 mb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg font-bold text-slate-100">{{ item.symbol }}</span>
+                    {% if item.is_fno %}
+                    <span class="px-2 py-0.5 text-[10px] font-semibold rounded bg-cyan-500/20 text-cyan-300">F&O</span>
+                    {% endif %}
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="px-2.5 py-1 text-xs font-bold rounded-md
+                        {% if item.classification == 'STRONG_RESEARCH_CANDIDATE' %} bg-emerald-500/20 text-emerald-300 border border-emerald-500/30
+                        {% elif item.classification == 'RESEARCH_CANDIDATE' %} bg-cyan-500/20 text-cyan-300 border border-cyan-500/30
+                        {% elif item.classification == 'WATCH' %} bg-amber-500/20 text-amber-300 border border-amber-500/30
+                        {% elif item.classification == 'REJECTED' %} bg-rose-500/20 text-rose-300 border border-rose-500/30
+                        {% else %} bg-slate-800 text-slate-400
+                        {% endif %}">
+                        {{ item.classification | replace('_', ' ') }}
+                    </span>
+                    <span class="font-mono text-sm font-bold text-indigo-400">{{ item.score }}/100</span>
+                </div>
+            </div>
+
+            <!-- Supporting Evidence -->
+            {% if item.supporting_evidence %}
+            <div class="mb-2">
+                <div class="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider mb-1">Supporting Evidence:</div>
+                <ul class="text-xs text-slate-300 space-y-1 list-disc list-inside">
+                    {% for ev in item.supporting_evidence[:3] %}
+                    <li>{{ ev }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Risk Flags / Vetoes -->
+            {% if item.veto_reasons or item.risk_flags %}
+            <div class="mt-3 pt-2 border-t border-slate-800/60">
+                <div class="text-[11px] font-semibold text-rose-400 uppercase tracking-wider mb-1">Risks / Vetoes:</div>
+                <ul class="text-xs text-rose-300 space-y-1 list-disc list-inside">
+                    {% for v in item.veto_reasons %}
+                    <li class="font-semibold">{{ v }}</li>
+                    {% endfor %}
+                    {% for r in item.risk_flags[:2] %}
+                    <li>{{ r }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        {% else %}
+        <div class="col-span-2 text-center py-8 text-slate-500 text-sm">No research candidates found for this profile</div>
+        {% endfor %}
+    </div>
+
+</div>
