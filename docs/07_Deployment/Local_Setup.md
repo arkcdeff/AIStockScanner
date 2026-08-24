@@ -33,8 +33,8 @@ cp .env.example .env
 
 Edit `.env`:
 ```
-DATABASE_URL=postgresql+asyncpg://postgres:HbmXGcy&PDnx9wE^@localhost:5432/aistock
-DATABASE_URL_SYNC=postgresql+psycopg://postgres:HbmXGcy&PDnx9wE^@localhost:5432/aistock
+DATABASE_URL=postgresql+asyncpg://postgres:<POSTGRES_PASSWORD>@localhost:5432/aistock
+DATABASE_URL_SYNC=postgresql+psycopg://postgres:<POSTGRES_PASSWORD>@localhost:5432/aistock
 SECRET_KEY=your-secret-key-here
 NSE_BHAVCOPY_URL=https://www.nseindia.com/content/historical/EQUITIES/{year}/{month}/cm{day:02d}{month}{year}bhav.csv.zip
 NSE_BASE_URL=https://www.nseindia.com

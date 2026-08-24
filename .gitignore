@@ -22,3 +22,28 @@ scratch/
 /20260728_BSE.csv
 /20260728_NSE.csv
 admin_password.txt
+
+# --- Release hygiene (Sprint 19 R1) ---
+# Env files (keep the example tracked)
+.env.*
+!.env.example
+
+# Generated test / QA artifacts
+pytest_output.txt
+qa_screenshots/
+playwright-report/
+test-results/
+traces/
+*.token
+broker_session*.json
+*.session.json
+
+# Local database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Local-only / scratch integration scripts (do not commit; see audit report)
+scripts/integration/find_nifty_future.py
+scripts/integration/inspect_raw_proto.py
+scripts/integration/run_browser_qa.py

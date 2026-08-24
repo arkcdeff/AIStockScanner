@@ -1,10 +1,14 @@
+# NOTE: This docker-compose is for LOCAL DEVELOPMENT ONLY.
+# POSTGRES_PASSWORD is a disposable dev default. Override it by exporting
+# POSTGRES_PASSWORD before `docker compose up` for any non-throwaway use.
+# Never reuse a production or shared credential here.
 services:
   db:
     image: postgres:18
     environment:
       POSTGRES_DB: ai_stock_scanner
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
       - "5432:5432"
     volumes:
@@ -23,8 +27,8 @@ services:
     environment:
       APP_ENV: development
       APP_HOST: 0.0.0.0
-      DATABASE_URL_ASYNC: postgresql+asyncpg://postgres:postgres@db:5432/ai_stock_scanner
-      DATABASE_URL_SYNC: postgresql+psycopg://postgres:postgres@db:5432/ai_stock_scanner
+      DATABASE_URL_ASYNC: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/ai_stock_scanner
+      DATABASE_URL_SYNC: postgresql+psycopg://postgres:${POSTGRES_PASSWORD:-postgres}@db:5432/ai_stock_scanner
     ports:
       - "8000:8000"
     command: >
