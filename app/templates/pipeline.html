@@ -16,28 +16,37 @@
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-icon" style="background:rgba(59,130,246,0.1);color:var(--color-info);"><i class="bi bi-arrow-repeat"></i></div>
-            <div><div class="kpi-label">Status</div><div class="kpi-value">{{ pipeline_status.get('status', 'N/A')|title }}</div></div>
+            <div><div class="kpi-label">Pipeline Status</div><div class="kpi-value">{{ (pipeline_status.status|title) if pipeline_status else 'Never run' }}</div><div class="kpi-detail">{{ pipeline_status.trade_date or 'Trade date unavailable' if pipeline_status else 'No recorded run' }}</div></div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-icon" style="background:rgba(34,197,94,0.1);color:var(--color-success);"><i class="bi bi-check-circle"></i></div>
-            <div><div class="kpi-label">Indicators</div><div class="kpi-value">{{ pipeline_status.get('indicators_calculated', 0) }}</div></div>
+            <div><div class="kpi-label">Indicators</div><div class="kpi-value">{{ pipeline_status.indicators_calculated if pipeline_status else '—' }}</div></div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-icon" style="background:rgba(245,158,11,0.1);color:var(--color-warning);"><i class="bi bi-search"></i></div>
-            <div><div class="kpi-label">Scanner Matches</div><div class="kpi-value">{{ pipeline_status.get('scanner_matches', 0) }}</div></div>
+            <div><div class="kpi-label">Scanner Matches</div><div class="kpi-value">{{ pipeline_status.scanner_matches if pipeline_status else '—' }}</div></div>
         </div>
     </div>
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-icon" style="background:rgba(239,68,68,0.1);color:var(--color-danger);"><i class="bi bi-graph-up"></i></div>
-            <div><div class="kpi-label">Analytics</div><div class="kpi-value">{{ pipeline_status.get('analytics_calculated', 0) }}</div></div>
+            <div><div class="kpi-label">Analytics</div><div class="kpi-value">{{ pipeline_status.analytics_calculated if pipeline_status else '—' }}</div></div>
         </div>
     </div>
 </div>
+
+{% if latest_failed %}
+<div class="state-panel state-panel-danger mb-3" role="status">
+    <i class="bi bi-x-octagon text-danger"></i>
+    <div><div class="state-panel-title">Latest failed run #{{ latest_failed.id }} · {{ latest_failed.failed_stage or latest_failed.current_stage or 'unknown stage' }}</div><div class="state-panel-copy">{{ latest_failed.error_message or 'No stored failure reason.' }}{% if latest_success %} Last successful trade date: {{ latest_success.trade_date or 'unavailable' }} (run #{{ latest_success.id }}).{% else %} No successful pipeline run is recorded.{% endif %}</div></div>
+</div>
+{% elif latest_success %}
+<div class="state-panel mb-3" role="status"><i class="bi bi-check-circle text-success"></i><div><div class="state-panel-title">Latest successful run #{{ latest_success.id }}</div><div class="state-panel-copy">Trade date {{ latest_success.trade_date or 'unavailable' }} · {{ latest_success.imported_rows }} rows read · {{ latest_success.indicators_calculated }} indicators.</div></div></div>
+{% endif %}
 
 <div class="card mb-4">
     <div class="card-header"><i class="bi bi-play-circle me-1"></i> Run Pipeline</div>

@@ -27,7 +27,7 @@ async def _seed_stock(
         await session.flush()
 
         stock = Stock(
-            symbol="ANALYTX",
+            symbol="ANALYT1",
             company_name="Analytics Test Ltd",
             exchange="NSE",
             series="EQ",
@@ -85,7 +85,7 @@ async def _seed_stock(
         return stock.id
 
 
-async def _calculate(symbol: str = "ANALYTX") -> TechnicalAnalysis:
+async def _calculate(symbol: str = "ANALYT1") -> TechnicalAnalysis:
     factory = get_session_factory()
     async with factory() as session:
         engine = AnalyticsEngine(session)
@@ -161,7 +161,7 @@ async def test_bullish_stock_scores_high() -> None:
 async def test_support_below_close_resistance_above_close() -> None:
     await _seed_stock()
     result = await _calculate()
-    price = await _latest_close("ANALYTX")
+    price = await _latest_close("ANALYT1")
     assert result.support is not None
     assert result.resistance is not None
     assert float(result.support) <= price <= float(result.resistance)
@@ -240,7 +240,7 @@ async def test_breakout_flag_when_price_above_resistance() -> None:
     await _seed_stock()
     factory = get_session_factory()
     async with factory() as session:
-        stock = await session.scalar(select(Stock).where(Stock.symbol == "ANALYTX"))
+        stock = await session.scalar(select(Stock).where(Stock.symbol == "ANALYT1"))
         prices = list(
             await session.scalars(
                 select(DailyPrice)
@@ -267,7 +267,7 @@ async def test_get_analytics_and_list_methods() -> None:
     factory = get_session_factory()
     async with factory() as session:
         engine = AnalyticsEngine(session)
-        found = await engine.get_analytics("ANALYTX")
+        found = await engine.get_analytics("ANALYT1")
         assert found is not None
         assert len(await engine.top_rated(limit=5)) == 1
         assert len(await engine.trending(limit=5)) == 1
@@ -283,10 +283,10 @@ async def test_analytics_api_symbol() -> None:
     await _calculate()
 
     async with analyst_client() as client:
-        response = await client.get("/api/v1/analytics/ANALYTX")
+        response = await client.get("/api/v1/analytics/ANALYT1")
     assert response.status_code == 200
     body = response.json()
-    assert body["symbol"] == "ANALYTX"
+    assert body["symbol"] == "ANALYT1"
     assert "overall_score" in body
     assert "support" in body
     assert "pivot_r1" in body
@@ -311,7 +311,7 @@ async def test_analytics_api_top_rated() -> None:
     body = response.json()
     assert isinstance(body, list)
     assert len(body) == 1
-    assert body[0]["symbol"] == "ANALYTX"
+    assert body[0]["symbol"] == "ANALYT1"
 
 
 @pytest.mark.asyncio
@@ -367,7 +367,7 @@ async def test_dashboard_shows_top_rated() -> None:
         response = await client.get("/dashboard")
     assert response.status_code == 200
     assert "Top Rated Stocks" in response.text
-    assert "ANALYTX" in response.text
+    assert "ANALYT1" in response.text
 
 
 @pytest.mark.asyncio
@@ -376,8 +376,8 @@ async def test_stock_detail_shows_analytics() -> None:
     await _calculate()
 
     async with analyst_client(browser=True) as client:
-        response = await client.get("/stocks/ANALYTX")
-        partial = await client.get("/stocks/ANALYTX/analytics")
+        response = await client.get("/stocks/ANALYT1")
+        partial = await client.get("/stocks/ANALYT1/analytics")
     assert response.status_code == 200
     assert "Technical Analytics" in response.text
     assert "Overall Technical Score" in response.text

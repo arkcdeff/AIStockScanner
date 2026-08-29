@@ -16,7 +16,7 @@ class WatchlistRepository(BaseRepository[Watchlist]):
     async def list_ordered(self) -> list[Watchlist]:
         statement = (
             select(Watchlist)
-            .options(selectinload(Watchlist.stocks))
+            .options(selectinload(Watchlist.stocks).selectinload(WatchlistStock.stock))
             .order_by(
                 Watchlist.is_default.desc(),
                 Watchlist.is_favorite.desc(),

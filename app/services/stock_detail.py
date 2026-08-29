@@ -2,6 +2,7 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import is_product_symbol
 from app.repositories.stock_detail import StockDetailRepository
 
 
@@ -11,6 +12,8 @@ class StockDetailService:
         self.repo = StockDetailRepository(session)
 
     async def get_overview(self, symbol: str) -> dict[str, Any] | None:
+        if not is_product_symbol(symbol):
+            return None
         stock = await self.repo.get_stock(symbol)
         if not stock:
             return None
@@ -20,6 +23,7 @@ class StockDetailService:
             sector_name = stock.sector_ref.name
 
         latest_price = await self.repo.get_latest_price(stock.id)
+        history = await self.repo.get_history_summary(stock.id)
         if not latest_price:
             return {
                 "stock": stock,
@@ -32,6 +36,8 @@ class StockDetailService:
                 "latest_indicator": None,
                 "latest_analytics": None,
                 "scanner_matches": [],
+                "history_sessions": history["sessions"],
+                "history_first_date": history["first_date"],
             }
 
         averages = await self.repo.get_20d_averages(stock.id, latest_price.trade_date)
@@ -56,4 +62,6 @@ class StockDetailService:
             "latest_indicator": latest_indicator,
             "latest_analytics": latest_analytics,
             "scanner_matches": scanner_matches,
+            "history_sessions": history["sessions"],
+            "history_first_date": history["first_date"],
         }

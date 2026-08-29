@@ -14,11 +14,18 @@
     </form>
 </div>
 
+{% if not summary.is_current or summary.stocks_with_indicators < summary.total_stocks %}
+<div class="state-panel state-panel-warning mb-3" role="status">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <div><div class="state-panel-title">Indicator coverage insufficient</div><div class="state-panel-copy">Latest equity date: {{ summary.latest_equity_date or 'unavailable' }}. Latest indicator date: {{ summary.latest_trade_date or 'unavailable' }}. Stocks with indicators: {{ summary.stocks_with_indicators }} / {{ summary.total_stocks }}. Scanner impact: only stocks with current, required indicator inputs can be evaluated.</div></div>
+</div>
+{% endif %}
+
 <div class="row g-3 mb-4">
     <div class="col-md-3">
         <div class="kpi-card">
             <div class="kpi-icon" style="background:rgba(59,130,246,0.1);color:var(--color-info);"><i class="bi bi-bar-chart"></i></div>
-            <div><div class="kpi-label">Total Indicators</div><div class="kpi-value">{{ summary.total_indicators }}</div></div>
+            <div><div class="kpi-label">Total Indicator Rows</div><div class="kpi-value">{{ summary.total_indicator_rows }}</div></div>
         </div>
     </div>
 </div>

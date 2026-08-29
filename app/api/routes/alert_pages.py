@@ -40,8 +40,8 @@ async def alerts_page(
 ) -> HTMLResponse:
     service = AlertService(session)
     rules = await service.list_rules(limit=200)
-    events = await service.list_recent_events(limit=50)
-    pending = await service.count_pending()
+    events = await service.list_recent_events(limit=50, product_only=True)
+    pending = await service.count_pending(product_only=True)
     watchlists = (
         await session.scalars(select(Watchlist).order_by(Watchlist.name))
     ).all()
@@ -140,7 +140,7 @@ async def events_partial(
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     service = AlertService(session)
-    events = await service.list_recent_events(limit=limit)
+    events = await service.list_recent_events(limit=limit, product_only=True)
     html = _render(
         "components/alert_events_table.html", {"request": request, "events": events}
     )

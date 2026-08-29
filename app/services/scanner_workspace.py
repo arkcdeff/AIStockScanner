@@ -10,6 +10,7 @@ from openpyxl import Workbook
 from sqlalchemy import Select, asc, desc, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_definition import ScanDefinition
@@ -23,7 +24,15 @@ class ScannerWorkspaceService:
         self.session = session
 
     async def get_filter_options(self) -> dict[str, Any]:
-        sectors = (await self.session.scalars(select(Sector.name).order_by(Sector.name))).all()
+        sectors = (
+            await self.session.scalars(
+                select(Sector.name)
+                .join(Stock, Stock.sector_id == Sector.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+                .distinct()
+                .order_by(Sector.name)
+            )
+        ).all()
         scanners = (
             await self.session.execute(
                 select(ScanDefinition.code, ScanDefinition.name)
@@ -204,7 +213,7 @@ class ScannerWorkspaceService:
                 & (price_history.c.trade_date == ScanResult.scan_date),
                 isouter=True,
             )
-            .where(True)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
         )
 
         if search:
@@ -275,15 +284,17 @@ class ScannerWorkspaceService:
         if avg_volume_20d and volume and avg_volume_20d > 0:
             volume_multiple = round(float(volume) / float(avg_volume_20d), 2)
 
-        ema_trend = "Neutral"
+        ema_trend = "Not calculated"
         ema_20 = getattr(row, "ema_20", None)
         ema_50 = getattr(row, "ema_50", None)
         ema_200 = getattr(row, "ema_200", None)
-        if ema_20 and ema_50 and ema_200:
+        if ema_20 is not None and ema_50 is not None and ema_200 is not None:
             if float(ema_20) > float(ema_50) > float(ema_200):
                 ema_trend = "Bullish"
             elif float(ema_20) < float(ema_50) < float(ema_200):
                 ema_trend = "Bearish"
+            else:
+                ema_trend = "Neutral"
 
         metrics = getattr(row, "metrics", {}) or {}
         reason = metrics.get("reason", "") if isinstance(metrics, dict) else ""
@@ -296,16 +307,44 @@ class ScannerWorkspaceService:
             "symbol": getattr(row, "symbol", ""),
             "company_name": getattr(row, "company_name", ""),
             "sector": getattr(row, "sector", "") or "N/A",
-            "price": float(getattr(row, "price", 0) or 0),
-            "volume": int(getattr(row, "volume", 0) or 0),
+            "price": (
+                float(row.price)
+                if getattr(row, "price", None) is not None
+                else None
+            ),
+            "volume": (
+                int(row.volume)
+                if getattr(row, "volume", None) is not None
+                else None
+            ),
             "avg_volume_20d": float(avg_volume_20d) if avg_volume_20d is not None else None,
             "volume_multiple": volume_multiple,
-            "delivery": float(getattr(row, "delivery_percentage", 0) or 0),
-            "rsi": float(getattr(row, "rsi_14", 0) or 0),
-            "macd": float(getattr(row, "macd", 0) or 0),
-            "adx": float(getattr(row, "adx", 0) or 0),
+            "delivery": (
+                float(row.delivery_percentage)
+                if getattr(row, "delivery_percentage", None) is not None
+                else None
+            ),
+            "rsi": (
+                float(row.rsi_14)
+                if getattr(row, "rsi_14", None) is not None
+                else None
+            ),
+            "macd": (
+                float(row.macd)
+                if getattr(row, "macd", None) is not None
+                else None
+            ),
+            "adx": (
+                float(row.adx)
+                if getattr(row, "adx", None) is not None
+                else None
+            ),
             "ema_trend": ema_trend,
-            "scanner_score": float(getattr(row, "scanner_score", 0) or 0),
+            "scanner_score": (
+                float(row.scanner_score)
+                if getattr(row, "scanner_score", None) is not None
+                else None
+            ),
             "reason": reason,
             "scan_date": scan_date,
             "scanner_name": getattr(row, "scanner_name", ""),

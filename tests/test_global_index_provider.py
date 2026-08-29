@@ -312,30 +312,29 @@ async def test_range_ingestion_skips_existing_dates_and_is_idempotent():
 
 
 @pytest.mark.asyncio
-async def test_range_ingestion_uses_stored_close_before_range_boundary():
+async def test_range_ingestion_uses_stored_close_before_range_boundary(db_session):
     provider = FakeRangeProvider(_range_result())
-    factory = get_session_factory()
-    async with factory() as session:
-        rows = await seed_market_index_catalog(session)
-        sp500 = next(row for row in rows if row.code == "SP500")
-        session.add(
-            MarketIndexPrice(
-                market_index_id=sp500.id,
-                trade_date=date(2025, 1, 3),
-                open=Decimal("98"),
-                high=Decimal("101"),
-                low=Decimal("97"),
-                close=Decimal("100"),
-                source_name="database_seed",
-                freshness_status="stale",
-            )
+    session = db_session
+    rows = await seed_market_index_catalog(session)
+    sp500 = next(row for row in rows if row.code == "SP500")
+    session.add(
+        MarketIndexPrice(
+            market_index_id=sp500.id,
+            trade_date=date(2025, 1, 3),
+            open=Decimal("98"),
+            high=Decimal("101"),
+            low=Decimal("97"),
+            close=Decimal("100"),
+            source_name="database_seed",
+            freshness_status="stale",
         )
-        await session.flush()
-        service = IndexHistoricalService(session, (provider,))
-        await service.ingest_range("SP500", date(2025, 1, 6), date(2025, 1, 7))
-        first = await session.scalar(
-            select(MarketIndexPrice).where(MarketIndexPrice.trade_date == date(2025, 1, 6))
-        )
+    )
+    await session.flush()
+    service = IndexHistoricalService(session, (provider,))
+    await service.ingest_range("SP500", date(2025, 1, 6), date(2025, 1, 7))
+    first = await session.scalar(
+        select(MarketIndexPrice).where(MarketIndexPrice.trade_date == date(2025, 1, 6))
+    )
     assert first is not None
     assert first.previous_close == Decimal("100.0000")
     assert first.change == Decimal("2.0000")
@@ -356,89 +355,85 @@ async def test_single_date_ingestion_skips_existing_without_provider_call():
 
 
 @pytest.mark.asyncio
-async def test_single_date_ingestion_uses_latest_stored_previous_close():
+async def test_single_date_ingestion_uses_latest_stored_previous_close(db_session):
     single = _range_result().model_copy(update={"data": _range_result().data[1]})
     provider = FakeRangeProvider(single)
-    factory = get_session_factory()
-    async with factory() as session:
-        rows = await seed_market_index_catalog(session)
-        sp500 = next(row for row in rows if row.code == "SP500")
-        session.add(
-            MarketIndexPrice(
-                market_index_id=sp500.id,
-                trade_date=date(2025, 1, 6),
-                open=Decimal("100"),
-                high=Decimal("103"),
-                low=Decimal("99"),
-                close=Decimal("102"),
-                source_name="database_seed",
-                freshness_status="recent",
-            )
+    session = db_session
+    rows = await seed_market_index_catalog(session)
+    sp500 = next(row for row in rows if row.code == "SP500")
+    session.add(
+        MarketIndexPrice(
+            market_index_id=sp500.id,
+            trade_date=date(2025, 1, 6),
+            open=Decimal("100"),
+            high=Decimal("103"),
+            low=Decimal("99"),
+            close=Decimal("102"),
+            source_name="database_seed",
+            freshness_status="recent",
         )
-        await session.flush()
-        service = IndexHistoricalService(session, (provider,))
-        await service.ingest_date("SP500", date(2025, 1, 7))
-        inserted = await session.scalar(
-            select(MarketIndexPrice).where(MarketIndexPrice.trade_date == date(2025, 1, 7))
-        )
+    )
+    await session.flush()
+    service = IndexHistoricalService(session, (provider,))
+    await service.ingest_date("SP500", date(2025, 1, 7))
+    inserted = await session.scalar(
+        select(MarketIndexPrice).where(MarketIndexPrice.trade_date == date(2025, 1, 7))
+    )
     assert inserted is not None
     assert inserted.previous_close == Decimal("102.0000")
     assert inserted.change == Decimal("2.0000")
 
 
 @pytest.mark.asyncio
-async def test_ingestion_falls_through_primary_to_secondary_provider():
+async def test_ingestion_falls_through_primary_to_secondary_provider(db_session):
     primary = FakeRangeProvider(
         ProviderResult(provider_name="primary", status="unavailable", freshness="missing")
     )
     secondary = FakeRangeProvider(_range_result("secondary"))
     secondary.name = "secondary"
-    factory = get_session_factory()
-    async with factory() as session:
-        await seed_market_index_catalog(session)
-        service = IndexHistoricalService(session, (primary, secondary))
-        results = await service.ingest_range("SP500", date(2025, 1, 6), date(2025, 1, 7))
+    session = db_session
+    await seed_market_index_catalog(session)
+    service = IndexHistoricalService(session, (primary, secondary))
+    results = await service.ingest_range("SP500", date(2025, 1, 6), date(2025, 1, 7))
     assert primary.range_calls == 1
     assert secondary.range_calls == 1
     assert all(result.status == "success" for result in results)
 
 
 @pytest.mark.asyncio
-async def test_single_date_provider_failure_returns_stale_db_fallback():
+async def test_single_date_provider_failure_returns_stale_db_fallback(db_session):
     provider = FakeRangeProvider(
         ProviderResult(provider_name="primary", status="failed", freshness="missing")
     )
-    factory = get_session_factory()
-    async with factory() as session:
-        rows = await seed_market_index_catalog(session)
-        sp500 = next(row for row in rows if row.code == "SP500")
-        session.add(
-            MarketIndexPrice(
-                market_index_id=sp500.id,
-                trade_date=date(2025, 1, 6),
-                open=Decimal("100"),
-                high=Decimal("101"),
-                low=Decimal("99"),
-                close=Decimal("100"),
-                source_name="database_seed",
-                freshness_status="recent",
-            )
+    session = db_session
+    rows = await seed_market_index_catalog(session)
+    sp500 = next(row for row in rows if row.code == "SP500")
+    session.add(
+        MarketIndexPrice(
+            market_index_id=sp500.id,
+            trade_date=date(2025, 3, 10),
+            open=Decimal("100"),
+            high=Decimal("101"),
+            low=Decimal("99"),
+            close=Decimal("100"),
+            source_name="database_seed",
+            freshness_status="recent",
         )
-        await session.flush()
-        result = await IndexHistoricalService(session, (provider,)).ingest_date(
-            "SP500", date(2025, 1, 7)
-        )
+    )
+    await session.flush()
+    result = await IndexHistoricalService(session, (provider,)).ingest_date(
+        "SP500", date(2025, 3, 11)
+    )
     assert result.status == "stale"
     assert result.freshness == "stale"
-    assert result.market_date == "2025-01-06"
+    assert result.market_date == "2025-03-10"
 
 
 @pytest.mark.asyncio
-async def test_ingestion_returns_missing_when_no_provider_or_db_data_exists():
-    factory = get_session_factory()
-    async with factory() as session:
-        await seed_market_index_catalog(session)
-        result = await IndexHistoricalService(session, ()).ingest_date("SP500", date(2025, 1, 7))
+async def test_ingestion_returns_missing_when_no_provider_or_db_data_exists(db_session):
+    session = db_session
+    await seed_market_index_catalog(session)
+    result = await IndexHistoricalService(session, ()).ingest_date("SP500", date(2025, 3, 18))
     assert result.status == "unavailable"
     assert result.freshness == "missing"
     assert result.error_code == "no_provider"

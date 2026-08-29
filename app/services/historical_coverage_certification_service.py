@@ -25,6 +25,7 @@ from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models import (
     DailyPrice,
     DerivativeContract,
@@ -35,9 +36,6 @@ from app.models import (
 from app.services.exchange_calendar_service import ExchangeCalendarService
 
 INDEX_SYMBOLS = {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "NIFTY50", "NIFTY_50"}
-SYNTHETIC_FIXTURE_SYMBOLS = {"REPRO1", "ANLX1", "ANALYTX", "APIT1", "RESL1", "RESL2", "BENCH1", "MMVERIFY"}
-
-
 class DomainCoverageReport(BaseModel):
     """Coverage and readiness metrics for an individual analytical domain."""
 

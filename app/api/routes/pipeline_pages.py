@@ -4,6 +4,8 @@ from fastapi import APIRouter, Depends, File, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.browser_auth import finalize_page_response, stage_csrf_token
+from app.auth import csrf
 from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
@@ -40,16 +42,23 @@ async def pipeline_page(
     service = EODPipelineService()
     status = await service.status()
     runs = await service.list_runs(limit=20)
+    latest_run = status.get("latest_run")
+    latest_success = next((run for run in runs if run.status == "completed"), None)
+    latest_failed = next((run for run in runs if run.status == "failed"), None)
+    csrf_token = stage_csrf_token(request)
     html = _render(
         "pipeline.html",
         {
             "request": request,
             "status": status,
-            "pipeline_status": status,
+            "pipeline_status": latest_run,
             "runs": runs,
+            "latest_success": latest_success,
+            "latest_failed": latest_failed,
+            "csrf_token": csrf_token,
         },
     )
-    return HTMLResponse(content=html)
+    return finalize_page_response(request, HTMLResponse(content=html))
 
 
 @router.post(
@@ -63,6 +72,7 @@ async def run_pipeline_latest(
 ) -> HTMLResponse:
     from app.services.eod_pipeline import PipelineError, PipelineOverlapError
 
+    csrf.verify_request_csrf(request, await request.form())
     try:
         run = await EODPipelineService().run_latest()
         level, message = "success", f"Pipeline completed (run #{run.id}, {run.status})"
@@ -85,6 +95,7 @@ async def run_pipeline_file(
 ) -> HTMLResponse:
     from app.services.eod_pipeline import PipelineError, PipelineOverlapError
 
+    csrf.verify_request_csrf(request, await request.form())
     file_bytes = await file.read()
     try:
         run = await EODPipelineService().run_from_file(

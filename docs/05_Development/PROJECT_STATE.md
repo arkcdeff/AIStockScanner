@@ -1,5 +1,34 @@
 # Project State
 
+## Current productization state (2026-08-29) - Stage 1 Checkpoint
+
+- **Current task**: Productization Stage 1 + 1R + 1R-R1 complete and verified; Stage 2 pending authorization
+- **Checkpoint**: `checkpoint/sprint19-20-20260822` at
+  `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new checkpoint 2026-08-29
+- **Version**: `0.14.0`
+- **Alembic**: `g7h8i9j0k1l2` (single current head)
+- **Verification**: 1,352 tests passed sequentially (26m32s); Ruff clean; import OK; Alembic current/head/check
+  clean; authenticated real-database browser acceptance PASS; test-hang lifecycle optimization verified
+- **Priority**: truthful navigation and page destinations, decision dashboard, explicit data
+  coverage/readiness, stock and scanner journeys, and discoverability of already-implemented
+  derivatives research.
+- **Deferred**: Sprint 19.2 broker work, OpenAlgo, live trading, real-time feeds, and later
+  productization stages. Historical sections below remain as completion records and may contain
+  point-in-time counts.
+- **Implemented UI reality**: the shell retains the approved workstation design while product
+  queries now exclude centralized fixture symbols, missing metrics remain missing, zero-row imports
+  are labeled NO DATA, scanner results identify their scanner, readiness is scanner-specific,
+  pipeline/scheduler states are explicit, and each full page has one active desktop navigation item.
+- **Current persisted product equity readiness**: 2,779 stock masters, 2,778 with stored prices, latest
+  equity date 2026-08-06, maximum 45 sessions, and zero stocks at the 50-session scanner threshold.
+  Latest product indicator coverage is 3 stocks through 2026-08-04. Product sector mappings are
+  absent. These states are represented as missing/insufficient data, not market conclusions.
+- **Preserved raw data**: all eight known fixture symbols and raw import audit rows remain in the
+  database for development and testing; no migration or destructive cleanup was performed.
+- **Gate**: do not start Stage 2 until the user explicitly accepts Stage 1R.
+
+---
+
 AIStockScanner after Sprint 19 Task 19.1J (Real Historical Data Expansion + Coverage Certification Engine) COMPLETE & VERIFIED (1283 tests). Sprint 18 COMPLETE (released v0.14.0). Sprint 19 IN PROGRESS.
 Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest alembic head: `g7h8i9j0k1l2`.
 

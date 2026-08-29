@@ -15,9 +15,7 @@ from app.schemas.stock_detail import (
 from app.services.notification_ui import NotificationUIService
 from app.services.stock_detail import StockDetailService
 
-router = APIRouter(
-    dependencies=[Depends(require_browser_permission("stocks.read"))]
-)
+router = APIRouter(dependencies=[Depends(require_browser_permission("stocks.read"))])
 env_loader = None
 
 
@@ -79,6 +77,8 @@ async def stock_detail_page(
         if overview["latest_price"] and overview["latest_price"].delivery_percentage
         else None,
         avg_delivery_20d=overview["avg_delivery_20d"],
+        history_sessions=overview["history_sessions"],
+        history_first_date=overview["history_first_date"],
     )
 
     explanation = None
@@ -251,6 +251,8 @@ async def stock_overview_partial(
         if overview["latest_price"] and overview["latest_price"].delivery_percentage
         else None,
         avg_delivery_20d=overview["avg_delivery_20d"],
+        history_sessions=overview["history_sessions"],
+        history_first_date=overview["history_first_date"],
     )
     return HTMLResponse(
         content=_render(

@@ -3,18 +3,20 @@
 {% block page_title %}Market Data{% endblock %}
 
 {% block content %}
+{% set workspace = request.query_params.get('workspace', 'imports') %}
 <div class="page-header">
     <div>
-        <h1>Market Data</h1>
-        <p class="page-subtitle">Upload, backfill, and monitor NSE EOD datasets</p>
+        <div class="workspace-eyebrow">{{ 'Data quality' if workspace == 'coverage' else 'Data operations' }}</div>
+        <h1 class="workspace-title">{{ 'Coverage & Readiness' if workspace == 'coverage' else 'Market Data Operations' }}</h1>
+        <p class="workspace-subtitle">{{ 'Stored-session coverage, delivery completeness, and scanner prerequisites.' if workspace == 'coverage' else 'Upload, backfill, and monitor persisted NSE EOD datasets.' }}</p>
     </div>
-    <div class="d-flex gap-2">
+    {% if workspace != 'coverage' %}<div class="d-flex gap-2">
         <form method="post" action="/market-data/download-latest">
             <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
             <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-download me-1"></i>Download Latest</button>
         </form>
         <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#uploadModal"><i class="bi bi-upload me-1"></i>Upload File</button>
-    </div>
+    </div>{% endif %}
 </div>
 
 {% set level = request.query_params.get('level') %}
@@ -69,6 +71,7 @@
     </div>
 </div>
 
+{% if workspace != 'coverage' %}
 <!-- Backfill -->
 <div class="card mb-4">
     <div class="card-header"><i class="bi bi-cloud-arrow-down me-1"></i> Download &amp; Backfill</div>
@@ -87,7 +90,9 @@
         </form>
     </div>
 </div>
+{% endif %}
 
+{% if workspace != 'coverage' %}
 <!-- Import -->
 <div class="card mb-4">
     <div class="card-header"><i class="bi bi-upload me-1"></i> Import Bhavcopy</div>
@@ -106,11 +111,12 @@
         {% endif %}
     </div>
 </div>
+{% endif %}
 
 <!-- Tabs: Imports / Coverage / Prices / Option Chain / Options Analytics / Futures Analytics -->
 <ul class="nav nav-tabs mb-3">
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab-imports">Import History</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-coverage">Coverage</a></li>
+    <li class="nav-item"><a class="nav-link {{ 'active' if workspace != 'coverage' else '' }}" data-bs-toggle="tab" href="#tab-imports">Import History</a></li>
+    <li class="nav-item"><a class="nav-link {{ 'active' if workspace == 'coverage' else '' }}" data-bs-toggle="tab" href="#tab-coverage">Coverage</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-prices">Prices</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-option-chain">Option Chain</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab-options-analytics">Options Analytics</a></li>
@@ -120,10 +126,10 @@
 </ul>
 
 <div class="tab-content">
-    <div class="tab-pane fade show active" id="tab-imports">
+    <div class="tab-pane fade {{ 'show active' if workspace != 'coverage' else '' }}" id="tab-imports">
         <div class="card"><div class="card-body"><div id="imports-section">{% include "components/market_imports_table.html" %}</div></div></div>
     </div>
-    <div class="tab-pane fade" id="tab-coverage">
+    <div class="tab-pane fade {{ 'show active' if workspace == 'coverage' else '' }}" id="tab-coverage">
         <div class="card"><div class="card-body"><div id="coverage-section">{% include "components/market_coverage_table.html" %}</div></div></div>
     </div>
     <div class="tab-pane fade" id="tab-prices">

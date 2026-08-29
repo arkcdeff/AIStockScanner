@@ -6,7 +6,7 @@ from fastapi import Request
 from fastapi.responses import Response
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.auth.csrf import generate_csrf_token, set_csrf_cookie
+from app.auth.csrf import generate_csrf_token, set_csrf_cookie, verify_csrf_token
 from app.auth.exceptions import AuthenticationError, TokenConfigurationError
 from app.core.config import settings
 from app.services.auth_service import (
@@ -87,19 +87,23 @@ def clear_auth_cookies(response: Response) -> None:
         response.delete_cookie(name, **_cookie_settings())
 
 
-async def get_browser_user(
-    request: Request, session: AsyncSession
-) -> AuthenticatedUser | None:
+async def get_browser_user(request: Request, session: AsyncSession) -> AuthenticatedUser | None:
     """Resolve the browser user from cookies, refreshing tokens when practical."""
+    if hasattr(request.state, "browser_user"):
+        return request.state.browser_user
+
     access_token = request.cookies.get(settings.access_cookie_name)
     refresh_token = request.cookies.get(settings.refresh_cookie_name)
     if not access_token and not refresh_token:
+        request.state.browser_user = None
         return None
 
     service = AuthService(session)
     if access_token:
         try:
-            return await service.get_current_user(access_token)
+            current = await service.get_current_user(access_token)
+            request.state.browser_user = current
+            return current
         except (AuthenticationError, AuthServiceError, TokenConfigurationError):
             pass
 
@@ -113,16 +117,17 @@ async def get_browser_user(
                 ip_address,
             )
         except (AuthenticationError, AuthServiceError, TokenConfigurationError):
+            request.state.browser_user = None
             return None
         current = await service.get_current_user(result.access_token)
         request.state.refreshed_tokens = result
+        request.state.browser_user = current
         return current
+    request.state.browser_user = None
     return None
 
 
-async def require_browser_user(
-    request: Request, session: AsyncSession
-) -> AuthenticatedUser:
+async def require_browser_user(request: Request, session: AsyncSession) -> AuthenticatedUser:
     current = await get_browser_user(request, session)
     if current is None:
         raise LoginRequiredError(request.url.path, expired=True)
@@ -137,8 +142,10 @@ async def require_browser_admin(request: Request, session: AsyncSession) -> Auth
 
 
 def stage_csrf_token(request: Request) -> str:
-    """Generate a CSRF token, stage it on the request, and return it for templates."""
-    token = generate_csrf_token()
+    """Reuse a valid browser CSRF token or stage a replacement for templates."""
+    token = request.cookies.get(settings.csrf_cookie_name, "")
+    if not verify_csrf_token(token):
+        token = generate_csrf_token()
     request.state.csrf_token = token
     return token
 

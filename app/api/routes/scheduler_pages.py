@@ -6,6 +6,8 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.browser_auth import finalize_page_response, stage_csrf_token
+from app.auth import csrf
 from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
@@ -35,14 +37,16 @@ async def scheduler_page(
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     status = get_scheduler().status()
+    csrf_token = stage_csrf_token(request)
     html = _render(
         "scheduler.html",
         {
             "request": request,
             "status": status,
+            "csrf_token": csrf_token,
         },
     )
-    return HTMLResponse(content=html)
+    return finalize_page_response(request, HTMLResponse(content=html))
 
 
 @router.get("/status", response_class=HTMLResponse)
@@ -66,6 +70,7 @@ async def run_delivery_now(
     request: Request,
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
+    csrf.verify_request_csrf(request, await request.form())
     result = await get_scheduler().run_delivery_now()
     status = result.get("status", "ok")
     count = len(result.get("delivery_ids", []))
@@ -84,6 +89,7 @@ async def run_summary_now(
     summary_date: str | None = Form(default=None),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
+    csrf.verify_request_csrf(request, await request.form())
     requested = None
     if summary_date:
         try:

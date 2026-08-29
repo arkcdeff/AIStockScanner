@@ -3,20 +3,23 @@
 {% block page_title %}Run Scanner{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Run Scanner</h1>
-        <p class="page-subtitle">Execute a scanner against the latest data</p>
-    </div>
-    <a href="/scanner-library" class="btn btn-sm btn-outline-primary">Scanner Library</a>
+<div class="page-header"><div><div class="workspace-eyebrow">Scanner journey</div><h1 class="workspace-title">Run Scanner</h1><p class="workspace-subtitle">Execute an existing deterministic rule against available indicator rows.</p></div><div class="d-flex gap-2"><a href="/scanner-library" class="btn btn-sm btn-outline-primary">Library</a><a href="/scanner-results/" class="btn btn-sm btn-outline-primary">All results</a></div></div>
+
+<div class="state-panel {{ 'state-panel-warning' if selected_requirement.state != 'READY' else '' }} mb-3" role="status">
+    <i class="bi bi-database-check"></i><div><div class="state-panel-title">{{ selected_requirement.state }} · {{ selected_requirement.required_sessions }} sessions required</div><div class="state-panel-copy">Maximum stored history: {{ readiness.max_sessions }} sessions. Required inputs: {{ selected_requirement.indicator_inputs }}. Latest-date indicator rows: {{ readiness.latest_indicator_count }}. Eligible product stocks now: {{ selected_requirement.eligible_count }}.</div></div>
 </div>
 
-{% include "components/flash.html" %}
-
-<div class="card">
-    <div class="card-header"><i class="bi bi-lightning-charge me-1"></i> Scanner Configuration</div>
+<div class="card mb-3">
+    <div class="card-header"><h2 class="section-card-title"><i class="bi bi-sliders"></i>Scanner configuration</h2></div>
     <div class="card-body">
-        {% include "components/scanner_run_results.html" %}
+        <form method="post" action="/scanner-run/run" class="row g-2 align-items-end">
+            <input type="hidden" name="_csrf_token" value="{{ csrf_token }}">
+            <div class="col-md-9"><label class="form-label" for="scan-code">Scanner</label><select id="scan-code" class="form-select" name="scan_code" required>{% for definition in definitions %}<option value="{{ definition.code }}" {{ 'selected' if selected_code == definition.code else '' }}>{{ definition.name }} · {{ definition.category }}</option>{% endfor %}</select></div>
+            <div class="col-md-3"><button class="btn btn-primary w-100" type="submit" {{ 'disabled' if selected_requirement.state != 'READY' else '' }}><i class="bi bi-play-fill me-1"></i>Run selected</button></div>
+        </form>
+        {% if selected_requirement.state != 'READY' %}<div class="text-warning small mt-2">Run disabled because this scanner's history and current indicator prerequisites are not satisfied.</div>{% endif %}
     </div>
 </div>
+
+<div class="card"><div class="card-header d-flex justify-content-between"><h2 class="section-card-title"><i class="bi bi-table"></i>{{ selected_name or 'Persisted results' }}</h2>{% if selected_name %}<span class="status-chip">{{ results|length }} shown</span>{% endif %}</div><div class="card-body p-0">{% include "components/scanner_run_results.html" %}</div></div>
 {% endblock %}

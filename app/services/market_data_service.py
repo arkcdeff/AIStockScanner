@@ -5,6 +5,7 @@ This service reuses the existing :class:`NSEHistoricalService`,
 REST API, CLI, and EOD scheduler all share one code path for acquiring and
 ingesting NSE EOD data.
 """
+
 from __future__ import annotations
 
 import hashlib
@@ -17,10 +18,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.daily_price import DailyPrice
 from app.models.import_job import ImportJob
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_result import ScanResult
+from app.models.stock import Stock
 from app.repositories.market_data import MarketDataRepository
 from app.services.nse_downloader import NSEDownloader, NSEDownloadError
 from app.services.nse_historical import NSEHistoricalService
@@ -28,6 +31,7 @@ from app.services.nse_import import (
     MODE_LATEST_DOWNLOAD,
     NSEImportService,
 )
+from app.services.scanner_readiness import SCANNER_HISTORY_THRESHOLDS
 
 # Session-count thresholds used for scanner-readiness reporting.
 READINESS_THRESHOLDS = (20, 50, 100, 200)
@@ -135,22 +139,24 @@ class MarketDataService:
                     func.count(DailyPrice.delivery_percentage),
                     func.count(func.distinct(DailyPrice.stock_id)),
                 )
+                .join(Stock, DailyPrice.stock_id == Stock.id)
                 .where(
                     DailyPrice.trade_date >= start_date,
                     DailyPrice.trade_date <= end_date,
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
                 )
                 .group_by(DailyPrice.trade_date)
             )
         ).all()
-        price_map = {
-            row[0]: (row[1], row[2], row[3]) for row in price_rows
-        }
+        price_map = {row[0]: (row[1], row[2], row[3]) for row in price_rows}
         indicator_rows = (
             await self.session.execute(
                 select(IndicatorResult.trade_date, func.count(IndicatorResult.id))
+                .join(Stock, IndicatorResult.stock_id == Stock.id)
                 .where(
                     IndicatorResult.trade_date >= start_date,
                     IndicatorResult.trade_date <= end_date,
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
                 )
                 .group_by(IndicatorResult.trade_date)
             )
@@ -159,9 +165,11 @@ class MarketDataService:
         scan_rows = (
             await self.session.execute(
                 select(ScanResult.scan_date, func.count(ScanResult.id))
+                .join(Stock, ScanResult.stock_id == Stock.id)
                 .where(
                     ScanResult.scan_date >= start_date,
                     ScanResult.scan_date <= end_date,
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
                 )
                 .group_by(ScanResult.scan_date)
             )
@@ -201,33 +209,67 @@ class MarketDataService:
 
     async def scanner_readiness(self) -> dict[str, Any]:
         """Stocks with enough history for scanners + delivery coverage at latest date."""
-        latest = await self.session.scalar(select(func.max(DailyPrice.trade_date)))
+        latest = await self.session.scalar(
+            select(func.max(DailyPrice.trade_date))
+            .join(Stock, DailyPrice.stock_id == Stock.id)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+        )
         session_counts = (
             await self.session.execute(
                 select(
                     DailyPrice.stock_id, func.count(func.distinct(DailyPrice.trade_date))
-                ).group_by(DailyPrice.stock_id)
+                )
+                .join(Stock, DailyPrice.stock_id == Stock.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+                .group_by(DailyPrice.stock_id)
             )
         ).all()
         readiness: dict[str, int] = {str(t): 0 for t in READINESS_THRESHOLDS}
+        eligible_sessions: dict[str, int] = {
+            str(t): 0 for t in SCANNER_HISTORY_THRESHOLDS
+        }
+        max_sessions = 0
         for _stock_id, count in session_counts:
+            max_sessions = max(max_sessions, int(count))
             for threshold in READINESS_THRESHOLDS:
                 if count >= threshold:
                     readiness[str(threshold)] += 1
+            for threshold in SCANNER_HISTORY_THRESHOLDS:
+                if count >= threshold:
+                    eligible_sessions[str(threshold)] += 1
 
-        latest_prices = delivery_coverage = 0
+        latest_prices = delivery_coverage = latest_indicators = 0
         if latest is not None:
             latest_prices = (
                 await self.session.scalar(
-                    select(func.count(DailyPrice.id)).where(DailyPrice.trade_date == latest)
+                    select(func.count(DailyPrice.id))
+                    .join(Stock, DailyPrice.stock_id == Stock.id)
+                    .where(
+                        DailyPrice.trade_date == latest,
+                        Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                    )
                 )
                 or 0
             )
             delivery_coverage = (
                 await self.session.scalar(
-                    select(func.count(DailyPrice.id)).where(
+                    select(func.count(DailyPrice.id))
+                    .join(Stock, DailyPrice.stock_id == Stock.id)
+                    .where(
                         DailyPrice.trade_date == latest,
                         DailyPrice.delivery_percentage.is_not(None),
+                        Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                    )
+                )
+                or 0
+            )
+            latest_indicators = (
+                await self.session.scalar(
+                    select(func.count(IndicatorResult.id))
+                    .join(Stock, IndicatorResult.stock_id == Stock.id)
+                    .where(
+                        IndicatorResult.trade_date == latest,
+                        Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
                     )
                 )
                 or 0
@@ -238,13 +280,17 @@ class MarketDataService:
             "readiness": readiness,
             "latest_price_count": latest_prices,
             "latest_delivery_count": delivery_coverage,
+            "latest_indicator_count": latest_indicators,
+            "stocks_with_history": len(session_counts),
+            "max_sessions": max_sessions,
+            "eligible_sessions": eligible_sessions,
         }
 
     # ------------------------------------------------------------------ status
 
     async def data_status(self) -> dict[str, Any]:
         repo = MarketDataRepository(self.session)
-        summary = await repo.summary()
+        summary = await repo.product_summary()
         latest_import = await self.session.scalar(
             select(ImportJob)
             .where(ImportJob.status == "completed")

@@ -1,6 +1,9 @@
 <div class="card border-0 shadow-sm">
     <div class="card-body">
         {% if explanation %}
+        {% if composite is defined and not composite.data_completeness_percent %}
+        <div class="alert alert-warning py-2 small" role="status">This deterministic fallback is based on insufficient stored data and is not a market signal.</div>
+        {% endif %}
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 class="mb-0">{{ explanation.headline or 'Market Analysis' }}</h6>
             <span class="badge {{ 'bg-info' if explanation.is_ai_generated else 'bg-secondary' }}">

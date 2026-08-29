@@ -1,161 +1,89 @@
 {% set cp = request.url.path if request is defined else '' %}
+{% set workspace = request.query_params.get('workspace', '') if request is defined else '' %}
+{% set active_class = 'active' if sidebar_instance|default('desktop') == 'desktop' else 'mobile-active' %}
+{% set nav_user = browser_user if browser_user is defined and browser_user else (request.state.browser_user if request is defined and request.state.browser_user is defined else none) %}
+{% set nav_permissions = nav_user.permissions if nav_user else [] %}
+{% set nav_admin = nav_user and (nav_user.user.is_superuser or 'super_admin' in nav_user.roles) %}
 <div class="sidebar-header">
-    <a href="/dashboard" class="sidebar-brand">
-        <i class="bi bi-graph-up-arrow sidebar-brand-icon"></i>
-        <span class="sidebar-brand-text">AIStockScanner</span>
+    <a href="/dashboard" class="sidebar-brand" aria-label="AIStockScanner dashboard">
+        <span class="sidebar-brand-mark"><i class="bi bi-graph-up-arrow"></i></span>
+        <span class="sidebar-brand-copy">
+            <span class="sidebar-brand-text">AIStockScanner</span>
+            <span class="sidebar-brand-tagline">Research workstation</span>
+        </span>
     </a>
 </div>
 
-<nav class="sidebar-nav" aria-label="Main navigation">
+<nav class="sidebar-nav" aria-label="Primary navigation">
     <ul class="sidebar-menu">
-        <!-- MAIN -->
-        <li class="sidebar-menu-label">Main</li>
-        <li>
-            <a href="/dashboard" class="sidebar-link {{ 'active' if cp in ['/', '/dashboard'] else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Dashboard">
-                <i class="bi bi-speedometer2 sidebar-icon"></i>
-                <span class="sidebar-text">Dashboard</span>
-            </a>
-        </li>
+        {% if nav_admin or 'dashboard.read' in nav_permissions %}
+        <li class="sidebar-menu-label">Workspace</li>
+        <li><a href="/dashboard" class="sidebar-link {{ active_class if cp in ['/', '/dashboard'] else '' }}" title="Decision dashboard"><i class="bi bi-grid-1x2 sidebar-icon"></i><span class="sidebar-text">Dashboard</span></a></li>
+        {% endif %}
 
-        <!-- MARKET -->
-        <li class="sidebar-menu-label">Market</li>
-        <li>
-            <a href="/market-data" class="sidebar-link {{ 'active' if cp == '/market-data' else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Live Market & Imports">
-                <i class="bi bi-activity sidebar-icon"></i>
-                <span class="sidebar-text">Live Market & Data</span>
-            </a>
-        </li>
-        <li>
-            <a href="/scanner-library" class="sidebar-link {{ 'active' if cp.startswith('/scanner-library') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Scanners">
-                <i class="bi bi-search sidebar-icon"></i>
-                <span class="sidebar-text">Scanners</span>
-            </a>
-        </li>
-        <li>
-            <a href="/market-data/coverage" class="sidebar-link {{ 'active' if cp.startswith('/market-data/coverage') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Data Coverage">
-                <i class="bi bi-shield-check sidebar-icon"></i>
-                <span class="sidebar-text">Data Coverage</span>
-            </a>
-        </li>
+        {% if nav_admin or 'stocks.read' in nav_permissions %}
+        <li class="sidebar-menu-label">Market &amp; Data</li>
+        <li><a href="/market-data" class="sidebar-link {{ active_class if cp == '/market-data' and not workspace else '' }}" title="Market data operations"><i class="bi bi-database-check sidebar-icon"></i><span class="sidebar-text">Data Operations</span></a></li>
+        <li><a href="/market-data?workspace=coverage" class="sidebar-link {{ active_class if cp == '/market-data' and workspace == 'coverage' else '' }}" title="Coverage and readiness"><i class="bi bi-shield-check sidebar-icon"></i><span class="sidebar-text">Data Health</span></a></li>
+        <li><a href="/stocks" class="sidebar-link {{ active_class if cp.startswith('/stocks') else '' }}" title="Stock explorer and Stock360"><i class="bi bi-building sidebar-icon"></i><span class="sidebar-text">Stocks</span></a></li>
+        {% endif %}
 
-        <!-- STOCKS -->
-        <li class="sidebar-menu-label">Stocks</li>
-        <li>
-            <a href="/stocks" class="sidebar-link {{ 'active' if cp.startswith('/stocks') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Stock Analysis & Stock360">
-                <i class="bi bi-search sidebar-icon"></i>
-                <span class="sidebar-text">Stock Analysis & 360°</span>
-            </a>
-        </li>
-        <li>
-            <a href="/watchlists" class="sidebar-link {{ 'active' if cp.startswith('/watchlists') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Watchlists">
-                <i class="bi bi-star sidebar-icon"></i>
-                <span class="sidebar-text">Watchlists</span>
-            </a>
-        </li>
+        {% if nav_admin or 'scanners.read' in nav_permissions %}
+        <li class="sidebar-menu-label">Discovery</li>
+        <li><a href="/scanner-library" class="sidebar-link {{ active_class if cp.startswith('/scanner-library') or cp.startswith('/scanner-run') else '' }}" title="Scanner library and runs"><i class="bi bi-funnel sidebar-icon"></i><span class="sidebar-text">Scanners</span></a></li>
+        <li><a href="/scanner-results/" class="sidebar-link {{ active_class if cp.startswith('/scanner-results') else '' }}" title="Scanner result workspace"><i class="bi bi-table sidebar-icon"></i><span class="sidebar-text">Scanner Results</span></a></li>
+        {% endif %}
 
-        <!-- DERIVATIVES -->
+        {% if nav_admin or 'stocks.read' in nav_permissions %}
         <li class="sidebar-menu-label">Derivatives</li>
-        <li>
-            <a href="/market-data" class="sidebar-link {{ 'active' if cp == '/market-data' else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Futures & Option Chain EOD">
-                <i class="bi bi-layers sidebar-icon"></i>
-                <span class="sidebar-text">Futures & Option Chain</span>
-            </a>
-        </li>
-        <li>
-            <a href="/analytics" class="sidebar-link {{ 'active' if cp.startswith('/analytics') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="PCR, Max Pain, GEX & Opportunities">
-                <i class="bi bi-graph-up sidebar-icon"></i>
-                <span class="sidebar-text">PCR, GEX & Options Engine</span>
-            </a>
-        </li>
+        <li><a href="/market-data/derivatives" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives') else '' }}" title="Existing EOD derivatives research"><i class="bi bi-layers sidebar-icon"></i><span class="sidebar-text">Derivatives Workbench</span></a></li>
+        {% endif %}
 
-        <!-- RESEARCH & VALIDATION -->
-        <li class="sidebar-menu-label">Research & Validation</li>
-        <li>
-            <a href="/analytics" class="sidebar-link {{ 'active' if cp == '/analytics' else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Analytics Lab">
-                <i class="bi bi-graph-up-arrow sidebar-icon"></i>
-                <span class="sidebar-text">Analytics Lab</span>
-            </a>
-        </li>
-        <li>
-            <a href="/market-intelligence" class="sidebar-link {{ 'active' if cp.startswith('/market-intelligence') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Market Intelligence">
-                <i class="bi bi-lightbulb sidebar-icon"></i>
-                <span class="sidebar-text">Market Intel</span>
-            </a>
-        </li>
-        <li>
-            <a href="/backtests" class="sidebar-link {{ 'active' if cp.startswith('/backtests') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Backtesting & Validation Lab">
-                <i class="bi bi-play-circle sidebar-icon"></i>
-                <span class="sidebar-text">Backtesting & Validation Lab</span>
-            </a>
-        </li>
-        <li>
-            <a href="/ai" class="sidebar-link {{ 'active' if cp.startswith('/ai') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="AI Explanations">
-                <i class="bi bi-robot sidebar-icon"></i>
-                <span class="sidebar-text">AI Intelligence</span>
-            </a>
-        </li>
+        {% if nav_admin or 'analytics.read' in nav_permissions or 'market_intelligence.read' in nav_permissions or 'ai.read' in nav_permissions or 'backtests.read' in nav_permissions %}
+        <li class="sidebar-menu-label">Research</li>
+        {% if nav_admin or 'analytics.read' in nav_permissions %}<li><a href="/analytics" class="sidebar-link {{ active_class if cp.startswith('/analytics') else '' }}" title="Technical analytics"><i class="bi bi-bar-chart-line sidebar-icon"></i><span class="sidebar-text">Analytics</span></a></li>{% endif %}
+        {% if nav_admin or 'market_intelligence.read' in nav_permissions %}<li><a href="/market-intelligence" class="sidebar-link {{ active_class if cp.startswith('/market-intelligence') else '' }}" title="Composite market intelligence"><i class="bi bi-compass sidebar-icon"></i><span class="sidebar-text">Market Intelligence</span></a></li>{% endif %}
+        {% if nav_admin or 'backtests.read' in nav_permissions %}<li><a href="/backtests" class="sidebar-link {{ active_class if cp.startswith('/backtests') else '' }}" title="Backtesting and validation"><i class="bi bi-clock-history sidebar-icon"></i><span class="sidebar-text">Backtests</span></a></li>{% endif %}
+        {% if nav_admin or 'ai.read' in nav_permissions %}<li><a href="/ai" class="sidebar-link {{ active_class if cp.startswith('/ai') else '' }}" title="Cached AI explanations"><i class="bi bi-stars sidebar-icon"></i><span class="sidebar-text">AI Insights</span></a></li>{% endif %}
+        {% endif %}
 
-        <!-- PORTFOLIO -->
-        <li class="sidebar-menu-label">Portfolio</li>
-        <li>
-            <a href="/portfolio" class="sidebar-link {{ 'active' if cp.startswith('/portfolio') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Portfolio">
-                <i class="bi bi-wallet2 sidebar-icon"></i>
-                <span class="sidebar-text">Portfolio</span>
-            </a>
-        </li>
+        {% if nav_admin or 'watchlists.read' in nav_permissions or 'portfolio.read' in nav_permissions %}
+        <li class="sidebar-menu-label">My Workspace</li>
+        {% if nav_admin or 'watchlists.read' in nav_permissions %}<li><a href="/watchlists" class="sidebar-link {{ active_class if cp.startswith('/watchlists') else '' }}" title="Watchlists"><i class="bi bi-star sidebar-icon"></i><span class="sidebar-text">Watchlists</span></a></li>{% endif %}
+        {% if nav_admin or 'portfolio.read' in nav_permissions %}<li><a href="/portfolio" class="sidebar-link {{ active_class if cp.startswith('/portfolio') else '' }}" title="Portfolio"><i class="bi bi-briefcase sidebar-icon"></i><span class="sidebar-text">Portfolio</span></a></li>{% endif %}
+        {% endif %}
 
-        <!-- MONITORING -->
+        {% if nav_admin or 'alerts.read' in nav_permissions or 'notifications.read' in nav_permissions %}
         <li class="sidebar-menu-label">Monitoring</li>
-        <li>
-            <a href="/alerts" class="sidebar-link {{ 'active' if cp.startswith('/alerts') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Alerts">
-                <i class="bi bi-bell sidebar-icon"></i>
-                <span class="sidebar-text">Alerts</span>
-            </a>
-        </li>
-        <li>
-            <a href="/notifications" class="sidebar-link {{ 'active' if cp.startswith('/notifications') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Notifications">
-                <i class="bi bi-bell-fill sidebar-icon"></i>
-                <span class="sidebar-text">Notifications</span>
-            </a>
-        </li>
+        {% if nav_admin or 'alerts.read' in nav_permissions %}<li><a href="/alerts" class="sidebar-link {{ active_class if cp.startswith('/alerts') else '' }}" title="Alert rules and events"><i class="bi bi-bell sidebar-icon"></i><span class="sidebar-text">Alerts</span></a></li>{% endif %}
+        {% if nav_admin or 'notifications.read' in nav_permissions %}<li><a href="/notifications" class="sidebar-link {{ active_class if cp.startswith('/notifications') else '' }}" title="Notifications"><i class="bi bi-send sidebar-icon"></i><span class="sidebar-text">Notifications</span></a></li>{% endif %}
+        {% endif %}
 
-        <!-- SYSTEM & PIPELINE -->
+        {% if nav_admin or 'stocks.read' in nav_permissions or 'settings.read' in nav_permissions %}
         <li class="sidebar-menu-label">System</li>
-        <li>
-            <a href="/pipeline" class="sidebar-link {{ 'active' if cp.startswith('/pipeline') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Pipeline">
-                <i class="bi bi-diagram-3 sidebar-icon"></i>
-                <span class="sidebar-text">Pipeline</span>
-            </a>
-        </li>
+        {% if nav_admin or 'stocks.read' in nav_permissions %}<li><a href="/pipeline" class="sidebar-link {{ active_class if cp.startswith('/pipeline') else '' }}" title="EOD pipeline status"><i class="bi bi-diagram-3 sidebar-icon"></i><span class="sidebar-text">Pipeline</span></a></li>{% endif %}
+        {% if nav_admin %}<li><a href="/scheduler" class="sidebar-link {{ active_class if cp.startswith('/scheduler') else '' }}" title="Scheduler status"><i class="bi bi-calendar2-week sidebar-icon"></i><span class="sidebar-text">Scheduler</span></a></li>{% endif %}
+        {% if nav_admin or 'stocks.read' in nav_permissions %}<li><a href="/indicators" class="sidebar-link {{ active_class if cp.startswith('/indicators') else '' }}" title="Indicator coverage"><i class="bi bi-activity sidebar-icon"></i><span class="sidebar-text">Indicators</span></a></li>{% endif %}
+        {% endif %}
 
-        <!-- ADMIN -->
-        {% if browser_user and (browser_user.user.is_superuser or 'super_admin' in browser_user.roles) %}
-        <li class="sidebar-menu-label">Admin</li>
-        <li>
-            <a href="/admin/users" class="sidebar-link {{ 'active' if cp.startswith('/admin/users') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Users">
-                <i class="bi bi-people sidebar-icon"></i>
-                <span class="sidebar-text">Users</span>
-            </a>
-        </li>
-        <li>
-            <a href="/admin/roles" class="sidebar-link {{ 'active' if cp.startswith('/admin/roles') else '' }}" data-bs-toggle="tooltip" data-bs-placement="right" title="Roles & Permissions">
-                <i class="bi bi-shield-lock sidebar-icon"></i>
-                <span class="sidebar-text">Roles &amp; Permissions</span>
-            </a>
-        </li>
+        {% if nav_admin %}
+        <li class="sidebar-menu-label">Administration</li>
+        <li><a href="/admin/users" class="sidebar-link {{ active_class if cp.startswith('/admin/users') else '' }}" title="Users"><i class="bi bi-people sidebar-icon"></i><span class="sidebar-text">Users</span></a></li>
+        <li><a href="/admin/roles" class="sidebar-link {{ active_class if cp.startswith('/admin/roles') else '' }}" title="Roles"><i class="bi bi-person-badge sidebar-icon"></i><span class="sidebar-text">Roles</span></a></li>
+        <li><a href="/admin/permissions" class="sidebar-link {{ active_class if cp.startswith('/admin/permissions') else '' }}" title="Permissions"><i class="bi bi-shield-lock sidebar-icon"></i><span class="sidebar-text">Permissions</span></a></li>
         {% endif %}
     </ul>
 </nav>
 
-<!-- Sidebar footer: user info -->
-{% if browser_user %}
+{% if nav_user %}
 <div class="sidebar-footer">
-    <div class="sidebar-user">
-        <span class="sidebar-avatar">{{ browser_user.user.username[:1]|upper }}</span>
-        <div class="sidebar-user-info">
-            <div class="sidebar-user-name">{{ browser_user.user.full_name or browser_user.user.username }}</div>
-            <div class="sidebar-user-role">{{ 'Super Admin' if browser_user.user.is_superuser else (browser_user.roles|first if browser_user.roles else 'User') }}</div>
-        </div>
-    </div>
+    <a href="/profile" class="sidebar-user text-decoration-none" title="Account profile">
+        <span class="sidebar-avatar">{{ nav_user.user.username[:1]|upper }}</span>
+        <span class="sidebar-user-info">
+            <span class="sidebar-user-name">{{ nav_user.user.full_name or nav_user.user.username }}</span>
+            <span class="sidebar-user-role">{{ 'Super Admin' if nav_admin else (nav_user.roles|first if nav_user.roles else 'User') }}</span>
+        </span>
+        <i class="bi bi-chevron-right ms-auto sidebar-footer-arrow"></i>
+    </a>
 </div>
 {% endif %}

@@ -2,14 +2,12 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import HTMLResponse
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.authorization import require_browser_permission
 from app.core.config import settings
 from app.db.session import get_db_session
-from app.models.stock import Stock
-from app.repositories.stock import StockRepository
+from app.services.stock import StockService
 
 
 def _render(template_name: str, context: dict) -> str:
@@ -22,24 +20,7 @@ def _render(template_name: str, context: dict) -> str:
     return env.get_template(template_name).render(**context)
 
 
-router = APIRouter(
-    dependencies=[Depends(require_browser_permission("stocks.read"))]
-)
-
-
-async def _search(session: AsyncSession, q: str, limit: int) -> list[Stock]:
-    if not q:
-        return await StockRepository(session).list(offset=0, limit=limit)
-    pattern = f"%{q.strip().upper()}%"
-    statement = (
-        select(Stock)
-        .where(
-            Stock.symbol.ilike(pattern) | Stock.company_name.ilike(f"%{q.strip()}%")
-        )
-        .order_by(Stock.symbol)
-        .limit(limit)
-    )
-    return list(await session.scalars(statement))
+router = APIRouter(dependencies=[Depends(require_browser_permission("stocks.read"))])
 
 
 @router.get("", response_class=HTMLResponse)
@@ -47,15 +28,22 @@ async def _search(session: AsyncSession, q: str, limit: int) -> list[Stock]:
 async def stocks_page(
     request: Request,
     q: str = Query(default=""),
+    readiness: str = Query(default="all", pattern="^(all|ready|limited|missing)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=10, le=100),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
-    stocks = await _search(session, q, limit=200)
+    explorer = await StockService(session).list_explorer(
+        query=q, readiness=readiness, page=page, page_size=page_size
+    )
     html = _render(
         "stocks.html",
         {
             "request": request,
-            "stocks": stocks,
+            "stocks": explorer["rows"],
+            "explorer": explorer,
             "query": q,
+            "readiness_filter": readiness,
         },
     )
     return HTMLResponse(content=html)
@@ -65,11 +53,22 @@ async def stocks_page(
 async def stocks_table_partial(
     request: Request,
     q: str = Query(default=""),
+    readiness: str = Query(default="all", pattern="^(all|ready|limited|missing)$"),
+    page: int = Query(default=1, ge=1),
+    page_size: int = Query(default=50, ge=10, le=100),
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
-    stocks = await _search(session, q, limit=200)
+    explorer = await StockService(session).list_explorer(
+        query=q, readiness=readiness, page=page, page_size=page_size
+    )
     html = _render(
         "components/stocks_table.html",
-        {"request": request, "stocks": stocks, "query": q},
+        {
+            "request": request,
+            "stocks": explorer["rows"],
+            "explorer": explorer,
+            "query": q,
+            "readiness_filter": readiness,
+        },
     )
     return HTMLResponse(content=html)

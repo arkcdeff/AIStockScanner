@@ -1,27 +1,56 @@
 {% extends "layouts/shell.html" %}
 {% block title %}Stocks - AI Stock Scanner{% endblock %}
-{% block page_title %}Stock Analysis{% endblock %}
+{% block page_title %}Stocks{% endblock %}
+
+{% block topbar_status %}
+{% if explorer.summary.latest_trade_date %}<span class="status-dot status-dot-info"></span><span>Prices through {{ explorer.summary.latest_trade_date }}</span>{% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="page-header">
     <div>
-        <h1>Stock Analysis</h1>
-        <p class="page-subtitle">Browse and analyze stocks in your database</p>
+        <div class="workspace-eyebrow">Equity research</div>
+        <h1 class="workspace-title">Stock Explorer</h1>
+        <p class="workspace-subtitle">Latest stored prices, daily change, and scanner-history readiness.</p>
     </div>
 </div>
 
+<div class="metric-strip mb-3">
+    <div class="metric-strip-item"><div class="metric-strip-label">Stock masters</div><div class="metric-strip-value">{{ explorer.summary.stocks }}</div><div class="metric-strip-detail">Reference records</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">With stored prices</div><div class="metric-strip-value">{{ explorer.summary.with_prices }}</div><div class="metric-strip-detail">At least one session</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">Scanner ready</div><div class="metric-strip-value">{{ explorer.summary.scanner_ready }}</div><div class="metric-strip-detail">50+ stored sessions</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">Latest trade date</div><div class="metric-strip-value fs-5">{{ explorer.summary.latest_trade_date or 'Unavailable' }}</div><div class="metric-strip-detail">Persisted EOD data</div></div>
+</div>
+
+{% if explorer.summary.scanner_ready == 0 %}
+<div class="state-panel state-panel-warning mb-3" role="status">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <div><div class="state-panel-title">Scanner history is not ready</div><div class="state-panel-copy">Prices are stored, but no stock currently has 50 sessions. This is insufficient history, not a zero-opportunity signal.</div></div>
+</div>
+{% endif %}
+
+{% if explorer.summary.sector_mapped == 0 %}
+<div class="state-panel mb-3" role="status">
+    <i class="bi bi-diagram-2"></i>
+    <div><div class="state-panel-title">Sector mappings are unavailable</div><div class="state-panel-copy">The product equity universe has no persisted sector classifications yet. Sector-based research remains unavailable until reference data is ingested.</div></div>
+</div>
+{% endif %}
+
 <div class="card">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <span><i class="bi bi-building me-1"></i> Stocks</span>
-        <form class="d-flex" hx-get="/stocks/table" hx-target="#stocks-table" hx-swap="innerHTML" hx-trigger="submit">
-            <input type="text" class="form-control form-control-sm me-2" name="q" placeholder="Search symbol or name..." hx-get="/stocks/table" hx-trigger="keyup changed delay:400ms" hx-target="#stocks-table" hx-params="q">
-            <button type="submit" class="btn btn-sm btn-outline-secondary"><i class="bi bi-search"></i></button>
+    <div class="card-header d-flex flex-wrap gap-2 justify-content-between align-items-center">
+        <h2 class="section-card-title"><i class="bi bi-table"></i> Stored equity universe</h2>
+        <form class="d-flex flex-wrap gap-2" hx-get="/stocks/table" hx-target="#stocks-table" hx-swap="innerHTML" hx-trigger="submit">
+            <input type="search" class="form-control form-control-sm" name="q" value="{{ query }}" placeholder="Symbol or company" aria-label="Search stocks">
+            <select class="form-select form-select-sm" name="readiness" aria-label="History readiness">
+                <option value="all" {{ 'selected' if readiness_filter == 'all' else '' }}>All readiness</option>
+                <option value="ready" {{ 'selected' if readiness_filter == 'ready' else '' }}>Ready (50+)</option>
+                <option value="limited" {{ 'selected' if readiness_filter == 'limited' else '' }}>Limited history</option>
+                <option value="missing" {{ 'selected' if readiness_filter == 'missing' else '' }}>No prices</option>
+            </select>
+            <input type="hidden" name="page_size" value="{{ explorer.page_size }}">
+            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-search me-1"></i>Apply</button>
         </form>
     </div>
-    <div class="card-body">
-        <div id="stocks-table">
-            {% include "components/stocks_table.html" %}
-        </div>
-    </div>
+    <div id="stocks-table" aria-live="polite">{% include "components/stocks_table.html" %}</div>
 </div>
 {% endblock %}

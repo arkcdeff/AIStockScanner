@@ -19,6 +19,7 @@
         </thead>
         <tbody>
             {% for job in imports %}
+            {% set zero_row_success = job.status|lower in ['success', 'completed'] and job.rows_read == 0 and job.rows_inserted == 0 and job.rows_updated == 0 and job.rows_rejected == 0 %}
             <tr>
                 <td>{{ job.id }}</td>
                 <td class="text-truncate" style="max-width: 200px;" title="{{ job.file_name }}">{{ job.file_name }}</td>
@@ -26,11 +27,13 @@
                 <td><span class="badge bg-light text-dark border">{{ job.details.get('mode', 'UPLOAD') }}</span></td>
                 <td><span class="badge bg-light text-dark border">{{ job.details.get('format', '—') }}</span></td>
                 <td>
-                    {% if job.status == 'completed' %}
+                    {% if zero_row_success %}
+                        <span class="badge bg-warning text-dark" title="Source operation completed but produced no usable rows">NO DATA</span>
+                    {% elif job.status|lower == 'completed' %}
                         <span class="badge bg-success">{{ job.status }}</span>
-                    {% elif job.status == 'failed' %}
+                    {% elif job.status|lower == 'failed' %}
                         <span class="badge bg-danger">{{ job.status }}</span>
-                    {% elif job.status == 'running' %}
+                    {% elif job.status|lower == 'running' %}
                         <span class="badge bg-warning text-dark">{{ job.status }}</span>
                     {% else %}
                         <span class="badge bg-secondary">{{ job.status }}</span>
@@ -55,6 +58,11 @@
                     {% endif %}
                 </td>
             </tr>
+            {% if zero_row_success %}
+            <tr>
+                <td colspan="12" class="small text-warning">The source operation completed, but no rows were read or written. This is not usable imported data.</td>
+            </tr>
+            {% endif %}
             {% if job.error_message %}
             <tr class="table-danger">
                 <td colspan="12" class="small text-danger">{{ job.error_message }}</td>

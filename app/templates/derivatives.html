@@ -1,0 +1,46 @@
+{% extends "layouts/shell.html" %}
+{% block title %}Derivatives Workbench - AI Stock Scanner{% endblock %}
+{% block page_title %}Derivatives Workbench{% endblock %}
+
+{% block topbar_status %}<span class="status-dot status-dot-info"></span><span>EOD research · imported scope</span>{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div><div class="workspace-eyebrow">Existing deterministic research</div><h1 class="workspace-title">Derivatives Workbench</h1><p class="workspace-subtitle">Historical futures, option-chain, positioning, replay, and exposure tools over persisted EOD data.</p></div>
+    <a href="/market-data" class="btn btn-sm btn-outline-primary"><i class="bi bi-database me-1"></i>Data operations</a>
+</div>
+
+<div class="state-panel mb-3"><i class="bi bi-info-circle text-info"></i><div><div class="state-panel-title">Historical / replay mode</div><div class="state-panel-copy">These views use stored EOD datasets and point-in-time inputs. They are not live quotes, execution signals, or brokerage functionality. Coverage claims apply only to the imported scope.</div></div></div>
+
+<div class="metric-strip mb-3">
+{% for dataset in coverage.datasets[:4] %}
+    <div class="metric-strip-item"><div class="metric-strip-label">{{ dataset.dataset_name }}</div><div class="metric-strip-value">{{ '{:,}'.format(dataset.row_count) }}</div><div class="metric-strip-detail">through {{ dataset.latest_date or 'unavailable' }}</div></div>
+{% endfor %}
+</div>
+
+<ul class="nav nav-tabs stock-tabs mb-3" role="tablist">
+    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#deriv-coverage">Coverage</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-chain">Option Chain</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-options">PCR / Max Pain / OI</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-futures">Futures</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-participants">Participants</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-replay">Replay</a></li>
+    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#deriv-advanced">Advanced research</a></li>
+</ul>
+
+<div class="tab-content">
+    <section class="tab-pane fade show active" id="deriv-coverage"><div class="card"><div class="card-header"><h2 class="section-card-title"><i class="bi bi-shield-check"></i>Imported derivatives coverage</h2></div><div class="table-responsive"><table class="table table-sm table-financial mb-0"><thead><tr><th>Dataset</th><th>Status</th><th>First</th><th>Latest</th><th class="numeric">Rows</th><th class="numeric">Sessions</th><th>Scope</th></tr></thead><tbody>{% for dataset in coverage.datasets %}<tr><td>{{ dataset.dataset_name }}</td><td><span class="status-chip {{ 'status-chip-success' if dataset.status == 'COMPLETE_FOR_IMPORTED_SCOPE' else 'status-chip-warning' }}">{{ dataset.status|replace('_',' ')|title }}</span></td><td>{{ dataset.first_date or '—' }}</td><td>{{ dataset.latest_date or '—' }}</td><td class="numeric">{{ '{:,}'.format(dataset.row_count) }}</td><td class="numeric">{{ dataset.session_count or '—' }}</td><td class="small text-muted">{{ dataset.scope_description }}</td></tr>{% endfor %}</tbody></table></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-chain"><div class="card"><div class="card-body"><form class="row g-2 mb-3" hx-get="/market-data/derivatives/options/chain/table" hx-target="#deriv-chain-output"><div class="col-md-3"><label class="form-label">Underlying</label><input class="form-control" name="symbol" value="NIFTY" required></div><div class="col-md-3"><label class="form-label">Trade date</label><input type="date" class="form-control" name="trade_date" required></div><div class="col-md-3"><label class="form-label">Expiry</label><input type="date" class="form-control" name="expiry_date" required></div><div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100">Load stored chain</button></div></form><div id="deriv-chain-output"><div class="empty-state py-4"><i class="bi bi-diagram-3"></i><p>Select a stored trade date and expiry.</p></div></div></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-options"><div class="card"><div class="card-body"><form class="row g-2 mb-3" hx-get="/market-data/derivatives/options/analytics/cards" hx-target="#deriv-options-output"><div class="col-md-3"><label class="form-label">Underlying</label><input class="form-control" name="symbol" value="NIFTY" required></div><div class="col-md-3"><label class="form-label">Trade date</label><input type="date" class="form-control" name="trade_date" required></div><div class="col-md-3"><label class="form-label">Expiry</label><input type="date" class="form-control" name="expiry_date" required></div><div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100">Load options analytics</button></div></form><div id="deriv-options-output"><div class="empty-state py-4"><i class="bi bi-bar-chart"></i><p>Load a stored session to view PCR, max pain, OI walls, and expiry analytics.</p></div></div></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-futures"><div class="card"><div class="card-body"><form class="row g-2 mb-3" hx-get="/market-data/derivatives/futures/analytics/table" hx-target="#deriv-futures-output"><div class="col-md-4"><label class="form-label">Underlying</label><input class="form-control" name="symbol" value="NIFTY" required></div><div class="col-md-4"><label class="form-label">Trade date</label><input type="date" class="form-control" name="trade_date" required></div><div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary w-100">Load futures analytics</button></div></form><div id="deriv-futures-output"><div class="empty-state py-4"><i class="bi bi-activity"></i><p>Select a stored session for basis, OI buildup, and rollover analytics.</p></div></div></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-participants"><div class="card"><div class="card-body"><form class="row g-2 mb-3" hx-get="/market-data/derivatives/participants/cards" hx-target="#deriv-participants-output"><div class="col-md-4"><label class="form-label">Report date</label><input type="date" class="form-control" name="report_date" required></div><div class="col-md-4"><label class="form-label">Dataset</label><select class="form-select" name="dataset_type"><option value="OPEN_INTEREST">Open interest</option><option value="TRADING_VOLUME">Trading volume</option></select></div><div class="col-md-4 d-flex align-items-end"><button class="btn btn-primary w-100">Load positioning</button></div></form><div id="deriv-participants-output"><div class="empty-state py-4"><i class="bi bi-people"></i><p>Select an imported participant report date.</p></div></div></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-replay"><div class="card"><div class="card-body"><form class="row g-2 mb-3" hx-get="/market-data/derivatives/replay/cards" hx-target="#deriv-replay-output"><div class="col-md-3"><label class="form-label">Underlying</label><input class="form-control" name="symbol" value="NIFTY" required></div><div class="col-md-3"><label class="form-label">Trade date</label><input type="date" class="form-control" name="trade_date" required></div><div class="col-md-3"><label class="form-label">As-of date</label><input type="date" class="form-control" name="as_of_date"></div><div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100">Reconstruct state</button></div></form><div id="deriv-replay-output"><div class="empty-state py-4"><i class="bi bi-clock-history"></i><p>Choose a trade date to reconstruct a point-in-time state.</p></div></div></div></div></section>
+
+    <section class="tab-pane fade" id="deriv-advanced"><div class="card"><div class="card-header"><h2 class="section-card-title"><i class="bi bi-bezier2"></i>Advanced options &amp; exposure</h2></div><div class="card-body"><p class="small text-muted">These existing research engines require a stored symbol, trade date, and where applicable an expiry. Results are analytical estimates and may return an explicit unavailable or no-trade state.</p><form class="row g-2 mb-3" hx-get="/market-data/derivatives/advanced-options/tab" hx-target="#deriv-advanced-output"><div class="col-md-3"><label class="form-label">Underlying</label><input class="form-control" name="symbol" value="NIFTY" required></div><div class="col-md-3"><label class="form-label">Trade date</label><input type="date" class="form-control" name="trade_date" required></div><div class="col-md-3"><label class="form-label">Expiry</label><input type="date" class="form-control" name="expiry_date" required></div><div class="col-md-3 d-flex align-items-end"><button class="btn btn-primary w-100">Load advanced options</button></div></form><div id="deriv-advanced-output"><div class="empty-state py-4"><i class="bi bi-bezier2"></i><p>Select persisted inputs to load IV, Greeks, and volatility structure.</p></div></div></div></div></section>
+</div>
+{% endblock %}

@@ -4,6 +4,10 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.data.product_provenance import (
+    NON_PRODUCTION_AI_PROVIDERS,
+    SYNTHETIC_FIXTURE_SYMBOLS,
+)
 from app.models.ai_explanation import AIExplanation
 from app.models.stock import Stock
 
@@ -59,35 +63,61 @@ class AIExplanationRepository:
         await self.session.flush()
         return explanation
 
-    async def list_recent(self, limit: int = 10) -> list[AIExplanation]:
+    @staticmethod
+    def _product_filters():
+        return (
+            Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+            AIExplanation.provider.not_in(NON_PRODUCTION_AI_PROVIDERS),
+        )
+
+    async def list_recent(
+        self, limit: int = 10, *, product_only: bool = False
+    ) -> list[AIExplanation]:
         statement = (
             select(AIExplanation)
             .options(selectinload(AIExplanation.stock))
             .order_by(AIExplanation.created_at.desc())
-            .limit(limit)
         )
+        if product_only:
+            statement = statement.join(Stock).where(*self._product_filters())
+        statement = statement.limit(limit)
         return list(await self.session.scalars(statement))
 
-    async def highest_confidence(self, limit: int = 10) -> list[AIExplanation]:
+    async def highest_confidence(
+        self, limit: int = 10, *, product_only: bool = False
+    ) -> list[AIExplanation]:
         statement = (
             select(AIExplanation)
             .options(selectinload(AIExplanation.stock))
             .where(AIExplanation.confidence.isnot(None))
             .order_by(AIExplanation.confidence.desc(), AIExplanation.created_at.desc())
-            .limit(limit)
         )
+        if product_only:
+            statement = statement.join(Stock).where(*self._product_filters())
+        statement = statement.limit(limit)
         return list(await self.session.scalars(statement))
 
-    async def count_for_trade_date(self, trade_date: date) -> int:
-        return await self.session.scalar(
-            select(func.count(AIExplanation.id)).where(AIExplanation.trade_date == trade_date)
-        ) or 0
+    async def count_for_trade_date(
+        self, trade_date: date, *, product_only: bool = False
+    ) -> int:
+        statement = select(func.count(AIExplanation.id)).where(
+            AIExplanation.trade_date == trade_date
+        )
+        if product_only:
+            statement = statement.join(Stock).where(*self._product_filters())
+        return await self.session.scalar(statement) or 0
 
-    async def latest_trade_date(self) -> date | None:
-        return await self.session.scalar(select(func.max(AIExplanation.trade_date)))
+    async def latest_trade_date(self, *, product_only: bool = False) -> date | None:
+        statement = select(func.max(AIExplanation.trade_date))
+        if product_only:
+            statement = statement.join(Stock).where(*self._product_filters())
+        return await self.session.scalar(statement)
 
-    async def count_total(self) -> int:
-        return await self.session.scalar(select(func.count(AIExplanation.id))) or 0
+    async def count_total(self, *, product_only: bool = False) -> int:
+        statement = select(func.count(AIExplanation.id))
+        if product_only:
+            statement = statement.join(Stock).where(*self._product_filters())
+        return await self.session.scalar(statement) or 0
 
     async def list_stock_explanations(self, symbol: str, limit: int = 10) -> list[AIExplanation]:
         statement = (

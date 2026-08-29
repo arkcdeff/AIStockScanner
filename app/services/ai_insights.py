@@ -2,6 +2,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.ai.provider import get_provider
 from app.core.config import settings
+from app.data.product_provenance import NON_PRODUCTION_AI_PROVIDERS
 from app.repositories.ai_explanation import AIExplanationRepository
 from app.services.dashboard import DashboardService
 
@@ -21,15 +22,22 @@ class AIInsightsService:
             model = None
 
         pipeline = await self.dashboard.get_pipeline_status()
-        latest_trade_date = await self.ai_repo.latest_trade_date()
+        latest_trade_date = await self.ai_repo.latest_trade_date(product_only=True)
+        product_enabled = bool(
+            settings.ai_enabled
+            and provider
+            and provider.name not in NON_PRODUCTION_AI_PROVIDERS
+        )
         return {
-            "enabled": settings.ai_enabled,
-            "provider": provider.name if provider else "unavailable",
-            "model": model,
-            "explanations_total": await self.ai_repo.count_total(),
+            "enabled": product_enabled,
+            "provider": provider.name if product_enabled else "unavailable",
+            "model": model if product_enabled else None,
+            "explanations_total": await self.ai_repo.count_total(product_only=True),
             "explanations_latest_date": latest_trade_date,
             "explanations_for_latest_date": (
-                await self.ai_repo.count_for_trade_date(latest_trade_date)
+                await self.ai_repo.count_for_trade_date(
+                    latest_trade_date, product_only=True
+                )
                 if latest_trade_date
                 else 0
             ),
@@ -40,7 +48,7 @@ class AIInsightsService:
         return await self.dashboard.get_top_rated(limit=limit)
 
     async def get_highest_confidence(self, limit: int = 5) -> list[dict[str, object]]:
-        rows = await self.ai_repo.highest_confidence(limit=limit)
+        rows = await self.ai_repo.highest_confidence(limit=limit, product_only=True)
         return [
             {
                 "id": row.id,
@@ -56,7 +64,7 @@ class AIInsightsService:
         ]
 
     async def get_recent_explanations(self, limit: int = 5) -> list[dict[str, object]]:
-        rows = await self.ai_repo.list_recent(limit=limit)
+        rows = await self.ai_repo.list_recent(limit=limit, product_only=True)
         return [
             {
                 "id": row.id,

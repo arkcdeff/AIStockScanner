@@ -5,6 +5,10 @@
 **Current mode:** Documentation only  
 **Implementation authorization:** Not granted by this report
 
+> Implementation update (2026-08-24): the approved Productization Stage 1 subset has now been
+> implemented and browser-tested. This document remains the original multi-phase plan; completion
+> of Stage 1 does not authorize or mark later phases complete. See `05_Development/Sprint_20.md`.
+
 ## 1. Delivery Strategy
 
 Implement UI/UX 2.0 as incremental, testable slices. Reuse existing services, APIs, templates and partials. Do not change deterministic analytics, scores, data models or migrations merely to reorganize presentation.

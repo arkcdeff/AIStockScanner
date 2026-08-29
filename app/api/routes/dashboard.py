@@ -9,10 +9,9 @@ from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.ai_insights import AIInsightsService
 from app.services.dashboard import DashboardService
+from app.services.market_data_service import MarketDataService
 
-router = APIRouter(
-    dependencies=[Depends(require_browser_permission("dashboard.read"))]
-)
+router = APIRouter(dependencies=[Depends(require_browser_permission("dashboard.read"))])
 env = Environment(
     loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
     autoescape=select_autoescape(("html", "htm", "xml")),
@@ -37,7 +36,7 @@ async def root_redirect(
             "request": request,
             "browser_user": browser_user,
             "csrf_token": csrf_token,
-            "body_theme": "light",
+            "body_theme": "dark",
             "summary": {
                 "total_stocks": 0,
                 "total_indicators": 0,
@@ -109,6 +108,15 @@ async def root_redirect(
                 "daily_summary": None,
                 "alert_delivery_scheduler_enabled": False,
             },
+            "readiness": {
+                "latest_trade_date": None,
+                "latest_price_count": 0,
+                "latest_delivery_count": 0,
+                "latest_indicator_count": 0,
+                "stocks_with_history": 0,
+                "max_sessions": 0,
+                "readiness": {"20": 0, "50": 0, "100": 0, "200": 0},
+            },
         },
     )
     return finalize_page_response(request, HTMLResponse(content=html))
@@ -133,6 +141,7 @@ async def dashboard(
     watchlist_summary = await service.get_watchlist_summary()
     alert_summary = await service.get_alert_summary()
     notification_summary = await service.get_notification_summary()
+    readiness = await MarketDataService(session).scanner_readiness()
 
     ai_service = AIInsightsService(session)
     ai_status = await ai_service.get_ai_status()
@@ -155,13 +164,14 @@ async def dashboard(
             "watchlist_summary": watchlist_summary,
             "alert_summary": alert_summary,
             "notification_summary": notification_summary,
+            "readiness": readiness,
             "ai_status": ai_status,
             "ai_opportunities": ai_opportunities,
             "ai_highest_confidence": ai_highest_confidence,
             "ai_recent": ai_recent,
             "browser_user": browser_user,
             "csrf_token": csrf_token,
-            "body_theme": "light",
+            "body_theme": "dark",
         },
     )
     return finalize_page_response(request, HTMLResponse(content=html))

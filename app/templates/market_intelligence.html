@@ -17,6 +17,15 @@
 </div>
 
 <div id="mi-content">
+    {% if not composite.data_completeness_percent %}
+    <div class="state-panel state-panel-warning mb-3" role="status">
+        <i class="bi bi-exclamation-triangle text-warning"></i>
+        <div>
+            <div class="state-panel-title">Market intelligence not ready</div>
+            <div class="state-panel-copy">0% required factor coverage. Price action, breadth, sectors, institutional flow, volatility, global markets, GIFT Nifty, currency, crude, and macro inputs are missing. Scores and directional conclusions remain unavailable.</div>
+        </div>
+    </div>
+    {% endif %}
     {% include "market_intelligence/components/hero.html" %}
 
     <div class="row g-3 mb-4">

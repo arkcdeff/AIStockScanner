@@ -3,6 +3,7 @@
 {% block body %}
 <!-- Sidebar (desktop) -->
 <aside class="app-sidebar" id="appSidebar">
+    {% set sidebar_instance = 'desktop' %}
     {% include "components/sidebar.html" %}
 </aside>
 
@@ -15,6 +16,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
     <div class="offcanvas-body p-0">
+        {% set sidebar_instance = 'mobile' %}
         {% include "components/sidebar.html" %}
     </div>
 </div>

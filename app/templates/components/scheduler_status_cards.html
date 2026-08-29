@@ -4,7 +4,9 @@
         <div class="card"><div class="card-body">
             <div class="text-muted small">Scheduler</div>
             <div>
-                {% if status.running %}
+                {% if not status.enabled %}
+                    <span class="badge bg-warning text-dark">Disabled by configuration</span>
+                {% elif status.running %}
                     <span class="badge bg-success">Running</span>
                 {% else %}
                     <span class="badge bg-secondary">Stopped</span>

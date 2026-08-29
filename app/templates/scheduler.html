@@ -10,6 +10,13 @@
     </div>
 </div>
 
+{% if status and not status.enabled %}
+<div class="state-panel state-panel-warning mb-3" role="status">
+    <i class="bi bi-pause-circle text-warning"></i>
+    <div><div class="state-panel-title">Automatic scheduling disabled</div><div class="state-panel-copy">The application scheduler is disabled by environment configuration for this local-development runtime. No background job was started. Manual actions remain available to authorized users.</div></div>
+</div>
+{% endif %}
+
 {% include "components/flash.html" %}
 
 <div class="row g-3 mb-4">

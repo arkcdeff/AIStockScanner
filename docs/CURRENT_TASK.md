@@ -1,5 +1,34 @@
 # CURRENT TASK STATE
 
+## Authoritative Current Task - Productization Stage 1 Checkpoint
+
+- **Task**: Stage 1 + 1R + 1R-R1 Productization & Browser Certification
+- **Phase**: Stage 1/1R/1R-R1 complete and verified; Stage 2 pending authorization
+- **Status**: `STAGE 1 / 1R / 1R-R1 COMPLETE & VERIFIED — CHECKPOINT PUSHED 2026-08-29`
+- **Started**: 2026-08-24 → Checkpoint 2026-08-29
+- **Checkpoint branch**: `checkpoint/sprint19-20-20260822`
+- **Checkpoint commit**: `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new 2026-08-29
+- **Version**: `0.14.0`
+- **Alembic head**: `g7h8i9j0k1l2`
+- **Verification**: 1,352 tests collected and passed sequentially (26m32s); Ruff clean; application import
+  OK; Alembic current/head/check clean; authenticated browser matrix PASS; test-hang lifecycle fix verified.
+- **Scope**: centralized synthetic-fixture provenance, product-only UI queries, missing-vs-zero
+  states, scanner identity and per-rule readiness, import no-data status, truthful analytics and
+  market-intelligence states, pipeline/scheduler diagnostics, active navigation, and wide desktop
+  content use.
+- **Guardrails**: reuse existing services and deterministic outputs; no new financial formulas,
+  models, migrations, broker/OpenAlgo/live trading, real-time data, or future-stage features.
+- **Product-data result**: all eight known fixture symbols remain stored for development/tests but
+  are absent from normal product discovery and aggregate UI. The product universe is 2,779 masters,
+  2,778 with prices, latest equity date 2026-08-06, maximum 45 sessions, and no 50-session scanner
+  baseline. Product sector mappings are currently unavailable.
+- **Next action**: user product re-review. Do not start Stage 2 until explicit acceptance.
+- **Supersession**: earlier references to Task 16.3 or Sprint 19.2 as the immediate next task are
+  stale. Sprint 20.0 remains complete historical design/audit work; this task implements its
+  approved Stage 1 subset.
+
+---
+
 ## Sprint 20.0 UI/UX 2.0 Audit
 
 - **Task**: Feature Inventory, Information Architecture, Page Specifications, and Implementation Plan

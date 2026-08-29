@@ -11,6 +11,7 @@ from app.db.session import get_db_session
 from app.models.daily_price import DailyPrice
 from app.models.technical_analysis import TechnicalAnalysis
 from app.services.analytics_engine import AnalyticsEngine
+from app.services.market_data_service import MarketDataService
 
 
 def _render(template_name: str, context: dict) -> str:
@@ -73,6 +74,7 @@ async def analytics_page(
     top_rated = await _list_items(session, await engine.top_rated(limit=10))
     trending = await _list_items(session, await engine.trending(limit=10))
     breakouts = await _list_items(session, await engine.breakouts(limit=10))
+    readiness = await MarketDataService(session).scanner_readiness()
     html = _render(
         "analytics.html",
         {
@@ -80,6 +82,8 @@ async def analytics_page(
             "top_rated": top_rated,
             "trending": trending,
             "breakouts": breakouts,
+            "readiness": readiness,
+            "analytics_available": bool(top_rated or trending or breakouts),
         },
     )
     return HTMLResponse(content=html)

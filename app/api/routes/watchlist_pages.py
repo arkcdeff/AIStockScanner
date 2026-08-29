@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.authorization import require_browser_permission
 from app.core.config import settings
+from app.data.product_provenance import is_product_symbol
 from app.db.session import get_db_session
 from app.services.watchlist import WatchlistError, WatchlistService
 
@@ -44,6 +45,14 @@ async def watchlists_page(
     if target is not None:
         detail = await service.get(target)
     valued = await service.list_stocks(target) if target is not None else []
+    watchlist_counts = {
+        watchlist.id: sum(
+            1
+            for entry in watchlist.stocks
+            if is_product_symbol(entry.stock.symbol)
+        )
+        for watchlist in watchlists
+    }
     html = _render(
         "watchlists.html",
         {
@@ -51,6 +60,7 @@ async def watchlists_page(
             "watchlists": watchlists,
             "selected_watchlist": detail,
             "stocks": valued,
+            "watchlist_counts": watchlist_counts,
         },
     )
     return HTMLResponse(content=html)

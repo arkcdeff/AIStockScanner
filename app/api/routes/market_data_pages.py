@@ -30,9 +30,7 @@ def _flash_url(**params: str | int) -> str:
     return "/market-data?" + "&".join(parts) if parts else "/market-data"
 
 
-router = APIRouter(
-    dependencies=[Depends(require_browser_permission("stocks.read"))]
-)
+router = APIRouter(dependencies=[Depends(require_browser_permission("stocks.read"))])
 WRITE_DEPENDENCIES = [Depends(require_browser_permission("market_data.write"))]
 
 
@@ -48,9 +46,9 @@ async def market_data_page(
 ) -> HTMLResponse:
     repo = MarketDataRepository(session)
     service = MarketDataService(session)
-    summary = await repo.summary()
+    summary = await repo.product_summary()
     imports = await repo.list_imports(limit=15)
-    prices = await repo.list_prices(limit=10)
+    prices = await repo.list_prices(limit=10, product_only=True)
     status = await service.data_status()
     readiness = await service.scanner_readiness()
 
@@ -93,6 +91,25 @@ async def market_data_page(
         },
     )
     return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives", response_class=HTMLResponse)
+async def derivatives_workspace_page(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Full-page wrapper for the existing deterministic derivatives research services."""
+    from app.services.derivative_coverage_service import DerivativeCoverageService
+
+    coverage = await DerivativeCoverageService(session).get_derivatives_coverage()
+    html = _render(
+        "derivatives.html",
+        {
+            "request": request,
+            "coverage": coverage,
+        },
+    )
+    return HTMLResponse(content=html)
 
 
 @router.post(
@@ -253,9 +270,7 @@ async def backfill_market_data(
         start_date = date.fromisoformat(str(form.get("start_date", "")))
         end_date = date.fromisoformat(str(form.get("end_date", "")))
     except ValueError as exc:
-        raise HTTPException(
-            status_code=422, detail="Invalid backfill date range"
-        ) from exc
+        raise HTTPException(status_code=422, detail="Invalid backfill date range") from exc
     from app.services.nse_historical import MAX_RANGE_DAYS
 
     if start_date > end_date:
@@ -340,7 +355,7 @@ async def market_prices_partial(
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     repo = MarketDataRepository(session)
-    prices = await repo.list_prices(symbol=symbol, limit=limit)
+    prices = await repo.list_prices(symbol=symbol, limit=limit, product_only=True)
     rows = [
         {
             "symbol": stock.symbol,
@@ -602,7 +617,9 @@ async def fundamentals_cards_partial(
             statement_basis=statement_basis,
         )
     except ValueError as exc:
-        return HTMLResponse(content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404)
+        return HTMLResponse(
+            content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404
+        )
 
     html = _render(
         "components/fundamentals_cards.html",
@@ -628,9 +645,13 @@ async def news_cards_partial(
     eval_dt = datetime.combine(as_of_date or date.today(), datetime.min.time(), tzinfo=UTC)
     service = NewsPolicyService(session)
     try:
-        snapshot = await service.get_company_news_policy_snapshot(symbol=symbol, evaluation_datetime=eval_dt)
+        snapshot = await service.get_company_news_policy_snapshot(
+            symbol=symbol, evaluation_datetime=eval_dt
+        )
     except ValueError as exc:
-        return HTMLResponse(content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404)
+        return HTMLResponse(
+            content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404
+        )
 
     html = _render(
         "components/news_cards.html",
@@ -660,7 +681,9 @@ async def stock360_cards_partial(
             as_of_date=as_of_date,
         )
     except ValueError as exc:
-        return HTMLResponse(content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404)
+        return HTMLResponse(
+            content=f"<div class='p-4 text-rose-400'>Error: {exc}</div>", status_code=404
+        )
 
     html = _render(
         "components/stock360_cards.html",
@@ -732,7 +755,9 @@ async def advanced_options_tab_partial(
     term_structure = []
 
     try:
-        enriched_rows = await adv_service.get_enriched_option_chain(symbol, t_date, target_exp, as_of)
+        enriched_rows = await adv_service.get_enriched_option_chain(
+            symbol, t_date, target_exp, as_of
+        )
         expected_move = await adv_service.get_expected_move(symbol, t_date, target_exp, as_of)
         skew = await adv_service.get_iv_skew(symbol, t_date, target_exp, as_of)
         term_structure = await adv_service.get_iv_term_structure(symbol, t_date, as_of)

@@ -37,6 +37,11 @@
                 <td class="text-end">{{ run.scanner_matches }}</td>
                 <td class="text-end">{{ run.analytics_calculated }}</td>
             </tr>
+            {% if run.status == 'failed' %}
+            <tr class="table-danger">
+                <td colspan="9" class="small"><strong>{{ run.failed_stage or run.current_stage or 'Unknown stage' }}:</strong> {{ run.error_message or 'No stored failure reason.' }}</td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </tbody>
     </table>

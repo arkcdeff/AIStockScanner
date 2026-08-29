@@ -3,21 +3,15 @@
 {% block page_title %}Scanner Results{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <div>
-        <h1>Scanner Results</h1>
-        <p class="page-subtitle">Latest scanner results with filtering and export</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="/scanner-run" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>Run Scanner</a>
-    </div>
-</div>
+<div class="page-header"><div><div class="workspace-eyebrow">Persisted discovery output</div><h1 class="workspace-title">Scanner Results</h1><p class="workspace-subtitle">Filter real stored matches; this page does not run or recalculate scanners.</p></div><a href="/scanner-run" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>Run Scanner</a></div>
 
-<div class="card">
-    <div class="card-body">
-        <div id="scanner-results-area">
-            {% include "components/scanner_results_table.html" %}
-        </div>
-    </div>
-</div>
+<div class="card mb-3"><div class="card-body">
+    <form class="row g-2" hx-get="/scanner-results/table" hx-target="#scanner-results-area" hx-swap="innerHTML">
+        <div class="col-md-4"><label class="form-label">Search</label><input class="form-control form-control-sm" name="search" placeholder="Symbol, company, or scanner"></div>
+        <div class="col-md-3"><label class="form-label">Scanner</label><select class="form-select form-select-sm" name="scanner"><option value="">All scanners</option>{% for code,name in options.scanners.items() %}<option value="{{ code }}">{{ name }}</option>{% endfor %}</select></div>
+        <div class="col-md-3"><label class="form-label">Sector</label><select class="form-select form-select-sm" name="sector"><option value="">All sectors</option>{% for sector in options.sectors %}<option value="{{ sector }}">{{ sector }}</option>{% endfor %}</select></div>
+        <div class="col-md-2 d-flex align-items-end"><button class="btn btn-sm btn-primary w-100" type="submit">Apply filters</button></div>
+    </form>
+</div></div>
+<div id="scanner-results-area" aria-live="polite">{% include "components/scanner_results_table.html" %}</div>
 {% endblock %}

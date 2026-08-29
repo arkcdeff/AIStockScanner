@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS, is_product_symbol
 from app.models.alert import AlertEvent, AlertRule
 from app.models.eod_pipeline_run import EODPipelineRun
 from app.models.import_job import ImportJob
@@ -29,12 +30,24 @@ class DashboardService:
         self.scan_result_repo = ScanResultRepository(session)
 
     async def get_summary(self) -> dict[str, object]:
-        stock_count = await self.session.scalar(select(func.count()).select_from(Stock))
-        indicator_count = await self.session.scalar(
-            select(func.count()).select_from(IndicatorResult)
+        stock_count = await self.session.scalar(
+            select(func.count()).select_from(Stock).where(
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
+            )
         )
-        scan_result_count = await self.session.scalar(select(func.count()).select_from(ScanResult))
-        summary = await self.market_repo.summary()
+        indicator_count = await self.session.scalar(
+            select(func.count())
+            .select_from(IndicatorResult)
+            .join(Stock, IndicatorResult.stock_id == Stock.id)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+        )
+        scan_result_count = await self.session.scalar(
+            select(func.count())
+            .select_from(ScanResult)
+            .join(Stock, ScanResult.stock_id == Stock.id)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+        )
+        summary = await self.market_repo.product_summary()
 
         latest_import = await self.session.scalar(
             select(ImportJob).order_by(ImportJob.started_at.desc()).limit(1)
@@ -73,7 +86,12 @@ class DashboardService:
             await self.session.execute(
                 select(ScanDefinition.code, func.count(ScanResult.id))
                 .outerjoin(ScanResult, ScanResult.scan_definition_id == ScanDefinition.id)
+                .outerjoin(Stock, ScanResult.stock_id == Stock.id)
                 .where(ScanDefinition.is_active.is_(True))
+                .where(
+                    (ScanResult.id.is_(None))
+                    | (Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+                )
                 .group_by(ScanDefinition.code)
             )
         ).all()
@@ -84,6 +102,8 @@ class DashboardService:
             await self.session.execute(
                 select(ScanDefinition.category, func.count(ScanResult.id))
                 .join(ScanResult, ScanResult.scan_definition_id == ScanDefinition.id)
+                .join(Stock, ScanResult.stock_id == Stock.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .group_by(ScanDefinition.category)
             )
         ).all()
@@ -92,6 +112,7 @@ class DashboardService:
     async def search_stocks(self, query: str, limit: int = 20) -> list[Stock]:
         statement = (
             select(Stock)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
             .where((Stock.symbol.ilike(f"%{query}%")) | (Stock.company_name.ilike(f"%{query}%")))
             .limit(limit)
         )
@@ -104,7 +125,11 @@ class DashboardService:
         except Exception:
             db_status = "unhealthy"
 
-        stock_count = await self.session.scalar(select(func.count()).select_from(Stock))
+        stock_count = await self.session.scalar(
+            select(func.count()).select_from(Stock).where(
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
+            )
+        )
         return {
             "database": db_status,
             "total_stocks": stock_count or 0,
@@ -125,6 +150,7 @@ class DashboardService:
                     TechnicalAnalysis.is_breakout,
                 )
                 .join(Stock, TechnicalAnalysis.stock_id == Stock.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(TechnicalAnalysis.overall_score.desc())
                 .limit(limit)
             )
@@ -148,13 +174,20 @@ class DashboardService:
 
     async def get_watchlist_summary(self) -> dict[str, object]:
         watchlists = await WatchlistService(self.session).list()
-        total_stocks = sum(len(w.stocks) for w in watchlists)
+        total_stocks = sum(
+            sum(1 for entry in w.stocks if is_product_symbol(entry.stock.symbol))
+            for w in watchlists
+        )
         top = next((w for w in watchlists if w.is_default), watchlists[0] if watchlists else None)
         return {
             "total_watchlists": len(watchlists),
             "total_watchlist_stocks": total_stocks,
             "top_watchlist": top.name if top else None,
-            "top_watchlist_count": len(top.stocks) if top else 0,
+            "top_watchlist_count": (
+                sum(1 for entry in top.stocks if is_product_symbol(entry.stock.symbol))
+                if top
+                else 0
+            ),
         }
 
     async def get_alert_summary(self) -> dict[str, object]:
@@ -169,13 +202,21 @@ class DashboardService:
             await self.session.scalars(
                 select(AlertEvent)
                 .options(joinedload(AlertEvent.stock))
+                .join(Stock, AlertEvent.stock_id == Stock.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(AlertEvent.created_at.desc())
                 .limit(5)
             )
         ).all()
         pending_count = (
             await self.session.scalar(
-                select(func.count()).select_from(AlertEvent).where(AlertEvent.status == "triggered")
+                select(func.count())
+                .select_from(AlertEvent)
+                .join(Stock, AlertEvent.stock_id == Stock.id)
+                .where(
+                    AlertEvent.status == "triggered",
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                )
             )
             or 0
         )

@@ -5,6 +5,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS, is_product_symbol
 from app.models.daily_price import DailyPrice
 from app.models.stock import Stock
 from app.models.watchlist import Watchlist, WatchlistStock
@@ -82,6 +83,8 @@ class WatchlistService:
         stock = await self.session.get(Stock, stock_id)
         if stock is None:
             raise WatchlistError(f"Stock {stock_id} not found")
+        if not is_product_symbol(stock.symbol):
+            raise WatchlistError("Stock is not available in the product universe")
         existing = await self.stock_repo.get_entry(watchlist_id, stock_id)
         if existing is not None:
             raise WatchlistError("Stock already in watchlist")
@@ -124,6 +127,7 @@ class WatchlistService:
 
     async def list_stocks(self, watchlist_id: int) -> list[dict[str, Any]]:
         entries = await self.stock_repo.list_for_watchlist(watchlist_id)
+        entries = [entry for entry in entries if is_product_symbol(entry.stock.symbol)]
         if not entries:
             return []
         stock_ids = [entry.stock_id for entry in entries]
@@ -151,7 +155,8 @@ class WatchlistService:
         statement = (
             select(Stock)
             .where(
-                (Stock.symbol.ilike(f"%{query}%")) | (Stock.company_name.ilike(f"%{query}%"))
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                (Stock.symbol.ilike(f"%{query}%")) | (Stock.company_name.ilike(f"%{query}%")),
             )
             .limit(limit)
         )

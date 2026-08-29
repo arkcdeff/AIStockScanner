@@ -1,5 +1,37 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
+## Active Handoff - Productization Stage 1 Checkpoint 2026-08-29
+
+- **Status**: `STAGE 1 / 1R / 1R-R1 COMPLETE & VERIFIED — CHECKPOINT AUTHORIZED`
+- **Started**: 2026-08-24 → Checkpoint 2026-08-29
+- **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`, commit
+  `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new commit 2026-08-29
+- **Version / schema**: `0.14.0` / Alembic `g7h8i9j0k1l2`
+- **Verification**: 1,352 tests passed sequentially (26m32s); Ruff clean; import OK; Alembic
+  `g7h8i9j0k1l2` is current/head with no pending migration operations; real browser PASS; test-hang fixed via shared truncate engine
+- **Current phase**: Stage 1/1R/1R-R1 browser + automated certification PASS; Stage 2 pending authorization
+- **Direction**: implement the approved Stage 1 subset from the Sprint 20.0 design artifacts.
+  Task 16.3 and Sprint 19.2 are not the current task. Broker/OpenAlgo/live and real-time work
+  remain deferred.
+- **Data-reality contract**: centralized fixture policy excludes `REPRO1`, `ANLX1`, `ANALYTX`,
+  `APIT1`, `RESL1`, `RESL2`, `BENCH1`, and `MMVERIFY` from normal product UI without deleting DB
+  rows. Missing indicators render as not calculated, zero-row successful imports render as NO DATA,
+  and scanner matches show the scanner name/code.
+- **Implemented surfaces**: permission-aware shell, compact decision dashboard, full-page data
+  health, real-price stock explorer, Stock360-style detail header, repaired scanner journey, and
+  a persisted-EOD derivatives workbench using the existing analytics services.
+- **Browser certification**: authenticated real-database checks passed for dashboard, stocks,
+  data operations/health, scanner library/run/results, analytics, market intelligence, pipeline,
+  scheduler, indicators, AI, alerts, watchlists, notifications, and backtests. Tested pages had one
+  desktop active navigation item, fixture-free product output, and no 500 response after repairing
+  dashboard watchlist eager loading and pipeline failure-row scope.
+- **Known data gaps**: latest indicators trail latest equity data (2026-08-04 vs 2026-08-06),
+  maximum history is 45 sessions, product sector mappings are absent, scheduler is disabled by
+  configuration, and stored pipeline runs show the real upstream NSE 403 failure.
+- **Next action**: wait for explicit Stage 1R product acceptance. Do not start Stage 2.
+
+---
+
 ## Sprint 20.0 UI/UX 2.0 Handoff
 
 - **Status**: `COMPLETE - AUDIT, DESIGN, AND DOCUMENTATION ONLY`

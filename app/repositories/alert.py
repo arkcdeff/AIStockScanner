@@ -4,6 +4,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.alert import AlertEvent, AlertRule
 from app.models.stock import Stock
 from app.repositories.base import BaseRepository
@@ -61,7 +62,12 @@ class AlertEventRepository(BaseRepository[AlertEvent]):
         return await self.session.scalar(statement)
 
     async def list_recent(
-        self, *, offset: int = 0, limit: int = 50, status: str | None = None
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        status: str | None = None,
+        product_only: bool = False,
     ) -> list[AlertEvent]:
         statement = (
             select(AlertEvent)
@@ -70,6 +76,10 @@ class AlertEventRepository(BaseRepository[AlertEvent]):
         )
         if status:
             statement = statement.where(AlertEvent.status == status)
+        if product_only:
+            statement = statement.join(Stock, AlertEvent.stock_id == Stock.id).where(
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
+            )
         statement = statement.offset(offset).limit(limit)
         return list(await self.session.scalars(statement))
 
@@ -83,11 +93,14 @@ class AlertEventRepository(BaseRepository[AlertEvent]):
         )
         return list(await self.session.scalars(statement))
 
-    async def count_by_status(self, status: str) -> int:
-        return (
-            await self.session.scalar(
-                select(func.count()).select_from(AlertEvent).where(AlertEvent.status == status)
+    async def count_by_status(self, status: str, *, product_only: bool = False) -> int:
+        statement = select(func.count()).select_from(AlertEvent).where(AlertEvent.status == status)
+        if product_only:
+            statement = statement.join(Stock, AlertEvent.stock_id == Stock.id).where(
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
             )
+        return (
+            await self.session.scalar(statement)
             or 0
         )
 

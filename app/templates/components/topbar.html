@@ -9,6 +9,13 @@
     <div class="topbar-breadcrumb">
         <span class="topbar-page-title" id="pageTitle">{% block page_title %}{% endblock %}</span>
     </div>
+    <div class="topbar-search d-none d-md-block">
+        <i class="bi bi-search" aria-hidden="true"></i>
+        <input type="search" aria-label="Search stocks" placeholder="Search symbol or company"
+               hx-get="/dashboard/search" hx-trigger="keyup changed delay:350ms"
+               hx-target="#global-search-results" name="q" autocomplete="off">
+        <div id="global-search-results" class="topbar-search-results"></div>
+    </div>
 </div>
 <div class="topbar-right">
     <div class="topbar-status d-none d-md-flex" id="dataFreshness">

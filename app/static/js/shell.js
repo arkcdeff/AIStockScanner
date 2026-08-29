@@ -43,7 +43,7 @@
 
     /* ---- Theme ---- */
     function getTheme() {
-        return localStorage.getItem(THEME_KEY) || 'system';
+        return localStorage.getItem(THEME_KEY) || 'dark';
     }
 
     function setTheme(theme) {
@@ -86,6 +86,14 @@
     /* ---- HTMX re-init ---- */
     document.body.addEventListener('htmx:afterSwap', function () {
         initTooltips();
+    });
+
+    document.body.addEventListener('htmx:responseError', function (event) {
+        var target = event.detail && event.detail.target;
+        if (!target) return;
+        target.innerHTML = '<div class="state-panel state-panel-danger" role="alert">' +
+            '<i class="bi bi-exclamation-octagon"></i><div><div class="state-panel-title">Unable to load this section</div>' +
+            '<div class="state-panel-copy">The request failed. Check the selected inputs and try again.</div></div></div>';
     });
 
     /* ---- Init ---- */

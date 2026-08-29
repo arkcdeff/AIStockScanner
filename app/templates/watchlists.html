@@ -30,7 +30,7 @@
             <div class="card-body py-2 px-3">
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="fw-semibold" style="color:{{ wl.color }};">{{ wl.name }}</span>
-                    <span class="badge bg-secondary">{{ wl.stocks|length if wl.stocks else 0 }}</span>
+                    <span class="badge bg-secondary">{{ watchlist_counts.get(wl.id, 0) }}</span>
                 </div>
             </div>
         </a>

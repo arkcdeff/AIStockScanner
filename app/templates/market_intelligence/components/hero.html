@@ -5,7 +5,7 @@
                 <small class="text-muted text-uppercase">Market Regime</small>
                 <h2 class="mb-0 mt-1">
                     <span class="badge {{ composite.regime | mi_regime_class }} fs-6">
-                        {{ (composite.regime or 'unknown') | mi_label }}
+                        {{ ((composite.regime or 'unknown') | mi_label) if composite.data_completeness_percent else 'Not ready' }}
                     </span>
                 </h2>
             </div>
@@ -16,7 +16,7 @@
             <div class="card-body text-center">
                 <small class="text-muted text-uppercase">Composite Score</small>
                 <h2 class="mb-0 mt-1 {{ (composite.composite_score or 0) | mi_sign_class }}">
-                    {{ composite.composite_score | mi_score }}
+                    {{ (composite.composite_score | mi_score) if composite.data_completeness_percent else '—' }}
                 </h2>
             </div>
         </div>
@@ -25,8 +25,8 @@
         <div class="card border-0 shadow-sm">
             <div class="card-body text-center">
                 <small class="text-muted text-uppercase">Confidence</small>
-                <h2 class="mb-0 mt-1">{{ composite.confidence_score | mi_pct }}</h2>
-                <small class="text-muted">{{ composite.confidence_state | mi_label }}</small>
+                <h2 class="mb-0 mt-1">{{ (composite.confidence_score | mi_pct) if composite.data_completeness_percent else '—' }}</h2>
+                <small class="text-muted">{{ (composite.confidence_state | mi_label) if composite.data_completeness_percent else 'Insufficient factors' }}</small>
             </div>
         </div>
     </div>

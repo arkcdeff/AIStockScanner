@@ -1,34 +1,35 @@
 {% if stocks %}
 <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Symbol</th>
-                <th>Company</th>
-                <th>Exchange</th>
-                <th>Industry</th>
-                <th>Status</th>
-            </tr>
-        </thead>
+    <table class="table table-sm table-hover table-financial align-middle mb-0">
+        <thead><tr><th>Symbol</th><th>Company</th><th>Sector</th><th class="numeric">Latest</th><th class="numeric">Previous</th><th class="numeric">Change</th><th class="numeric">Change %</th><th>Trade date</th><th>History readiness</th></tr></thead>
         <tbody>
-            {% for s in stocks %}
+        {% for stock in stocks %}
             <tr>
-                <td><a href="/stocks/{{ s.symbol }}" class="text-decoration-none fw-semibold">{{ s.symbol }}</a></td>
-                <td class="text-truncate" style="max-width: 260px;">{{ s.company_name }}</td>
-                <td>{{ s.exchange }}</td>
-                <td>{{ s.industry or '—' }}</td>
+                <td><a href="/stocks/{{ stock.symbol }}" class="fw-semibold text-decoration-none">{{ stock.symbol }}</a></td>
+                <td class="company-cell" title="{{ stock.company_name }}">{{ stock.company_name }}</td>
+                <td>{{ stock.sector or stock.industry or 'Unclassified' }}</td>
+                <td class="numeric">{{ '%.2f'|format(stock.latest_close) if stock.latest_close is not none else '—' }}</td>
+                <td class="numeric">{{ '%.2f'|format(stock.previous_close) if stock.previous_close is not none else '—' }}</td>
+                <td class="numeric {{ 'text-success' if stock.change and stock.change > 0 else 'text-danger' if stock.change and stock.change < 0 else '' }}">{{ '%+.2f'|format(stock.change) if stock.change is not none else '—' }}</td>
+                <td class="numeric {{ 'text-success' if stock.change_pct and stock.change_pct > 0 else 'text-danger' if stock.change_pct and stock.change_pct < 0 else '' }}">{{ '%+.2f%%'|format(stock.change_pct) if stock.change_pct is not none else '—' }}</td>
+                <td>{{ stock.latest_trade_date or 'No data' }}</td>
                 <td>
-                    {% if s.is_active %}
-                        <span class="badge bg-success">Active</span>
-                    {% else %}
-                        <span class="badge bg-secondary">Inactive</span>
-                    {% endif %}
+                    {% if stock.history_state == 'ready' %}<span class="status-chip status-chip-success">Ready · {{ stock.history_sessions }}</span>
+                    {% elif stock.history_state == 'limited' %}<span class="status-chip status-chip-warning">Limited · {{ stock.history_sessions }}/50</span>
+                    {% else %}<span class="status-chip">No stored prices</span>{% endif %}
                 </td>
             </tr>
-            {% endfor %}
+        {% endfor %}
         </tbody>
     </table>
 </div>
+<div class="card-footer d-flex flex-wrap justify-content-between align-items-center gap-2">
+    <span class="text-muted small">{{ explorer.total }} stocks · page {{ explorer.page }} of {{ explorer.pages }}</span>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Stock pages">
+        {% if explorer.page > 1 %}<button class="btn btn-outline-secondary" hx-get="/stocks/table?q={{ query|urlencode }}&readiness={{ readiness_filter }}&page={{ explorer.page - 1 }}&page_size={{ explorer.page_size }}" hx-target="#stocks-table">Previous</button>{% endif %}
+        {% if explorer.page < explorer.pages %}<button class="btn btn-outline-secondary" hx-get="/stocks/table?q={{ query|urlencode }}&readiness={{ readiness_filter }}&page={{ explorer.page + 1 }}&page_size={{ explorer.page_size }}" hx-target="#stocks-table">Next</button>{% endif %}
+    </div>
+</div>
 {% else %}
-<div class="text-muted small">No stocks found.{% if query %} Try a different search term.{% endif %}</div>
+<div class="empty-state"><i class="bi bi-search"></i><p>No stocks match these filters.</p><small>Change the search or readiness filter.</small></div>
 {% endif %}

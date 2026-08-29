@@ -9,14 +9,18 @@ from app.core.config import settings
 from app.db.session import get_db_session
 from app.services.scanner_workspace import ScannerWorkspaceService
 
-router = APIRouter(
-    dependencies=[Depends(require_browser_permission("scanners.read"))]
-)
+router = APIRouter(dependencies=[Depends(require_browser_permission("scanners.read"))])
 
 
 @router.get("/", response_class=HTMLResponse)
-async def scanner_results_page(request: Request) -> HTMLResponse:
-    return HTMLResponse(content=_render_empty(request))
+async def scanner_results_page(
+    request: Request,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    service = ScannerWorkspaceService(session)
+    data = await service.get_results(page=1, page_size=25)
+    options = await service.get_filter_options()
+    return HTMLResponse(content=_render_page(request, data, options))
 
 
 @router.get("/table", response_class=HTMLResponse)
@@ -206,7 +210,7 @@ async def export_pdf(
     )
 
 
-def _render_empty(request: Request) -> str:
+def _render_page(request: Request, data: dict, options: dict) -> str:
     from jinja2 import Environment, FileSystemLoader
 
     env = Environment(loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")))
@@ -215,13 +219,13 @@ def _render_empty(request: Request) -> str:
     template = env.get_template("scanner_results.html")
     return template.render(
         request=request,
-        results=[],
-        total=0,
-        page=1,
-        page_size=25,
-        pages=0,
+        results=data.get("results", []),
+        total=data.get("total", 0),
+        page=data.get("page", 1),
+        page_size=data.get("page_size", 25),
+        pages=data.get("pages", 0),
         filters={},
-        options={"sectors": [], "scanners": {}, "dates": []},
+        options=options,
     )
 
 

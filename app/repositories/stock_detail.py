@@ -33,6 +33,18 @@ class StockDetailRepository:
         )
         return await self.session.scalar(statement)
 
+    async def get_history_summary(self, stock_id: int) -> dict[str, Any]:
+        row = (
+            await self.session.execute(
+                select(
+                    func.count(DailyPrice.id),
+                    func.min(DailyPrice.trade_date),
+                    func.max(DailyPrice.trade_date),
+                ).where(DailyPrice.stock_id == stock_id)
+            )
+        ).one()
+        return {"sessions": int(row[0] or 0), "first_date": row[1], "latest_date": row[2]}
+
     async def get_20d_averages(self, stock_id: int, latest_date: date) -> dict[str, float | None]:
         start_date = latest_date - timedelta(days=180)
         statement = (

@@ -4,37 +4,43 @@
 
 {% block content %}
 <div class="page-header">
-    <div>
-        <h1>Scanner Library</h1>
-        <p class="page-subtitle">Available scanners grouped by category</p>
-    </div>
-    <div class="d-flex gap-2">
-        <a href="/scanner-run" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>Run Scanner</a>
-        <a href="/scanner-results" class="btn btn-sm btn-outline-primary">Results</a>
-    </div>
+    <div><div class="workspace-eyebrow">Deterministic discovery</div><h1 class="workspace-title">Scanner Library</h1><p class="workspace-subtitle">Choose a rule, confirm data readiness, run it, then review persisted results.</p></div>
+    <div class="d-flex gap-2"><a href="/scanner-run" class="btn btn-sm btn-primary"><i class="bi bi-play-fill me-1"></i>Run workspace</a><a href="/scanner-results/" class="btn btn-sm btn-outline-primary">Results</a></div>
 </div>
 
+<div class="metric-strip mb-3">
+    <div class="metric-strip-item"><div class="metric-strip-label">Active scanners</div><div class="metric-strip-value">{{ total_scanners }}</div><div class="metric-strip-detail">Stored definitions</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">Latest price universe</div><div class="metric-strip-value">{{ readiness.latest_price_count }}</div><div class="metric-strip-detail">{{ readiness.latest_trade_date or 'No trade date' }}</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">Indicators available</div><div class="metric-strip-value">{{ readiness.latest_indicator_count }}</div><div class="metric-strip-detail">Latest stored date</div></div>
+    <div class="metric-strip-item"><div class="metric-strip-label">Maximum history</div><div class="metric-strip-value">{{ readiness.max_sessions }}</div><div class="metric-strip-detail">sessions per stock</div></div>
+</div>
+
+{% if readiness.latest_indicator_count == 0 %}
+<div class="state-panel state-panel-warning mb-3"><i class="bi bi-exclamation-triangle text-warning"></i><div><div class="state-panel-title">Scanner execution is not ready</div><div class="state-panel-copy">No indicator rows exist for the latest price date. Load history and calculate indicators before interpreting an empty result.</div></div></div>
+{% elif readiness.readiness['50'] == 0 %}
+<div class="state-panel state-panel-warning mb-3"><i class="bi bi-hourglass-split text-warning"></i><div><div class="state-panel-title">Partial scanner universe</div><div class="state-panel-copy">{{ readiness.latest_indicator_count }} stocks have indicators, but none has 50 stored price sessions. Short-lookback rules may run; longer-history rules are not ready.</div></div></div>
+{% endif %}
+
 <div id="scanner-library-content">
-    {% for category, scanners in scanners_by_category.items() %}
-    <div class="section-title mt-3"><i class="bi bi-folder2"></i> {{ category }}</div>
+{% for category, scanners in scanners_by_category.items() %}
+    <div class="section-title mt-3"><i class="bi bi-folder2"></i>{{ category }}</div>
     <div class="row g-3 mb-3">
-        {% for scanner in scanners %}
-        <div class="col-md-4 col-lg-3">
-            <div class="card h-100">
-                <div class="card-body">
-                    <h6 class="card-title">{{ scanner.name }}</h6>
-                    <p class="card-text small text-muted">{{ scanner.description or 'No description' }}</p>
-                    <a href="/scanner-run?scanner={{ scanner.code }}" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-play me-1"></i>Run
-                    </a>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-    </div>
+    {% for scanner in scanners %}
+        {% set requirement = scanner_requirements[scanner.code] %}
+        <div class="col-md-6 col-xl-4"><div class="card h-100"><div class="card-body d-flex flex-column">
+            <div class="d-flex justify-content-between gap-2"><h2 class="h6 mb-1">{{ scanner.name }}</h2><span class="status-chip {{ 'text-success' if requirement.state == 'READY' else 'text-warning' }}">{{ requirement.state }}</span></div>
+            <p class="small text-muted flex-grow-1">{{ scanner.description or 'Rule definition is available; no descriptive text is stored.' }}</p>
+            <dl class="row small mb-2">
+                <dt class="col-6 text-muted">Required sessions</dt><dd class="col-6 text-end mb-1">{{ requirement.required_sessions }}</dd>
+                <dt class="col-6 text-muted">Available maximum</dt><dd class="col-6 text-end mb-1">{{ readiness.max_sessions }}</dd>
+                <dt class="col-6 text-muted">Eligible now</dt><dd class="col-6 text-end mb-1">{{ requirement.eligible_count }}</dd>
+            </dl>
+            <div class="small text-muted mb-2" title="Existing deterministic inputs">Inputs: {{ requirement.indicator_inputs }}</div>
+            <a href="/scanner-run?scan_code={{ scanner.code }}" class="btn btn-sm btn-outline-primary align-self-start"><i class="bi bi-play me-1"></i>Configure run</a>
+        </div></div></div>
     {% endfor %}
-    {% if not scanners_by_category %}
-    <div class="empty-state"><i class="bi bi-search"></i><p>No scanners defined yet.</p></div>
-    {% endif %}
+    </div>
+{% endfor %}
+{% if not scanners_by_category %}<div class="empty-state"><i class="bi bi-search"></i><p>No active scanner definitions.</p></div>{% endif %}
 </div>
 {% endblock %}

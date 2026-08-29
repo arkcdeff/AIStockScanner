@@ -112,15 +112,27 @@ class AlertService:
     # ----------------------------------------------------------- event reads
 
     async def list_recent_events(
-        self, *, offset: int = 0, limit: int = 50, status: str | None = None
+        self,
+        *,
+        offset: int = 0,
+        limit: int = 50,
+        status: str | None = None,
+        product_only: bool = False,
     ) -> list[AlertEvent]:
-        return await self.event_repo.list_recent(offset=offset, limit=limit, status=status)
+        return await self.event_repo.list_recent(
+            offset=offset,
+            limit=limit,
+            status=status,
+            product_only=product_only,
+        )
 
     async def list_events_for_symbol(self, symbol: str, limit: int = 20) -> list[AlertEvent]:
         return await self.event_repo.list_for_symbol(symbol, limit=limit)
 
-    async def count_pending(self) -> int:
-        return await self.event_repo.count_by_status(EVENT_STATUS_TRIGGERED)
+    async def count_pending(self, *, product_only: bool = False) -> int:
+        return await self.event_repo.count_by_status(
+            EVENT_STATUS_TRIGGERED, product_only=product_only
+        )
 
     async def update_event_status(self, event_id: int, status: str) -> AlertEvent | None:
         event = await self.event_repo.get_with_details(event_id)

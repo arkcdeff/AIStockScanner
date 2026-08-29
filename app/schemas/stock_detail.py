@@ -26,6 +26,8 @@ class StockOverviewResponse(BaseModel):
     delivery_quantity: int | None
     delivery_percentage: float | None
     avg_delivery_20d: float | None
+    history_sessions: int = 0
+    history_first_date: date | None = None
 
     model_config = ConfigDict(from_attributes=True)
 

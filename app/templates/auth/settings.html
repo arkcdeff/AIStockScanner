@@ -6,11 +6,8 @@
 <div class="page-header"><div><h1>Settings</h1><p class="page-subtitle">Preferences and theme</p></div></div>
 
 <div class="row g-3">
-    <div class="col-lg-6">
-        <div class="card">
-            <div class="card-header"><i class="bi bi-sliders me-1"></i> Preferences</div>
-            <div class="card-body">{% include "auth/components/settings_form.html" %}</div>
-        </div>
+    <div class="col-lg-6" id="settings-form">
+        {% include "auth/components/settings_form.html" %}
     </div>
 </div>
 {% endblock %}

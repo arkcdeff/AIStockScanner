@@ -5,6 +5,11 @@
 **Mode:** Audit, design, and documentation only  
 **Production code changed:** No
 
+> Post-inventory update (2026-08-24): Productization Stage 1 has implemented the shared shell,
+> dashboard, Data Health, stock explorer/detail, scanner journey, and historical Derivatives
+> Workbench findings from this baseline. The table below remains the pre-implementation inventory;
+> see `05_Development/Sprint_20.md` for verified current status.
+
 ## 1. Purpose
 
 This report maps the implemented product surface before UI/UX 2.0 work begins. It distinguishes backend capability, public API, browser route, template coverage, navigation exposure, and remaining productization work.

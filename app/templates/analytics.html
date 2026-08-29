@@ -10,6 +10,21 @@
     </div>
 </div>
 
+{% if not analytics_available %}
+<div class="state-panel state-panel-warning mb-3" role="status">
+    <i class="bi bi-exclamation-triangle text-warning"></i>
+    <div>
+        <div class="state-panel-title">Analytics not ready</div>
+        <div class="state-panel-copy">Latest stored equity date: {{ readiness.latest_trade_date or 'unavailable' }}. Indicator rows on that date: {{ readiness.latest_indicator_count }}. Calculate indicators for the stored price universe, then run the analytics pipeline.</div>
+    </div>
+</div>
+{% else %}
+<div class="state-panel mb-3" role="status">
+    <i class="bi bi-database-check text-info"></i>
+    <div><div class="state-panel-title">Persisted analytics available</div><div class="state-panel-copy">These rows are stored deterministic outputs. Empty tabs mean no persisted match, not a calculation run.</div></div>
+</div>
+{% endif %}
+
 <ul class="nav nav-tabs mb-3">
     <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#top-rated">Top Rated</a></li>
     <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#trending">Trending</a></li>
@@ -19,10 +34,10 @@
 <div class="tab-content">
     <div class="tab-pane fade show active" id="top-rated">
         <div class="card"><div class="card-body">
-            <div id="analytics-table">{% include "components/analytics_table.html" %}</div>
+            <div id="analytics-table">{% set items = top_rated %}{% include "components/analytics_table.html" %}</div>
         </div></div>
     </div>
-    <div class="tab-pane fade" id="trending"><div class="card"><div class="card-body"><p class="text-muted">Trending stocks loaded via tab.</p></div></div></div>
-    <div class="tab-pane fade" id="breakouts"><div class="card"><div class="card-body"><p class="text-muted">Breakout stocks loaded via tab.</p></div></div></div>
+    <div class="tab-pane fade" id="trending"><div class="card"><div class="card-body">{% set items = trending %}{% include "components/analytics_table.html" %}</div></div></div>
+    <div class="tab-pane fade" id="breakouts"><div class="card"><div class="card-body">{% set items = breakouts %}{% include "components/analytics_table.html" %}</div></div></div>
 </div>
 {% endblock %}

@@ -5,6 +5,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.market_intelligence.breadth_universe import (
     BreadthUniverse,
     universe_eligible_stock,
@@ -34,7 +35,10 @@ class BreadthRepository(BaseRepository[Stock]):
         """
         statement = (
             select(Stock)
-            .where(*universe_sql_filters(universe))
+            .where(
+                *universe_sql_filters(universe),
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+            )
             .order_by(Stock.symbol)
         )
         result = await self.session.scalars(statement)

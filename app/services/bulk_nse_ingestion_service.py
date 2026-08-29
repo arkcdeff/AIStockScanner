@@ -27,6 +27,7 @@ from sqlalchemy import or_, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.daily_price import DailyPrice
 from app.models.derivative_contract import DerivativeContract
 from app.models.derivative_daily_price import DerivativeDailyPrice
@@ -34,7 +35,7 @@ from app.models.market_index import MarketIndex
 from app.models.stock import Stock
 
 INDEX_CODES = {"NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "SENSEX", "NIFTY50", "NIFTY_50"}
-SYNTHETIC_FIXTURES = {"REPRO1", "ANLX1", "ANALYTX", "APIT1", "RESL1", "RESL2", "BENCH1", "MMVERIFY"}
+SYNTHETIC_FIXTURES = SYNTHETIC_FIXTURE_SYMBOLS
 
 
 @dataclass

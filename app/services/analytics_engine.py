@@ -9,6 +9,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.stock import Stock
@@ -63,7 +64,13 @@ class AnalyticsEngine:
         return await self._compute_and_upsert(stock.id, list(prices), list(indicators))
 
     async def calculate_all(self, batch_size: int = 50) -> dict[str, int]:
-        symbols = (await self.session.scalars(select(Stock.symbol))).all()
+        symbols = (
+            await self.session.scalars(
+                select(Stock.symbol).where(
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
+                )
+            )
+        ).all()
         total_calculated = 0
         total_skipped = 0
 
@@ -95,6 +102,8 @@ class AnalyticsEngine:
             await self.session.scalars(
                 select(TechnicalAnalysis)
                 .options(selectinload(TechnicalAnalysis.stock))
+                .join(Stock, TechnicalAnalysis.stock_id == Stock.id)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(TechnicalAnalysis.overall_score.desc())
                 .limit(limit)
             )
@@ -106,7 +115,9 @@ class AnalyticsEngine:
             await self.session.scalars(
                 select(TechnicalAnalysis)
                 .options(selectinload(TechnicalAnalysis.stock))
+                .join(Stock, TechnicalAnalysis.stock_id == Stock.id)
                 .where(TechnicalAnalysis.is_trending.is_(True))
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(TechnicalAnalysis.overall_score.desc())
                 .limit(limit)
             )
@@ -118,7 +129,9 @@ class AnalyticsEngine:
             await self.session.scalars(
                 select(TechnicalAnalysis)
                 .options(selectinload(TechnicalAnalysis.stock))
+                .join(Stock, TechnicalAnalysis.stock_id == Stock.id)
                 .where(TechnicalAnalysis.is_breakout.is_(True))
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(TechnicalAnalysis.overall_score.desc())
                 .limit(limit)
             )

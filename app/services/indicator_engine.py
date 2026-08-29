@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.indicator_result import IndicatorResult
 from app.models.stock import Stock
 
@@ -64,7 +65,13 @@ class IndicatorEngine:
         return results
 
     async def calculate_all(self, batch_size: int = 50) -> dict[str, int]:
-        symbols = (await self.session.scalars(__import__("sqlalchemy").select(Stock.symbol))).all()
+        symbols = (
+            await self.session.scalars(
+                __import__("sqlalchemy")
+                .select(Stock.symbol)
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+            )
+        ).all()
         total_calculated = 0
         total_skipped = 0
 

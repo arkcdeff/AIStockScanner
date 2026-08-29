@@ -9,6 +9,7 @@ from loguru import logger
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
 from app.models.daily_price import DailyPrice
 from app.models.indicator_result import IndicatorResult
 from app.models.scan_result import ScanResult
@@ -703,6 +704,7 @@ class ScanRunner:
                 & (DailyPrice.trade_date == IndicatorResult.trade_date),
             )
             .where(IndicatorResult.trade_date == today)
+            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
         )
         rows = (await self.session.execute(statement)).fetchall()
 
@@ -722,6 +724,7 @@ class ScanRunner:
                     (DailyPrice.stock_id == IndicatorResult.stock_id)
                     & (DailyPrice.trade_date == IndicatorResult.trade_date),
                 )
+                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
                 .order_by(IndicatorResult.trade_date.desc())
                 .limit(500)
             )

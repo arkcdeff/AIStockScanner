@@ -380,7 +380,7 @@ async def explanation_partial(
     return _partial(
         request,
         "market_intelligence/components/ai_explanation.html",
-        {"request": request, "explanation": explanation},
+        {"request": request, "explanation": explanation, "composite": result},
     )
 
 

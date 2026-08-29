@@ -4,6 +4,10 @@
 **Date:** 2026-08-22  
 **Scope:** Target product structure and navigation design; no implementation
 
+> Implementation update (2026-08-24): the Productization Stage 1 navigation subset is now active
+> in the shared permission-aware shell. Later-stage target-map entries remain design guidance, not
+> claims of completed product surfaces.
+
 ## 1. Design Principles
 
 1. Organize by user intent, not by service or migration history.
