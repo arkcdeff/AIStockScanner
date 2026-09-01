@@ -15,7 +15,7 @@ echo                  AIStockScanner
 echo ============================================================
 echo Project: AIStockScanner
 echo Database: PostgreSQL / ai_stock_scanner
-echo URL: http://127.0.0.1:8005
+echo URL: http://127.0.0.1:8004
 echo ============================================================
 echo.
 
@@ -98,16 +98,16 @@ exit /b 1
 echo.
 echo Starting AIStockScanner...
 echo.
-echo Browser will open automatically at http://127.0.0.1:8005
+echo Browser will open automatically at http://127.0.0.1:8004
 echo Press CTRL+C to stop the application.
 echo ============================================================
 
 REM ------------------------------------------------------------------
 REM 5. Launch server and auto-open browser after short delay
 REM ------------------------------------------------------------------
-start "" cmd /c "timeout /t 4 /nobreak >nul && start "" http://127.0.0.1:8005"
+start "" cmd /c "timeout /t 4 /nobreak >nul && start "" http://127.0.0.1:8004"
 
-uv run uvicorn app.main:app --host 127.0.0.1 --port 8005
+uv run uvicorn app.main:app --host 127.0.0.1 --port 8004
 
 REM ------------------------------------------------------------------
 REM 6. If we reach here, server stopped (Ctrl+C or error)

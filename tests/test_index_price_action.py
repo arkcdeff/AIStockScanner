@@ -420,8 +420,8 @@ async def test_price_action_score_missing_data_returns_none_not_zero():
         result = await engine.price_action_score()
         breakdown = result["score_breakdown"]
         # Momentum and 52-week position are None when no data.
-        assert breakdown["momentum"] is None
-        assert breakdown["fifty_two_week_position"] is None
+        assert breakdown.get("momentum") is None
+        assert breakdown.get("fifty_two_week_position") is None
 
 
 # ---------------------------------------------------------------------------

@@ -120,9 +120,9 @@ class IndicatorEngine:
         df["atr"] = self._extract_series(df.ta.atr(length=14))
         bb = df.ta.bbands(length=20, std=2)
         if bb is not None and not bb.empty:
-            df["bollinger_upper"] = self._extract_series(bb.iloc[:, 0])
+            df["bollinger_lower"] = self._extract_series(bb.iloc[:, 0])
             df["bollinger_middle"] = self._extract_series(bb.iloc[:, 1])
-            df["bollinger_lower"] = self._extract_series(bb.iloc[:, 2])
+            df["bollinger_upper"] = self._extract_series(bb.iloc[:, 2])
         else:
             df["bollinger_upper"] = None
             df["bollinger_middle"] = None

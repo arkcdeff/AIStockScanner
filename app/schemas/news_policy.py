@@ -120,7 +120,7 @@ class MarketNewsPolicySnapshot:
     sebi_regulatory_events: list[NewsEventRead] = Field(default_factory=list)
     government_policy_events: list[NewsEventRead] = Field(default_factory=list)
     upcoming_market_risks: list[UpcomingEventRiskRead] = Field(default_factory=list)
-    overall_sentiment_context: str = "NEUTRAL"
+    overall_sentiment_context: str = "UNKNOWN"
     quality_warnings: list[str] = Field(default_factory=list)
 
 

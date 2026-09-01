@@ -192,16 +192,17 @@ def _cleanup_truncate_engine():
 
 
 @pytest.fixture(autouse=True)
-def _clean_test_db():
-    """Fast per-test cleanup: truncate all tables using shared engine."""
-    engine = _get_truncate_engine()
-    with engine.connect() as conn:
-        conn.execute(text(f"TRUNCATE TABLE {_TABLES_TO_TRUNCATE} RESTART IDENTITY CASCADE"))
-        conn.commit()
+async def _clean_test_db():
+    """Fast per-test cleanup: truncate all tables using async engine."""
+    from app.db.session import get_session_factory
+    factory = get_session_factory()
+    async with factory() as session:
+        await session.execute(text(f"TRUNCATE TABLE {_TABLES_TO_TRUNCATE} RESTART IDENTITY CASCADE"))
+        await session.commit()
 
 
 @pytest.fixture(autouse=True)
-async def _seed_scan_definitions():
+async def _seed_scan_definitions(_clean_test_db):
     """Per-test seed of scan definitions after truncate."""
 
     from app.db.session import get_session_factory

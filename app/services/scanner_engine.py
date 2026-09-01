@@ -686,8 +686,8 @@ class ScanRunner:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def _fetch_indicator_rows(self) -> list[tuple[IndicatorRow, IndicatorRow | None]]:
-        today = datetime.now(UTC).date()
+    async def _fetch_indicator_rows(self, evaluation_date: date | None = None) -> list[tuple[IndicatorRow, IndicatorRow | None]]:
+        today = evaluation_date or datetime.now(UTC).date()
         statement = (
             select(
                 IndicatorResult,
@@ -851,13 +851,13 @@ class ScanRunner:
                 output.append((current, previous))
         return output
 
-    async def run_scanner(self, scan_code: str) -> list[ScanResultDTO]:
+    async def run_scanner(self, scan_code: str, evaluation_date: date | None = None) -> list[ScanResultDTO]:
         scanner_func = ScannerRegistry.get(scan_code)
         if scanner_func is None:
             raise ValueError(f"Unknown scanner: {scan_code}")
 
-        scan_date = datetime.now(UTC).date()
-        rows = await self._fetch_indicator_rows()
+        scan_date = evaluation_date or datetime.now(UTC).date()
+        rows = await self._fetch_indicator_rows(scan_date)
         results: list[ScanResultDTO] = []
 
         for current, previous in rows:
@@ -878,15 +878,15 @@ class ScanRunner:
 
         return results
 
-    async def run_all(self) -> dict[str, list[ScanResultDTO]]:
+    async def run_all(self, evaluation_date: date | None = None) -> dict[str, list[ScanResultDTO]]:
         scan_defs = await ScanDefinitionRepository(self.session).list_active()
         output: dict[str, list[ScanResultDTO]] = {}
         for scan_def in scan_defs:
             scanner_func = ScannerRegistry.get(scan_def.code)
             if scanner_func is None:
                 continue
-            scan_date = datetime.now(UTC).date()
-            rows = await self._fetch_indicator_rows()
+            scan_date = evaluation_date or datetime.now(UTC).date()
+            rows = await self._fetch_indicator_rows(scan_date)
             results: list[ScanResultDTO] = []
             for current, previous in rows:
                 try:
@@ -914,14 +914,14 @@ class ScannerService:
         self.session = session
         self.runner = ScanRunner(session)
 
-    async def run_scanner(self, scan_code: str) -> list[ScanResultDTO]:
+    async def run_scanner(self, scan_code: str, evaluation_date: date | None = None) -> list[ScanResultDTO]:
         scan_def = await ScanDefinitionRepository(self.session).get_by_code(scan_code)
         if scan_def is None:
             raise ValueError(f"Scan definition not found: {scan_code}")
-        return await self.runner.run_scanner(scan_code)
+        return await self.runner.run_scanner(scan_code, evaluation_date)
 
-    async def run_all(self) -> dict[str, list[ScanResultDTO]]:
-        return await self.runner.run_all()
+    async def run_all(self, evaluation_date: date | None = None) -> dict[str, list[ScanResultDTO]]:
+        return await self.runner.run_all(evaluation_date)
 
     async def persist_results(self, results: dict[str, list[ScanResultDTO]]) -> None:
         from sqlalchemy.dialects.postgresql import insert as pg_insert

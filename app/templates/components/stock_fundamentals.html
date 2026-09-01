@@ -1,0 +1,315 @@
+<div class="card mb-4" id="stock360-fundamentals">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-journal-text me-2"></i>Fundamentals Overview
+        </h5>
+        {% if fundamentals and fundamentals.available %}
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-secondary-subtle text-secondary border">
+                {{ fundamentals.statement_basis }}
+            </span>
+            {% if fundamentals.latest_period_end %}
+            <span class="badge bg-info-subtle text-info border">
+                {{ fundamentals.latest_period_type or "PERIOD" }}: {{ fundamentals.latest_period_end }}
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if fundamentals and fundamentals.available %}
+            <!-- Freshness & Scope Alert -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center p-2 mb-3 bg-light rounded border small">
+                <div class="text-muted">
+                    <i class="bi bi-calendar-check me-1"></i>
+                    <strong>Latest Financial Period:</strong> {{ fundamentals.latest_period_end }}
+                    {% if fundamentals.reported_at %}
+                    <span class="ms-2 text-secondary">(Disclosed: {{ fundamentals.reported_at }})</span>
+                    {% endif %}
+                </div>
+                <div class="text-muted">
+                    <i class="bi bi-clock-history me-1"></i>
+                    <strong>Market Reference:</strong> {{ overview.latest_trade_date or "—" }}
+                </div>
+            </div>
+
+            <!-- Key Financial Facts Grid -->
+            <div class="row g-3 mb-4">
+                <!-- Net Sales / Revenue -->
+                <div class="col-6 col-md-3">
+                    <div class="p-3 border rounded bg-light-subtle h-100">
+                        <div class="text-muted small">Revenue / Net Sales</div>
+                        <div class="fs-5 fw-bold font-monospace mt-1">
+                            {% if fundamentals.revenue is not none %}
+                            ₹ {{ "{:,.2f}".format(fundamentals.revenue) }} Cr
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </div>
+                        <div class="small mt-1">
+                            {% if fundamentals.revenue_growth_yoy is not none %}
+                                <span class="{% if fundamentals.revenue_growth_yoy > 0 %}text-success{% elif fundamentals.revenue_growth_yoy < 0 %}text-danger{% else %}text-muted{% endif %} fw-semibold">
+                                    {{ "{:+.1f}".format(fundamentals.revenue_growth_yoy) }}% YoY
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">YoY: Not enough history</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Operating Income / EBITDA -->
+                <div class="col-6 col-md-3">
+                    <div class="p-3 border rounded bg-light-subtle h-100">
+                        <div class="text-muted small">Operating Profit (EBIT)</div>
+                        <div class="fs-5 fw-bold font-monospace mt-1">
+                            {% if fundamentals.operating_income is not none %}
+                            ₹ {{ "{:,.2f}".format(fundamentals.operating_income) }} Cr
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </div>
+                        <div class="small mt-1">
+                            {% if fundamentals.operating_margin_pct is not none %}
+                                <span class="text-secondary fw-semibold">OPM: {{ "{:.1f}".format(fundamentals.operating_margin_pct) }}%</span>
+                            {% else %}
+                                <span class="text-muted">OPM: —</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profit Before Tax (PBT) -->
+                <div class="col-6 col-md-3">
+                    <div class="p-3 border rounded bg-light-subtle h-100">
+                        <div class="text-muted small">Profit Before Tax (PBT)</div>
+                        <div class="fs-5 fw-bold font-monospace mt-1">
+                            {% if fundamentals.pbt is not none %}
+                            ₹ {{ "{:,.2f}".format(fundamentals.pbt) }} Cr
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </div>
+                        <div class="small text-muted mt-1">
+                            Earnings before tax
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Net Profit (PAT) -->
+                <div class="col-6 col-md-3">
+                    <div class="p-3 border rounded bg-light-subtle h-100">
+                        <div class="text-muted small">Net Profit (PAT)</div>
+                        <div class="fs-5 fw-bold font-monospace mt-1">
+                            {% if fundamentals.pat is not none %}
+                            ₹ {{ "{:,.2f}".format(fundamentals.pat) }} Cr
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </div>
+                        <div class="small mt-1">
+                            {% if fundamentals.profit_growth_yoy is not none %}
+                                <span class="{% if fundamentals.profit_growth_yoy > 0 %}text-success{% elif fundamentals.profit_growth_yoy < 0 %}text-danger{% else %}text-muted{% endif %} fw-semibold">
+                                    {{ "{:+.1f}".format(fundamentals.profit_growth_yoy) }}% YoY
+                                </span>
+                            {% else %}
+                                <span class="text-muted small">YoY: Not enough history</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profitability & Balance Sheet Ratios -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-none border">
+                        <div class="card-header bg-light py-2">
+                            <span class="fw-semibold small"><i class="bi bi-pie-chart me-1"></i>Profitability &amp; Return Metrics</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tbody>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Return on Equity (ROE)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.roe_pct is not none %}
+                                                <strong>{{ "{:.2f}".format(fundamentals.roe_pct) }}%</strong>
+                                                {% if fundamentals.roe_descriptor == "Strong" %}
+                                                    <span class="badge bg-success-subtle text-success ms-1">Strong</span>
+                                                {% elif fundamentals.roe_descriptor == "Moderate" %}
+                                                    <span class="badge bg-warning-subtle text-warning ms-1">Moderate</span>
+                                                {% elif fundamentals.roe_descriptor == "Weak" %}
+                                                    <span class="badge bg-danger-subtle text-danger ms-1">Weak</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Return on Capital Employed (ROCE)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.roce_pct is not none %}
+                                                <strong>{{ "{:.2f}".format(fundamentals.roce_pct) }}%</strong>
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Operating Profit Margin (OPM)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.operating_margin_pct is not none %}
+                                                <strong>{{ "{:.2f}".format(fundamentals.operating_margin_pct) }}%</strong>
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted ps-3 py-2">Net Profit Margin (NPM)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.net_profit_margin_pct is not none %}
+                                                <strong>{{ "{:.2f}".format(fundamentals.net_profit_margin_pct) }}%</strong>
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-none border">
+                        <div class="card-header bg-light py-2">
+                            <span class="fw-semibold small"><i class="bi bi-shield-check me-1"></i>Balance Sheet &amp; Cash Flow Quality</span>
+                        </div>
+                        <div class="card-body p-0">
+                            <table class="table table-sm table-borderless mb-0">
+                                <tbody>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Debt to Equity (D/E)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.debt_to_equity is not none %}
+                                                <strong>{{ "{:.2f}".format(fundamentals.debt_to_equity) }}</strong>
+                                                {% if fundamentals.debt_to_equity <= 0.5 %}
+                                                    <span class="badge bg-success-subtle text-success ms-1">Low Debt</span>
+                                                {% elif fundamentals.debt_to_equity <= 1.5 %}
+                                                    <span class="badge bg-warning-subtle text-warning ms-1">Moderate</span>
+                                                {% else %}
+                                                    <span class="badge bg-danger-subtle text-danger ms-1">High Debt</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Total Debt / Total Equity</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.total_debt is not none and fundamentals.total_equity is not none %}
+                                                ₹ {{ "{:,.0f}".format(fundamentals.total_debt) }} Cr / ₹ {{ "{:,.0f}".format(fundamentals.total_equity) }} Cr
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr class="border-bottom">
+                                        <td class="text-muted ps-3 py-2">Operating Cash Flow (OCF)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.operating_cash_flow is not none %}
+                                                ₹ {{ "{:,.2f}".format(fundamentals.operating_cash_flow) }} Cr
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted ps-3 py-2">Free Cash Flow (FCF)</td>
+                                        <td class="text-end font-monospace pe-3 py-2">
+                                            {% if fundamentals.free_cash_flow is not none %}
+                                                ₹ {{ "{:,.2f}".format(fundamentals.free_cash_flow) }} Cr
+                                            {% else %}
+                                                <span class="text-muted">Not available</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Results History Table -->
+            {% if fundamentals.recent_statements %}
+            <div class="card shadow-none border">
+                <div class="card-header bg-light py-2 d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold small"><i class="bi bi-clock-history me-1"></i>Historical Financial Statements</span>
+                    <span class="badge bg-secondary-subtle text-secondary small">{{ fundamentals.recent_statements|length }} periods</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0 align-middle small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Period End</th>
+                                <th>Type</th>
+                                <th>Basis</th>
+                                <th class="text-end">Revenue (₹ Cr)</th>
+                                <th class="text-end">Operating Profit</th>
+                                <th class="text-end">PBT</th>
+                                <th class="text-end">PAT (Net Profit)</th>
+                                <th class="text-end">EPS (₹)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for stmt in fundamentals.recent_statements %}
+                            <tr>
+                                <td class="font-monospace fw-semibold">{{ stmt.period_end }}</td>
+                                <td><span class="badge bg-light text-dark border">{{ stmt.period_type }}</span></td>
+                                <td><span class="badge bg-light text-dark border">{{ stmt.statement_basis }}</span></td>
+                                <td class="text-end font-monospace">
+                                    {% if stmt.revenue is not none %}₹ {{ "{:,.2f}".format(stmt.revenue) }}{% else %}—{% endif %}
+                                </td>
+                                <td class="text-end font-monospace">
+                                    {% if stmt.operating_income is not none %}₹ {{ "{:,.2f}".format(stmt.operating_income) }}{% else %}—{% endif %}
+                                </td>
+                                <td class="text-end font-monospace">
+                                    {% if stmt.pbt is not none %}₹ {{ "{:,.2f}".format(stmt.pbt) }}{% else %}—{% endif %}
+                                </td>
+                                <td class="text-end font-monospace">
+                                    {% if stmt.pat is not none %}
+                                        <span class="{% if stmt.pat < 0 %}text-danger{% endif %}">₹ {{ "{:,.2f}".format(stmt.pat) }}</span>
+                                    {% else %}—{% endif %}
+                                </td>
+                                <td class="text-end font-monospace">
+                                    {% if stmt.eps is not none %}₹ {{ "{:.2f}".format(stmt.eps) }}{% else %}—{% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <!-- Truthful Empty State -->
+            <div class="py-5 text-center">
+                <div class="state-panel state-panel-info d-inline-flex align-items-center gap-2 mb-0" style="max-width: 540px; text-align: left;">
+                    <i class="bi bi-info-circle text-info fs-5"></i>
+                    <div>
+                        <div class="state-panel-title">No financial statements recorded</div>
+                        <div class="state-panel-copy">
+                            Quarterly income statements, balance sheets, and fundamental ratios have not yet been imported for <strong>{{ symbol }}</strong>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+</div>

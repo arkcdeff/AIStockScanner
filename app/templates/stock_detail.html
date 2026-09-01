@@ -8,7 +8,9 @@
 {% endblock %}
 
 {% block content %}
-<div class="page-header stock-hero">
+{% import "components/stock360_unavailable_section.html" as unavailable %}
+
+<div class="page-header stock-hero mb-4">
     <div>
         <div class="workspace-eyebrow">Stock360 research</div>
         <div class="d-flex align-items-baseline flex-wrap gap-2">
@@ -21,40 +23,277 @@
             {% if overview.price_change is not none %}<span class="{{ 'text-success' if overview.price_change > 0 else 'text-danger' if overview.price_change < 0 else 'text-muted' }}">{{ '%+.2f'|format(overview.price_change) }} ({{ '%+.2f'|format(overview.price_change_pct) }}%)</span>{% endif %}
         </div>
     </div>
-    <a href="/stocks" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Stock Explorer</a>
+    <div class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addToWatchlistModal"><i class="bi bi-star me-1"></i>Add to Watchlist</button>
+        <a href="/stocks" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-left me-1"></i>Stock Explorer</a>
+    </div>
 </div>
 
 {% if overview.history_sessions < 50 %}
-<div class="state-panel state-panel-warning mb-3" role="status">
+<div class="state-panel state-panel-warning mb-4" role="status">
     <i class="bi bi-hourglass-split text-warning"></i>
-    <div><div class="state-panel-title">Limited price history: {{ overview.history_sessions }} of 50 sessions</div><div class="state-panel-copy">Latest price fields are real stored EOD values. History-dependent indicators and scanner conclusions may be unavailable until more sessions are loaded.</div></div>
+    <div>
+        <div class="state-panel-title">Limited price history: {{ overview.history_sessions }} of 50 sessions</div>
+        <div class="state-panel-copy">Latest price fields are real stored EOD values. History-dependent indicators and scanner conclusions may be unavailable until more sessions are loaded.</div>
+    </div>
 </div>
 {% endif %}
 
-<ul class="nav nav-tabs stock-tabs mb-3" id="stockTabs">
-    <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#overview">Overview</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#analytics">Analytics</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#indicators">Indicators</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#scanners">Scanners</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#ai">AI explanation</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#portfolio">Portfolio</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#alerts">Alerts</a></li>
-    <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#notifications">Notifications</a></li>
-</ul>
+<!-- SECTION 0: Stock Intelligence & Decision Context (Stage 2.6.5 Phase F) -->
+{% include "components/stock_intelligence.html" %}
 
-<div class="tab-content">
-    <div class="tab-pane fade show active" id="overview">
-        <div class="row g-3">
-            <div class="col-xl-8"><div class="card" id="chart-container"><div class="card-header"><h2 class="section-card-title"><i class="bi bi-graph-up"></i>Price history</h2></div><div class="card-body p-0"><div id="stock-chart"></div></div></div></div>
-            <div class="col-xl-4"><div id="stock-overview-panel">{% include "components/stock_overview.html" %}</div></div>
+<!-- SECTION 1: Chart & Session Snapshot -->
+<div class="row g-4 mb-4">
+    <div class="col-xl-8">
+        {% include "components/price_chart.html" %}
+    </div>
+    <div class="col-xl-4">
+        <div id="stock-overview-panel">
+            {% include "components/stock_overview.html" %}
         </div>
     </div>
-    <div class="tab-pane fade" id="analytics"><div id="stock-analytics-panel">{% include "components/stock_analytics.html" %}</div></div>
-    <div class="tab-pane fade" id="indicators"><div id="stock-indicators-panel">{% include "components/indicator_cards.html" %}</div></div>
-    <div class="tab-pane fade" id="scanners"><div id="stock-scanners-panel">{% include "components/stock_scanner_matches.html" %}</div></div>
-    <div class="tab-pane fade" id="ai"><div id="stock-ai-panel">{% include "components/stock_ai.html" %}</div></div>
-    <div class="tab-pane fade" id="portfolio"><div id="stock-portfolio-panel">{% include "components/stock_portfolio_panel.html" %}</div></div>
-    <div class="tab-pane fade" id="alerts"><div id="stock-alerts-panel">{% include "components/stock_alerts_panel.html" %}</div></div>
-    <div class="tab-pane fade" id="notifications"><div id="stock-notifications-panel">{% include "components/stock_notifications_panel.html" %}</div></div>
 </div>
+
+<!-- SECTION 2: Stock360 Dashboard Grid -->
+<div class="row g-4 mb-4">
+    <div class="col-md-4">
+        {% include "components/stock360_technical_snapshot.html" %}
+    </div>
+    <div class="col-md-4">
+        {% include "components/stock360_scanner_snapshot.html" %}
+    </div>
+    <div class="col-md-4">
+        {% include "components/stock360_performance.html" %}
+    </div>
+</div>
+
+<!-- SECTION 3: Data Health -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        {% include "components/stock360_data_health.html" %}
+    </div>
+</div>
+
+<!-- SECTION 4: Deeper Technical Research -->
+<div class="accordion mb-4" id="technicalAccordion">
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingIndicators">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseIndicators" aria-expanded="false" aria-controls="collapseIndicators">
+                <i class="bi bi-calculator me-2"></i>Full Technical Indicators
+            </button>
+        </h2>
+        <div id="collapseIndicators" class="accordion-collapse collapse" aria-labelledby="headingIndicators" data-bs-parent="#technicalAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-indicators-panel">
+                    {% include "components/indicator_cards.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingAnalytics">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAnalytics" aria-expanded="false" aria-controls="collapseAnalytics">
+                <i class="bi bi-graph-up-arrow me-2"></i>Full Technical Analytics
+            </button>
+        </h2>
+        <div id="collapseAnalytics" class="accordion-collapse collapse" aria-labelledby="headingAnalytics" data-bs-parent="#technicalAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-analytics-panel">
+                    {% include "components/stock_analytics.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingScanners">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseScanners" aria-expanded="false" aria-controls="collapseScanners">
+                <i class="bi bi-search me-2"></i>Full Scanner Matches
+            </button>
+        </h2>
+        <div id="collapseScanners" class="accordion-collapse collapse" aria-labelledby="headingScanners" data-bs-parent="#technicalAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-scanners-panel">
+                    {% include "components/stock_scanner_matches.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 5: Fundamentals & Valuation (Stage 2.6.2) -->
+<div class="row g-4 mb-4">
+    <div class="col-12">
+        {% include "components/stock_fundamentals.html" %}
+    </div>
+    <div class="col-12">
+        {% include "components/stock_valuation.html" %}
+    </div>
+</div>
+
+<!-- SECTION 6: Future Research Domains (Unavailable Placeholders) -->
+<div class="row g-4 mb-4">
+    <div class="col-md-6">
+        {{ unavailable.render_unavailable("Shareholding", "bi bi-people", "Promoter details, FII/DII allocations, and pledging trends will appear here.") }}
+    </div>
+    <div class="col-md-6">
+        {{ unavailable.render_unavailable("Bulk & Block Deals", "bi bi-handbag", "Large insider and institutional trade transactions list will appear here.") }}
+    </div>
+    <div class="col-md-6">
+        {{ unavailable.render_unavailable("Peers & Competitors", "bi bi-columns-gap", "Comparative valuation table against industry peers will appear here.") }}
+    </div>
+</div>
+
+<!-- SECTION 6b: News & Government Policy Intelligence (19.1F) -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-newspaper me-2"></i>News &amp; Events
+            <span class="badge bg-secondary ms-2" style="font-size:0.7rem; vertical-align:middle;">PIT Safe</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if news_policy is not none %}
+            {% set snapshot = news_policy %}
+            {% include "components/news_cards.html" %}
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-info-circle me-2"></i>News &amp; Events — Not available
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SECTION 6c: Corporate Events Intelligence -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="bi bi-calendar-event me-2"></i>Corporate Events
+            <span class="badge bg-secondary ms-2" style="font-size:0.7rem; vertical-align:middle;">PIT Safe</span>
+        </h5>
+    </div>
+    <div class="card-body p-0">
+        {% if corporate_events is none %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-info-circle me-2"></i>Corporate events: Not available
+        </div>
+        {% elif corporate_events|length == 0 %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-check-circle me-2"></i>No recorded events
+        </div>
+        {% else %}
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Date</th>
+                        <th>Event Type</th>
+                        <th>Title</th>
+                        <th>Source</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for evt in corporate_events %}
+                    <tr>
+                        <td class="text-nowrap" style="font-family: monospace;">{{ evt.announcement_date }}</td>
+                        <td><span class="badge bg-secondary">{{ evt.event_type }}</span></td>
+                        <td>
+                            {{ evt.title }}
+                            {% if evt.url %}
+                            <a href="{{ evt.url }}" target="_blank" class="ms-1 text-decoration-none"><i class="bi bi-box-arrow-up-right" style="font-size: 0.8em;"></i></a>
+                            {% endif %}
+                        </td>
+                        <td><small class="text-muted">{{ evt.source }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- SECTION 7: AI Explanation -->
+<div id="stock-ai-panel" class="mb-4">
+    {% include "components/stock_ai.html" %}
+</div>
+
+<!-- SECTION 8: Workspace Panels (Collapsible) -->
+<div class="accordion mb-4" id="workspaceAccordion">
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingPortfolio">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePortfolio" aria-expanded="false" aria-controls="collapsePortfolio">
+                <i class="bi bi-briefcase me-2"></i>My Holdings &amp; Portfolio
+            </button>
+        </h2>
+        <div id="collapsePortfolio" class="accordion-collapse collapse" aria-labelledby="headingPortfolio" data-bs-parent="#workspaceAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-portfolio-panel">
+                    {% include "components/stock_portfolio_panel.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingAlerts">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseAlerts" aria-expanded="false" aria-controls="collapseAlerts">
+                <i class="bi bi-bell me-2"></i>Alerts &amp; Rules
+            </button>
+        </h2>
+        <div id="collapseAlerts" class="accordion-collapse collapse" aria-labelledby="headingAlerts" data-bs-parent="#workspaceAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-alerts-panel">
+                    {% include "components/stock_alerts_panel.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="accordion-item card mb-3">
+        <h2 class="accordion-header" id="headingNotifications">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNotifications" aria-expanded="false" aria-controls="collapseNotifications">
+                <i class="bi bi-chat-right-text me-2"></i>Dispatched Notifications
+            </button>
+        </h2>
+        <div id="collapseNotifications" class="accordion-collapse collapse" aria-labelledby="headingNotifications" data-bs-parent="#workspaceAccordion">
+            <div class="accordion-body p-0">
+                <div id="stock-notifications-panel">
+                    {% include "components/stock_notifications_panel.html" %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add to Watchlist -->
+<div class="modal fade" id="addToWatchlistModal" tabindex="-1" aria-labelledby="addToWatchlistModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addToWatchlistModalLabel">Add {{ symbol }} to Watchlist</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="/watchlists/add-stock" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="symbol" value="{{ symbol }}">
+                    <div class="mb-3">
+                        <label for="watchlistSelect" class="form-label">Select Watchlist</label>
+                        <select class="form-select" id="watchlistSelect" name="watchlist_id" required>
+                            {% for wl in watchlists %}
+                                <option value="{{ wl.id }}" {% if wl.contains %}disabled{% endif %}>
+                                    {{ wl.name }} {% if wl.contains %}(Already added){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Stock</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 {% endblock %}

@@ -37,6 +37,7 @@ from app.services.index_price_action import IndexPriceAction
 from app.services.institutional_intelligence import InstitutionalIntelligence
 from app.services.macro_intelligence import MacroIntelligence
 from app.services.market_breadth import MarketBreadth
+from app.services.news_policy_service import NewsPolicyService
 from app.services.sector_intelligence import SectorIntelligence
 
 router = APIRouter(
@@ -306,6 +307,16 @@ async def _build_dashboard_context(
             "freshness": "recent" if basic.get("close") else "missing",
         })
 
+    # News & Government Policy Intelligence
+    news_service = NewsPolicyService(session)
+    try:
+        news_policy = await news_service.get_market_news_policy_snapshot(
+            evaluation_datetime=now,
+            as_of_date=now.date()
+        )
+    except Exception:
+        news_policy = None
+
     return {
         "request": request,
         "browser_user": user,
@@ -321,6 +332,7 @@ async def _build_dashboard_context(
         "institutional": inst_result,
         "global": global_result,
         "indian_indices": indian_indices,
+        "news_policy": news_policy,
         "can_refresh": user_has_permission(user, "market_intelligence.refresh"),
     }
 

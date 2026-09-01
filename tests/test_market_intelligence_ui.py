@@ -177,3 +177,25 @@ async def test_no_template_traceback():
     assert "jinja2.exceptions" not in resp.text
     assert "TemplateSyntaxError" not in resp.text
     assert "UndefinedError" not in resp.text
+
+
+PAGE = "/market-intelligence"
+
+@pytest.mark.asyncio
+async def test_dashboard_contains_news_policy_section():
+    """Verify Phase D news policy section renders correctly."""
+    async with viewer_client(browser=True) as c:
+        resp = await c.get(PAGE)
+    assert resp.status_code == 200
+    assert "News &amp; Policy" in resp.text
+    assert "Coverage: Not available" in resp.text
+    assert "Company Events: No recorded events" in resp.text
+
+@pytest.mark.asyncio
+async def test_dashboard_contains_corporate_events_section():
+    """Verify Phase D corporate events section renders correctly."""
+    async with viewer_client(browser=True) as c:
+        resp = await c.get(PAGE)
+    assert resp.status_code == 200
+    assert "Corporate Events" in resp.text
+    assert "Corporate events: Not available" in resp.text

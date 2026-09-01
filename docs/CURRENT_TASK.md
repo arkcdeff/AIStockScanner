@@ -1,31 +1,30 @@
 # CURRENT TASK STATE
 
-## Authoritative Current Task - Productization Stage 1 Checkpoint
+## Authoritative Current Task — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
 
-- **Task**: Stage 1 + 1R + 1R-R1 Productization & Browser Certification
-- **Phase**: Stage 1/1R/1R-R1 complete and verified; Stage 2 pending authorization
-- **Status**: `STAGE 1 / 1R / 1R-R1 COMPLETE & VERIFIED — CHECKPOINT PUSHED 2026-08-29`
-- **Started**: 2026-08-24 → Checkpoint 2026-08-29
-- **Checkpoint branch**: `checkpoint/sprint19-20-20260822`
-- **Checkpoint commit**: `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new 2026-08-29
-- **Version**: `0.14.0`
-- **Alembic head**: `g7h8i9j0k1l2`
-- **Verification**: 1,352 tests collected and passed sequentially (26m32s); Ruff clean; application import
-  OK; Alembic current/head/check clean; authenticated browser matrix PASS; test-hang lifecycle fix verified.
-- **Scope**: centralized synthetic-fixture provenance, product-only UI queries, missing-vs-zero
-  states, scanner identity and per-rule readiness, import no-data status, truthful analytics and
-  market-intelligence states, pipeline/scheduler diagnostics, active navigation, and wide desktop
-  content use.
-- **Guardrails**: reuse existing services and deterministic outputs; no new financial formulas,
-  models, migrations, broker/OpenAlgo/live trading, real-time data, or future-stage features.
-- **Product-data result**: all eight known fixture symbols remain stored for development/tests but
-  are absent from normal product discovery and aggregate UI. The product universe is 2,779 masters,
-  2,778 with prices, latest equity date 2026-08-06, maximum 45 sessions, and no 50-session scanner
-  baseline. Product sector mappings are currently unavailable.
-- **Next action**: user product re-review. Do not start Stage 2 until explicit acceptance.
-- **Supersession**: earlier references to Task 16.3 or Sprint 19.2 as the immediate next task are
-  stale. Sprint 20.0 remains complete historical design/audit work; this task implements its
-  approved Stage 1 subset.
+- **Task**: Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
+- **Phase**: Phase F Browser Truth & Product Polish Repair Complete & Certified
+- **Status**: `STAGE 2.6.5 PHASE F BROWSER TRUTH & PRODUCT POLISH REPAIR COMPLETE & CERTIFIED — 2026-09-01`
+- **Branch**: `checkpoint/sprint19-20-20260822`
+- **Version**: `0.14.0` (preserved)
+- **Alembic head**: `478d723971bc` (no new migrations)
+- **Repairs Implemented & Certified**:
+  1. **News Missing Data Truth**: `app/templates/components/news_cards.html` now renders `&mdash;` instead of numeric zero counts when no events exist; preserves legitimate numeric zeros when actual events are evaluated.
+  2. **Event Risk Empty State**: `news_cards.html` renders `No recorded events; event-risk assessment unavailable.` when no events exist; preserves `No critical event risk flags detected across N event(s)` when real events exist without active risk flags.
+  3. **Delivery Domain Provenance & Truth**: Synthetic 34.5% delivery originating from test fixture cleared from RELIANCE rows; `delivery: UNAVAILABLE` truthfully reported with informative watch item; test fixture `_create_test_stock()` updated to not inject synthetic delivery.
+  4. **Sector Domain Semantics**: `StockIntelligenceService._collect_sector_evidence` updated so `domain_coverage["sector"]` is only `AVAILABLE` when canonical sector mapping is assigned. When `Sector: Unclassified` (even with mapped Industry), sector is truthfully `UNAVAILABLE` with an informative watch item describing the industry grouping.
+  5. **History 31 vs 45 Reconciliation**: Detailed audit established that 10 pilot stocks maintain the full 45 sessions (`2026-06-01` to `2026-08-06`), while RELIANCE has 31 sessions (`2026-07-06` to `2026-08-30`) due to shared fixture execution. Stock Intelligence, Stock Detail, Data Health, and scanner readiness strictly agree on 31 sessions with zero contradiction.
+  6. **"Test Scanner" Product Filtering**: Isolated test fixture scanner (`code="test_scanner"`, `category="Test"`); filtered out from `StockDetailRepository.get_scanner_matches` and `get_data_health`; cleaned orphan records; added provenance rules to `app/data/product_provenance.py`.
+  7. **Duplicate / Blank AI Explanation Header**: Eliminated redundant outer `<div class="card mb-4">` wrapper in `app/templates/stock_detail.html`; unified empty state in `app/templates/components/stock_ai.html` to single clean card: `AI explanation unavailable / disabled.`
+  8. **Core Methodology Preserved**: Decoupling of Completeness vs Confidence preserved; directional state logic untouched (`POSITIVE` maintained based on 4 supporting vs 2 risk factors).
+- **Verification**:
+  - Full pytest suite: 1,413 / 1,413 tests passing (100% GREEN, 0 failures, 0 errors).
+  - Targeted unit tests: 31 / 31 passing in `tests/test_stock_intelligence.py` + 17 / 17 in `tests/test_stock_detail.py`.
+  - Ruff check: clean (All checks passed).
+  - Alembic check: clean (No new upgrade operations).
+  - App import check: clean (`IMPORT OK`).
+  - Git diff check: clean (0 whitespace/syntax issues).
+- **Next action**: User review of Stage 2.6.5 Phase F Browser Truth & Product Polish Repair. Do NOT start Phase G.
 
 ---
 

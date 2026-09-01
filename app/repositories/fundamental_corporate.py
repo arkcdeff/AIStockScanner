@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from datetime import date
+from decimal import Decimal
 
 from sqlalchemy import func, select
 from sqlalchemy.dialects.postgresql import insert
@@ -224,6 +225,49 @@ class FundamentalCorporateRepository:
             limit=1,
         )
         return history[0] if history else None
+
+    async def get_bulk_latest_financials(
+        self,
+        stock_ids: list[int],
+        as_of_date: date,
+        statement_basis: str = "CONSOLIDATED",
+    ) -> list[FinancialStatement]:
+        """Fetch the single latest PIT financial statement for multiple stocks."""
+        if not stock_ids:
+            return []
+
+        # Using distinct ON (stock_id) order by stock_id, period_end desc
+        stmt = (
+            select(FinancialStatement)
+            .where(FinancialStatement.stock_id.in_(stock_ids))
+            .where(FinancialStatement.statement_basis == statement_basis)
+            .where(FinancialStatement.available_at <= as_of_date)
+            .distinct(FinancialStatement.stock_id)
+            .order_by(FinancialStatement.stock_id, FinancialStatement.period_end.desc())
+        )
+        res = await self.session.execute(stmt)
+        return list(res.scalars().all())
+
+    async def get_bulk_latest_prices(
+        self,
+        stock_ids: list[int],
+        as_of_date: date,
+    ) -> dict[int, Decimal]:
+        """Fetch the latest close price for multiple stocks."""
+        if not stock_ids:
+            return {}
+
+        from app.models.daily_price import DailyPrice
+
+        stmt = (
+            select(DailyPrice.stock_id, DailyPrice.close)
+            .where(DailyPrice.stock_id.in_(stock_ids))
+            .where(DailyPrice.trade_date <= as_of_date)
+            .distinct(DailyPrice.stock_id)
+            .order_by(DailyPrice.stock_id, DailyPrice.trade_date.desc())
+        )
+        res = await self.session.execute(stmt)
+        return {row.stock_id: row.close for row in res.all()}
 
     async def get_corporate_announcements(
         self,

@@ -1,38 +1,41 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff - Productization Stage 1 Checkpoint 2026-08-29
+## Active Handoff — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair Checkpoint 2026-09-01
 
-- **Status**: `STAGE 1 / 1R / 1R-R1 COMPLETE & VERIFIED — CHECKPOINT AUTHORIZED`
-- **Started**: 2026-08-24 → Checkpoint 2026-08-29
-- **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`, commit
-  `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new commit 2026-08-29
-- **Version / schema**: `0.14.0` / Alembic `g7h8i9j0k1l2`
-- **Verification**: 1,352 tests passed sequentially (26m32s); Ruff clean; import OK; Alembic
-  `g7h8i9j0k1l2` is current/head with no pending migration operations; real browser PASS; test-hang fixed via shared truncate engine
-- **Current phase**: Stage 1/1R/1R-R1 browser + automated certification PASS; Stage 2 pending authorization
-- **Direction**: implement the approved Stage 1 subset from the Sprint 20.0 design artifacts.
-  Task 16.3 and Sprint 19.2 are not the current task. Broker/OpenAlgo/live and real-time work
-  remain deferred.
-- **Data-reality contract**: centralized fixture policy excludes `REPRO1`, `ANLX1`, `ANALYTX`,
-  `APIT1`, `RESL1`, `RESL2`, `BENCH1`, and `MMVERIFY` from normal product UI without deleting DB
-  rows. Missing indicators render as not calculated, zero-row successful imports render as NO DATA,
-  and scanner matches show the scanner name/code.
-- **Implemented surfaces**: permission-aware shell, compact decision dashboard, full-page data
-  health, real-price stock explorer, Stock360-style detail header, repaired scanner journey, and
-  a persisted-EOD derivatives workbench using the existing analytics services.
-- **Browser certification**: authenticated real-database checks passed for dashboard, stocks,
-  data operations/health, scanner library/run/results, analytics, market intelligence, pipeline,
-  scheduler, indicators, AI, alerts, watchlists, notifications, and backtests. Tested pages had one
-  desktop active navigation item, fixture-free product output, and no 500 response after repairing
-  dashboard watchlist eager loading and pipeline failure-row scope.
-- **Known data gaps**: latest indicators trail latest equity data (2026-08-04 vs 2026-08-06),
-  maximum history is 45 sessions, product sector mappings are absent, scheduler is disabled by
-  configuration, and stored pipeline runs show the real upstream NSE 403 failure.
-- **Next action**: wait for explicit Stage 1R product acceptance. Do not start Stage 2.
+- **Status**: `STAGE 2.6.5 PHASE F BROWSER TRUTH & PRODUCT POLISH REPAIR COMPLETE & CERTIFIED — STOCK INTELLIGENCE & DECISION CONTEXT LAYER`
+- **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
+- **Version / schema**: `0.14.0` / Alembic `478d723971bc`
+- **Verification**:
+  - Point-in-Time safe deterministic decision context aggregation service implemented across 8 research domains (`StockIntelligenceService`).
+  - Strict invariants enforced: `MISSING != ZERO` (dashes `--` rendered when events empty; legitimate zeros preserved), `COMPLETENESS != CONFIDENCE` (mathematically decoupled), `ZERO/NEUTRAL PRESERVED`, `NO BUY/SELL RECOMMENDATIONS`.
+  - Sector domain semantics decoupled from industry (`sector: UNAVAILABLE` when unclassified with informative watch item).
+  - Delivery synthetic test values cleared from RELIANCE (`delivery: UNAVAILABLE` with informative watch item).
+  - Duplicate AI Explanation header eliminated (`AI explanation unavailable / disabled.` rendered in single clean card).
+  - Test Scanner filtered out from all product queries and health counts.
+  - Comprehensive schemas implemented (`StockIntelligence`, `OverallState`, `EvidenceDomain`, `EvidenceDirection`, `FactorItem`, `EvidenceItem`).
+  - Responsive UI component (`app/templates/components/stock_intelligence.html`) integrated into Stock360.
+  - Dedicated test suite (`tests/test_stock_intelligence.py`) passing 31/31 tests.
+  - Full test suite: 1,413 / 1,413 tests passing (100% GREEN, 0 failures, 0 errors).
+  - Ruff clean; import OK; Alembic clean; git diff clean.
+- **Next action**: User review of Stage 2.6.5 Phase F. Do NOT start Phase G.
 
 ---
 
-## Sprint 20.0 UI/UX 2.0 Handoff
+## Current Platform Baseline (Stage 2.6.5 Phase F)
+
+- **Authoritative Project Workspace:** `D:\SCTS\college_cert_sys_phase1\AIStockScanner_Stage1_2\AIStockScanner_Milestone2_3\AIStockScanner`
+- **Current Version:** `0.14.0`
+- **ORM Models:** **58**
+- **Alembic Head:** `478d723971bc (head)`
+- **Pytest Collection:** **1413 tests** across 83 test modules
+- **Full Test Suite:** 1413 passed, 0 failed, 0 errors, 0 skipped (100% GREEN)
+- **Ruff Status:** 100% GREEN (`All checks passed!`)
+
+---
+
+## Historical Sprints Reference (Archived)
+
+### Historical: Sprint 20.0 UI/UX 2.0 Handoff
 
 - **Status**: `COMPLETE - AUDIT, DESIGN, AND DOCUMENTATION ONLY`
 - **Completed**: 2026-08-22
@@ -48,17 +51,11 @@
 
 ---
 
-**Authoritative Project Workspace:** `D:\SCTS\college_cert_sys_phase1\AIStockScanner_Stage1_2\AIStockScanner_Milestone2_3\AIStockScanner`
-**Current Version:** `0.14.0`
-**ORM Models:** **56**
-**Alembic Head:** `g7h8i9j0k1l2 (head)`
-**Pytest Collection:** **1309 tests** across 83 test modules
-**Full Test Suite:** 1309 passed, 0 failed, 0 errors, 0 skipped
-**Ruff Status:** 100% GREEN (`All checks passed!`)
+### Historical: Sprint 19.1G Baseline & Real Browser Certification
 
----
-
-## 1. Executive Summary
+- **Historical Sprint 19.1G ORM Models:** 56
+- **Historical Sprint 19.1G Alembic Head:** `g7h8i9j0k1l2`
+- **Historical Sprint 19.1G Pytest Suite:** 1309 passed, 0 failed
 
 Sprint 19.1G-QA-PRELIVE (PRELIVE-R2 — Real Playwright Browser Certification) is **COMPLETE & CERTIFIED**.
 
@@ -83,12 +80,12 @@ Key Real Browser QA Accomplishments:
 
 ---
 
-## AI HANDOFF STATE
+### Historical: Sprint 19.1J-R5-R2 Handoff State
 
 - **Sprint**: `19.1J-R5-R2`
 - **Task**: Official Historical Source Discovery + Real Missing-Session Acquisition Pilot
 - **Status**: `19.1J-R5-R2 COMPLETE & AUDITED`
-- **Software Baseline**: ORM 56 | Alembic `g7h8i9j0k1l2` | 1310 / 1310 tests pass (100% PASS) | `CODE_CHANGED = NO`
+- **Historical Baseline**: ORM 56 | Alembic `g7h8i9j0k1l2` | 1310 / 1310 tests pass (100% PASS) | `CODE_CHANGED = NO`
 - **Remote Discovery Pilot**:
   - Tested 4 Target Dates: `2025-09-15`, `2025-12-15`, `2026-03-16`, `2026-06-15`
   - Direct Equity & F&O Historical ZIP Archives: `OFFICIAL_REMOTE_NOT_FOUND` (404 on official NSE historical paths)
@@ -102,6 +99,6 @@ Key Real Browser QA Accomplishments:
 
 ---
 
-## 2. Status Decision
+### Historical: Sprint 19.1G Status Decision (Archived)
 
 `19.1G-QA-PRELIVE COMPLETE & CERTIFIED` (Real Playwright browser E2E certification verified against running application; 1309/1309 tests green; real Upstox market-hours WebSocket certification R1D remains PENDING until NORMAL_OPEN).

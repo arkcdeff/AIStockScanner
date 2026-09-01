@@ -131,6 +131,19 @@ class QualityScoreInputs:
 
 
 @dataclass
+class RelativeValuationMetrics:
+    peer_group_type: str  # e.g., 'INDUSTRY', 'SECTOR', 'COMPARABLE_COMPANY'
+    peer_count: int
+    median_pe: Decimal | None = None
+    median_pb: Decimal | None = None
+    median_ps: Decimal | None = None
+    pe_premium_discount_pct: Decimal | None = None
+    pb_premium_discount_pct: Decimal | None = None
+    ps_premium_discount_pct: Decimal | None = None
+    valuation_classification: str | None = None  # e.g., 'EXPENSIVE', 'FAIRLY_VALUED', 'ATTRACTIVE'
+
+
+@dataclass
 class CompanyFundamentalSnapshot:
     symbol: str
     stock_id: int
@@ -143,6 +156,7 @@ class CompanyFundamentalSnapshot:
     margins: FinancialMarginMetrics | None = None
     solvency_cashflow: SolvencyAndCashFlowMetrics | None = None
     valuation: PITValuationMetrics | None = None
+    relative_valuation: RelativeValuationMetrics | None = None
     quality_inputs: QualityScoreInputs | None = None
     latest_shareholding: ShareholdingPatternRead | None = None
     recent_corporate_actions: list[dict[str, Any]] = Field(default_factory=list)

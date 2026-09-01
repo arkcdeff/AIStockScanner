@@ -1,0 +1,51 @@
+<div class="card h-100">
+    <div class="card-header"><h2 class="section-card-title"><i class="bi bi-heart-pulse"></i>Data health &amp; readiness</h2></div>
+    <div class="card-body">
+        {% if data_health %}
+        <dl class="row small mb-0">
+            <dt class="col-6 text-muted fw-normal">History sessions</dt>
+            <dd class="col-6 text-end">
+                <span class="fw-semibold">{{ data_health.history_sessions }}</span>
+                {% if data_health.history_sessions < 50 %}
+                    <span class="badge bg-warning text-dark small">Limited</span>
+                {% else %}
+                    <span class="badge bg-success small">Sufficient</span>
+                {% endif %}
+            </dd>
+            <dt class="col-6 text-muted fw-normal">History range</dt>
+            <dd class="col-6 text-end text-truncate" title="{{ data_health.history_first_date }} to {{ data_health.history_latest_date }}">
+                {% if data_health.history_first_date %}{{ data_health.history_first_date }} to {{ data_health.history_latest_date }}{% else %}—{% endif %}
+            </dd>
+            <dt class="col-6 text-muted fw-normal">Indicators updated</dt>
+            <dd class="col-6 text-end">
+                {% if data_health.indicator_latest_date %}
+                    <span class="text-success">{{ data_health.indicator_latest_date }}</span>
+                {% else %}
+                    <span class="text-danger">Not calculated</span>
+                {% endif %}
+            </dd>
+            <dt class="col-6 text-muted fw-normal">Analytics availability</dt>
+            <dd class="col-6 text-end">
+                {% if data_health.analytics_available %}
+                    <span class="text-success">Available</span>
+                {% else %}
+                    <span class="text-warning">Unavailable</span>
+                {% endif %}
+            </dd>
+            {% if data_health.scanner_readiness_note %}
+            <dt class="col-12 text-muted fw-normal mt-2">Prerequisite details</dt>
+            <dd class="col-12 mt-1">
+                <div class="alert alert-warning py-1 px-2 mb-0 small" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ data_health.scanner_readiness_note }}
+                </div>
+            </dd>
+            {% endif %}
+        </dl>
+        {% else %}
+        <div class="empty-state py-4 text-center">
+            <i class="bi bi-heart-pulse-fill text-muted fs-4"></i>
+            <p class="text-muted small mt-2 mb-0">No health data available.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

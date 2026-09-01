@@ -17,6 +17,7 @@ from app.models.backtest import (
     BacktestStrategy,
     BacktestTrade,
 )
+from app.models.comparable_company import ComparableCompany
 from app.models.corporate_action import CorporateAction
 from app.models.daily_price import DailyPrice
 from app.models.data_quality_issue import DataQualityIssue
@@ -35,6 +36,7 @@ from app.models.fundamental_corporate import (
 from app.models.import_job import ImportJob
 from app.models.index_membership import IndexMembership
 from app.models.indicator_result import IndicatorResult
+from app.models.industry import Industry
 from app.models.institutional_flow import InstitutionalFlow
 from app.models.macro_event import EconEvent
 from app.models.market_index import MarketIndex
@@ -123,4 +125,7 @@ __all__ = [
     # 19.1F — News + Government Policy Intelligence
     "NewsEvent",
     "NewsEntityLink",
+    # Stage 2.6.3 — Relative Valuation
+    "Industry",
+    "ComparableCompany",
 ]

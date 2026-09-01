@@ -7,6 +7,9 @@ Tests:
   - Government policy, RBI, and SEBI regulatory event classification
   - Event risk flags, overnight risk, policy headwinds/tailwinds
   - REST API endpoints and HTMX UI partial
+  - Phase C fabrication-hazard regressions:
+      * Market snapshot UNKNOWN (not NEUTRAL) when zero events
+      * Coverage status NOT_AVAILABLE (not PARTIAL) when zero events
 """
 from __future__ import annotations
 
@@ -353,3 +356,48 @@ async def test_news_policy_rest_api_and_ui_partial():
         assert resp_ui.status_code == 200
         assert "TCS — News &amp; Policy Intelligence" in resp_ui.text or "TCS — News & Policy Intelligence" in resp_ui.text
         assert "TCS Signs Mega $2B Cloud Deal" in resp_ui.text
+
+
+# ---------------------------------------------------------------------------
+# Phase C — Fabrication-hazard regression tests (Stage 2.6.5)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_market_snapshot_unknown_sentiment_when_no_events():
+    """Regression: market snapshot must return UNKNOWN (not NEUTRAL) when zero events.
+
+    When news_events is empty, pos=0 and neg=0 are equal, but that does NOT mean
+    the market sentiment is NEUTRAL — it means the sentiment is UNKNOWN (no data).
+    Fabricating NEUTRAL from an empty dataset is a PIT / data-quality violation.
+    """
+    factory = get_session_factory()
+    async with factory() as session:
+        service = NewsPolicyService(session)
+        from datetime import UTC, datetime
+
+        snap = await service.get_market_news_policy_snapshot(
+            evaluation_datetime=datetime(2026, 8, 10, 0, 0, tzinfo=UTC)
+        )
+        # Zero events → sentiment must be UNKNOWN, never NEUTRAL
+        assert snap.overall_sentiment_context == "UNKNOWN", (
+            f"Expected UNKNOWN when no events, got {snap.overall_sentiment_context!r}"
+        )
+        assert "NO_MARKET_POLICY_EVENTS" in snap.quality_warnings
+
+
+@pytest.mark.asyncio
+async def test_coverage_status_not_available_when_no_events():
+    """Regression: coverage_status must be NOT_AVAILABLE (not PARTIAL) when zero events.
+
+    PARTIAL implies data is flowing in but incompletely. When no events have ever been
+    loaded, the correct truthful status is NOT_AVAILABLE.
+    """
+    factory = get_session_factory()
+    async with factory() as session:
+        service = NewsPolicyService(session)
+        cov = await service.get_news_coverage()
+        if cov.total_events_count == 0:
+            assert cov.coverage_status == "NOT_AVAILABLE", (
+                f"Expected NOT_AVAILABLE when zero events, got {cov.coverage_status!r}"
+            )

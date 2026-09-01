@@ -16,6 +16,26 @@
                 </p>
             </div>
 
+            {% if not snapshot.recent_events %}
+            <div class="flex items-center gap-2">
+                <div class="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-center">
+                    <div class="text-xs text-slate-500">Positive Context</div>
+                    <div class="text-base font-bold text-slate-400">&mdash;</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-center">
+                    <div class="text-xs text-slate-500">Negative Context</div>
+                    <div class="text-base font-bold text-slate-400">&mdash;</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-center">
+                    <div class="text-xs text-slate-500">Mixed</div>
+                    <div class="text-base font-bold text-slate-400">&mdash;</div>
+                </div>
+                <div class="px-3 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/50 text-center">
+                    <div class="text-xs text-slate-500">Neutral</div>
+                    <div class="text-base font-bold text-slate-400">&mdash;</div>
+                </div>
+            </div>
+            {% else %}
             <!-- Sentiment Context Pill Grid -->
             <div class="flex items-center gap-2">
                 <div class="px-3 py-1.5 rounded-lg bg-emerald-950/60 border border-emerald-800/50 text-center">
@@ -35,33 +55,38 @@
                     <div class="text-base font-bold text-slate-300">{{ snapshot.neutral_context_count }}</div>
                 </div>
             </div>
+            {% endif %}
         </div>
 
         <!-- Risk Flags Banner -->
         <div class="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center gap-3">
             <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Event Risk Flags:</span>
-            {% if snapshot.overnight_event_risk %}
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
-                    Overnight Risk Active
-                </span>
-            {% endif %}
-            {% if snapshot.policy_headwind %}
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    Policy Headwind
-                </span>
-            {% endif %}
-            {% if snapshot.policy_tailwind %}
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    Policy Tailwind
-                </span>
-            {% endif %}
-            {% if snapshot.regulatory_flag %}
-                <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
-                    Regulatory Disclosure
-                </span>
-            {% endif %}
-            {% if not snapshot.overnight_event_risk and not snapshot.policy_headwind and not snapshot.policy_tailwind and not snapshot.regulatory_flag %}
-                <span class="text-xs text-slate-400 italic">No critical event risk flags detected.</span>
+            {% if not snapshot.recent_events and not snapshot.upcoming_event_risks %}
+                <span class="text-xs text-slate-400 italic">No recorded events; event-risk assessment unavailable.</span>
+            {% else %}
+                {% if snapshot.overnight_event_risk %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                        Overnight Risk Active
+                    </span>
+                {% endif %}
+                {% if snapshot.policy_headwind %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                        Policy Headwind
+                    </span>
+                {% endif %}
+                {% if snapshot.policy_tailwind %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                        Policy Tailwind
+                    </span>
+                {% endif %}
+                {% if snapshot.regulatory_flag %}
+                    <span class="px-2 py-0.5 text-xs font-medium rounded bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                        Regulatory Disclosure
+                    </span>
+                {% endif %}
+                {% if not snapshot.overnight_event_risk and not snapshot.policy_headwind and not snapshot.policy_tailwind and not snapshot.regulatory_flag %}
+                    <span class="text-xs text-slate-400 italic">No critical event risk flags detected across {{ snapshot.recent_events|length }} event(s).</span>
+                {% endif %}
             {% endif %}
         </div>
     </div>

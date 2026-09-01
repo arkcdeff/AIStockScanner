@@ -282,13 +282,14 @@ class IndexPriceAction:
 
     async def trend(
         self, windows: tuple[int, int, int] = (20, 50, 200)
-    ) -> dict[str, str]:
+    ) -> dict[str, str | None]:
         """Deterministic trend classification.
 
         States: strong_bullish, bullish, neutral, bearish, strong_bearish
         """
+        history = await self._fetch_history()
         return {
-            "trend": price_series_trend(await self._fetch_history(), windows) or "neutral"
+            "trend": price_series_trend(history, windows) if history else None
         }
 
     # -- F. MOMENTUM -------------------------------------------------
@@ -417,6 +418,13 @@ class IndexPriceAction:
           - fifty_two_week_position: +15 .. +15 (positive = near high, negative = near low)
           - gap          : +15 .. +15 (gap_up positive, gap_down negative)
         """
+        prices = await self._fetch_history()
+        if not prices:
+            return {
+                "price_action_score": None,
+                "score_breakdown": {}
+            }
+
         if weights is None:
             # Default weights that sum to 100 when all components contribute.
             weights = {

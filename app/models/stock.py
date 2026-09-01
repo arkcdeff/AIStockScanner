@@ -11,10 +11,12 @@ if TYPE_CHECKING:
     from app.models.ai_explanation import AIExplanation
     from app.models.alert import AlertEvent, AlertRule
     from app.models.backtest import BacktestTrade
+    from app.models.comparable_company import ComparableCompany
     from app.models.corporate_action import CorporateAction
     from app.models.daily_price import DailyPrice
     from app.models.index_membership import IndexMembership
     from app.models.indicator_result import IndicatorResult
+    from app.models.industry import Industry
     from app.models.portfolio import Holding
     from app.models.scan_result import ScanResult
     from app.models.sector import Sector
@@ -43,6 +45,9 @@ class Stock(TimestampMixin, Base):
         ForeignKey("sectors.id", ondelete="SET NULL"), nullable=True, index=True
     )
     industry: Mapped[str | None] = mapped_column(String(120), nullable=True, index=True)
+    industry_id: Mapped[int | None] = mapped_column(
+        ForeignKey("industries.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, index=True)
 
     # Historical lifecycle status — see exchange_constants.LIFECYCLE_STATUSES
@@ -54,6 +59,12 @@ class Stock(TimestampMixin, Base):
 
     # Existing relationships (UNCHANGED)
     sector_ref: Mapped[Sector | None] = relationship(back_populates="stocks")
+    industry_ref: Mapped[Industry | None] = relationship(back_populates="stocks")
+    peers: Mapped[list[ComparableCompany]] = relationship(
+        foreign_keys="[ComparableCompany.stock_id]",
+        back_populates="stock",
+        cascade="all, delete-orphan",
+    )
     daily_prices: Mapped[list[DailyPrice]] = relationship(
         back_populates="stock", cascade="all, delete-orphan"
     )

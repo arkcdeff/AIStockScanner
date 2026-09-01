@@ -1,0 +1,179 @@
+{# Stock Intelligence / Decision Context Component — Stage 2.6.5 Phase F #}
+<div class="card mb-4" id="stock-intelligence-container">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h5 class="mb-0">
+                <i class="bi bi-shield-check me-2 text-primary"></i>Stock Intelligence &amp; Decision Context
+            </h5>
+            <span class="badge bg-secondary" style="font-size:0.7rem;">PIT Safe</span>
+            <span class="badge bg-light text-dark border" style="font-size:0.7rem;">Deterministic</span>
+        </div>
+        {% if stock_intelligence %}
+        <div class="d-flex align-items-center gap-2">
+            <small class="text-muted">Eval Date: <strong>{{ stock_intelligence.evaluation_date }}</strong></small>
+            {% set state = stock_intelligence.overall_state %}
+            {% if state == 'POSITIVE' %}
+                <span class="badge bg-success px-2 py-1 fs-6"><i class="bi bi-arrow-up-circle me-1"></i>POSITIVE</span>
+            {% elif state == 'NEGATIVE' %}
+                <span class="badge bg-danger px-2 py-1 fs-6"><i class="bi bi-arrow-down-circle me-1"></i>NEGATIVE</span>
+            {% elif state == 'MIXED' %}
+                <span class="badge bg-warning text-dark px-2 py-1 fs-6"><i class="bi bi-shuffle me-1"></i>MIXED</span>
+            {% elif state == 'NEUTRAL' %}
+                <span class="badge bg-secondary px-2 py-1 fs-6"><i class="bi bi-dash-circle me-1"></i>NEUTRAL</span>
+            {% elif state == 'INSUFFICIENT_DATA' %}
+                <span class="badge bg-dark px-2 py-1 fs-6"><i class="bi bi-hourglass-split me-1"></i>INSUFFICIENT DATA</span>
+            {% else %}
+                <span class="badge bg-secondary px-2 py-1 fs-6">NOT AVAILABLE</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-body">
+        {% if not stock_intelligence or stock_intelligence.overall_state == 'NOT_AVAILABLE' %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-info-circle fs-3 d-block mb-2 text-secondary"></i>
+            <h6>Stock Intelligence Context Unavailable</h6>
+            <p class="mb-0 small">{{ stock_intelligence.state_reason if stock_intelligence else 'Insufficient historical data to construct decision context.' }}</p>
+        </div>
+        {% else %}
+        
+        <!-- Summary State Callout -->
+        <div class="p-3 mb-3 rounded bg-light border">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <span class="fw-semibold text-dark">{{ stock_intelligence.state_reason }}</span>
+                <div class="d-flex gap-3 text-muted small">
+                    <span>Evidence Confidence: <strong class="text-dark">{{ (stock_intelligence.confidence * 100)|round|int }}% ({{ stock_intelligence.confidence_label }})</strong></span>
+                    <span>Data Completeness: <strong class="text-dark">{{ stock_intelligence.completeness_pct }}% ({{ stock_intelligence.completeness_label }})</strong></span>
+                </div>
+            </div>
+            <!-- Completeness Progress Bar -->
+            <div class="progress" style="height: 6px;">
+                <div class="progress-bar {% if stock_intelligence.completeness_pct >= 75 %}bg-success{% elif stock_intelligence.completeness_pct >= 50 %}bg-info{% elif stock_intelligence.completeness_pct >= 25 %}bg-warning{% else %}bg-danger{% endif %}" 
+                     role="progressbar" 
+                     style="width: {{ stock_intelligence.completeness_pct }}%;" 
+                     aria-valuenow="{{ stock_intelligence.completeness_pct }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2-Column Factors Grid -->
+        <div class="row g-3 mb-3">
+            <!-- Supporting Factors -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-success mb-0">
+                            <i class="bi bi-check-circle-fill me-1"></i>Supporting Factors ({{ stock_intelligence.supporting_factors|length }})
+                        </h6>
+                    </div>
+                    {% if stock_intelligence.supporting_factors %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for factor in stock_intelligence.supporting_factors %}
+                        <li class="mb-2 pb-2 border-bottom last-border-0">
+                            <div class="fw-semibold text-dark">{{ factor.description }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                <span class="badge bg-light text-secondary border me-1">{{ factor.domain }}</span>
+                                <span>Source: {{ factor.source }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small py-2">
+                        <em>No active positive factors observed at current evaluation date.</em>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Risk Factors -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="text-danger mb-0">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Risk Factors ({{ stock_intelligence.risk_factors|length }})
+                        </h6>
+                    </div>
+                    {% if stock_intelligence.risk_factors %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for factor in stock_intelligence.risk_factors %}
+                        <li class="mb-2 pb-2 border-bottom last-border-0">
+                            <div class="fw-semibold text-dark">{{ factor.description }}</div>
+                            <div class="text-muted" style="font-size: 0.75rem;">
+                                <span class="badge bg-light text-secondary border me-1">{{ factor.domain }}</span>
+                                <span>Source: {{ factor.source }}</span>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small py-2">
+                        <em>No active risk factors observed at current evaluation date.</em>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Watch Items & Data Gaps -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-8">
+                <div class="border rounded p-3 bg-white h-100">
+                    <h6 class="text-warning mb-2">
+                        <i class="bi bi-eye-fill me-1"></i>Watch Items &amp; Limitations ({{ stock_intelligence.watch_items|length }})
+                    </h6>
+                    {% if stock_intelligence.watch_items %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for item in stock_intelligence.watch_items %}
+                        <li class="mb-1">
+                            <i class="bi bi-dot text-secondary"></i>
+                            <span class="text-secondary">{{ item.description }}</span>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small py-1">
+                        <em>All evaluated data domains fully populated with no data constraints.</em>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="border rounded p-3 bg-white h-100">
+                    <h6 class="text-secondary mb-2">
+                        <i class="bi bi-grid-3x3-gap me-1"></i>Domain Coverage
+                    </h6>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for domain, status in stock_intelligence.domain_coverage.items() %}
+                        <span class="badge {% if status == 'AVAILABLE' %}bg-success-subtle text-success border border-success-subtle{% elif status == 'PARTIAL' %}bg-warning-subtle text-warning-emphasis border border-warning-subtle{% else %}bg-secondary-subtle text-secondary border border-secondary-subtle{% endif %}" style="font-size: 0.7rem;">
+                            {{ domain }}: {{ status }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% if stock_intelligence.missing_inputs %}
+                    <div class="mt-2 text-muted" style="font-size: 0.75rem;">
+                        <strong>Missing:</strong> {{ stock_intelligence.missing_inputs|join(', ') }}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Provenance & Disclaimer -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 text-muted pt-2 border-top" style="font-size: 0.75rem;">
+            <div>
+                <i class="bi bi-info-circle me-1"></i>{{ stock_intelligence.disclaimer }}
+            </div>
+            <div>
+                <span>Sessions: {{ stock_intelligence.provenance.price_sessions_used if stock_intelligence.provenance else 'N/A' }}</span> |
+                <span>Domains: {{ stock_intelligence.provenance.domains_available if stock_intelligence.provenance else 0 }}/{{ stock_intelligence.provenance.domains_evaluated if stock_intelligence.provenance else 8 }}</span>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+</div>

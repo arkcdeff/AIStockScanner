@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.fundamental_parser import (
@@ -18,6 +18,7 @@ from app.models.fundamental_corporate import (
     FinancialStatement,
     ShareholdingPattern,
 )
+from app.models.stock import Stock
 from app.repositories.fundamental_corporate import FundamentalCorporateRepository
 from app.schemas.fundamental_corporate import (
     CompanyFundamentalSnapshot,
@@ -28,6 +29,7 @@ from app.schemas.fundamental_corporate import (
     FundamentalsCoverageRead,
     PITValuationMetrics,
     QualityScoreInputs,
+    RelativeValuationMetrics,
     ShareholdingPatternRead,
     SolvencyAndCashFlowMetrics,
 )
@@ -222,6 +224,15 @@ class FundamentalCorporateService:
             latest_stmt=latest_q or latest_a,
         )
 
+        # 6.5 Compute Relative Valuation Metrics
+        relative_val = await self._calculate_relative_valuation(
+            stock=stock,
+            evaluation_date=evaluation_date,
+            as_of=as_of,
+            statement_basis=statement_basis,
+            stock_valuation=valuation,
+        )
+
         # 7. Compute Quality Score Inputs
         quality_inputs = self._calculate_quality_score_inputs(
             growth=growth,
@@ -249,6 +260,7 @@ class FundamentalCorporateService:
             margins=margins,
             solvency_cashflow=solvency,
             valuation=valuation,
+            relative_valuation=relative_val,
             quality_inputs=quality_inputs,
             latest_shareholding=ShareholdingPatternRead.model_validate(latest_sh) if latest_sh else None,
             recent_corporate_actions=[
@@ -408,6 +420,104 @@ class FundamentalCorporateService:
             dividend_yield_pct=None,
         )
 
+    async def _calculate_relative_valuation(
+        self,
+        stock: Stock,
+        evaluation_date: date,
+        as_of: date,
+        statement_basis: str,
+        stock_valuation: PITValuationMetrics,
+    ) -> RelativeValuationMetrics | None:
+        """Calculate peer group valuation median and stock premium/discount."""
+        from app.models.comparable_company import ComparableCompany
+
+        # Determine peers based on hierarchy
+        stmt = select(ComparableCompany.peer_stock_id).where(ComparableCompany.stock_id == stock.id).where(ComparableCompany.is_active.is_(True))
+        peer_ids = list((await self.session.execute(stmt)).scalars().all())
+        peer_group_type = "COMPARABLE_COMPANY"
+
+        if not peer_ids and stock.industry_id:
+            from app.models.stock import Stock
+            stmt = select(Stock.id).where(Stock.industry_id == stock.industry_id).where(Stock.is_active.is_(True)).where(Stock.id != stock.id)
+            peer_ids = list((await self.session.execute(stmt)).scalars().all())
+            peer_group_type = "INDUSTRY"
+
+        if not peer_ids and stock.industry:
+            from app.models.stock import Stock
+            stmt = select(Stock.id).where(func.upper(Stock.industry) == stock.industry.upper()).where(Stock.is_active.is_(True)).where(Stock.id != stock.id)
+            peer_ids = list((await self.session.execute(stmt)).scalars().all())
+            if peer_ids:
+                peer_group_type = "INDUSTRY"
+
+        if not peer_ids and stock.sector_id:
+            from app.models.stock import Stock
+            stmt = select(Stock.id).where(Stock.sector_id == stock.sector_id).where(Stock.is_active.is_(True)).where(Stock.id != stock.id)
+            peer_ids = list((await self.session.execute(stmt)).scalars().all())
+            peer_group_type = "SECTOR"
+
+        if not peer_ids:
+            return None
+
+        # Bulk fetch financials and prices
+        latest_financials = await self.repo.get_bulk_latest_financials(peer_ids, as_of, statement_basis)
+        latest_prices = await self.repo.get_bulk_latest_prices(peer_ids, evaluation_date)
+
+        pe_list, pb_list, ps_list = [], [], []
+        for fin in latest_financials:
+            price = latest_prices.get(fin.stock_id)
+            if not price:
+                continue
+
+            if fin.eps and fin.eps > 0:
+                pe_list.append(price / fin.eps)
+
+            if fin.shares_outstanding and fin.shares_outstanding > 0 and fin.total_equity:
+                bvps = (fin.total_equity * Decimal("10000000")) / fin.shares_outstanding
+                if bvps > 0:
+                    pb_list.append(price / bvps)
+
+            if fin.shares_outstanding and fin.shares_outstanding > 0 and fin.revenue:
+                rev_per_share = (fin.revenue * Decimal("10000000")) / fin.shares_outstanding
+                if rev_per_share > 0:
+                    ps_list.append(price / rev_per_share)
+
+        import statistics
+        median_pe = Decimal(statistics.median(pe_list)) if pe_list else None
+        median_pb = Decimal(statistics.median(pb_list)) if pb_list else None
+        median_ps = Decimal(statistics.median(ps_list)) if ps_list else None
+
+        pe_premium = None
+        if stock_valuation.pe_ratio and median_pe:
+            pe_premium = ((stock_valuation.pe_ratio - median_pe) / median_pe) * Decimal("100")
+
+        pb_premium = None
+        if stock_valuation.pb_ratio and median_pb:
+            pb_premium = ((stock_valuation.pb_ratio - median_pb) / median_pb) * Decimal("100")
+
+        ps_premium = None
+        if stock_valuation.ps_ratio and median_ps:
+            ps_premium = ((stock_valuation.ps_ratio - median_ps) / median_ps) * Decimal("100")
+
+        # Valuation Classification
+        cls = "FAIRLY_VALUED"
+        if pe_premium is not None:
+            if pe_premium > Decimal("20"):
+                cls = "EXPENSIVE"
+            elif pe_premium < Decimal("-20"):
+                cls = "ATTRACTIVE"
+
+        return RelativeValuationMetrics(
+            peer_group_type=peer_group_type,
+            peer_count=len(peer_ids),
+            median_pe=median_pe,
+            median_pb=median_pb,
+            median_ps=median_ps,
+            pe_premium_discount_pct=pe_premium,
+            pb_premium_discount_pct=pb_premium,
+            ps_premium_discount_pct=ps_premium,
+            valuation_classification=cls,
+        )
+
     def _calculate_quality_score_inputs(
         self,
         growth: FinancialGrowthMetrics,
@@ -453,6 +563,36 @@ class FundamentalCorporateService:
         if curr is None or prev is None or prev == Decimal("0"):
             return None
         return ((curr - prev) / abs(prev)) * Decimal("100")
+
+    async def get_corporate_announcements(
+        self,
+        symbol: str,
+        as_of_date: date | None = None,
+        limit: int = 20,
+    ) -> list[dict]:
+        """Return PIT-safe corporate announcements for a stock."""
+        stock = await self.repo.get_stock_by_symbol(symbol)
+        if not stock:
+            raise ValueError(f"Stock {symbol} not found")
+
+        announcements = await self.repo.get_corporate_announcements(
+            stock.id, as_of_date=as_of_date, limit=limit
+        )
+        return [
+            {
+                "id": a.id,
+                "title": a.title,
+                "event_type": a.category,
+                "category": a.category,
+                "announcement_date": a.announcement_date.isoformat() if a.announcement_date else None,
+                "available_at": a.available_at.isoformat() if a.available_at else None,
+                "source": a.source_name,
+                "source_name": a.source_name,
+                "url": a.source_reference,
+                "summary": a.summary,
+            }
+            for a in announcements
+        ]
 
     async def get_fundamentals_coverage(self, as_of_date: date | None = None) -> FundamentalsCoverageRead:
         """Return platform fundamental coverage metadata."""

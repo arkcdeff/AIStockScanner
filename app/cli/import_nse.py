@@ -8,7 +8,7 @@ from typing import Annotated
 import typer
 from rich.console import Console
 
-from app.db.session import get_session_factory as async_session_factory
+from app.db.session import get_session_factory
 from app.services.market_data_service import MarketDataService
 from app.services.nse_downloader import NSEDownloader, NSEDownloadError
 from app.services.nse_import import (
@@ -17,8 +17,14 @@ from app.services.nse_import import (
     NSEImportService,
 )
 
+
+def get_async_session():
+    return get_session_factory()()
+
+
 app = typer.Typer()
 console = Console()
+
 
 @app.command()
 def file(
@@ -26,7 +32,7 @@ def file(
 ) -> None:
     """Import local NSE bhavcopy CSV/ZIP."""
     async def _import_file() -> None:
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             job = await NSEImportService(session).import_files(path)
         console.print(
             f"status={job.status} read={job.rows_read} inserted={job.rows_inserted} "
@@ -37,6 +43,7 @@ def file(
         raise typer.Exit(0 if job.status == "completed" else 1)
 
     asyncio.run(_import_file())
+
 
 @app.command()
 def date(
@@ -56,7 +63,7 @@ def date(
             with NSEDownloader() as downloader:
                 raw_path, _ = downloader.download(trade_date_val)
 
-            async with async_session_factory() as session:
+            async with get_async_session() as session:
                 job = await NSEImportService(session).import_files(
                     raw_path, mode=MODE_DATE_DOWNLOAD
                 )
@@ -89,7 +96,7 @@ def latest() -> None:
                 trade_date_val, raw_path, _ = downloader.download_latest()
                 target_date = datetime.combine(trade_date_val, datetime.min.time())
 
-            async with async_session_factory() as session:
+            async with get_async_session() as session:
                 job = await NSEImportService(session).import_files(
                     raw_path, mode=MODE_LATEST_DOWNLOAD
                 )
@@ -123,7 +130,7 @@ def range(
         except ValueError as exc:
             console.print(f"error={exc}", style="red")
             raise typer.Exit(1) from exc
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             summary = await MarketDataService(
                 session, request_delay=delay
             ).backfill(start_date, end_date)
@@ -149,7 +156,7 @@ def missing(
         except ValueError as exc:
             console.print(f"error={exc}", style="red")
             raise typer.Exit(1) from exc
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             dates = await MarketDataService(session).missing_dates(start_date, end_date)
         for trade_date in dates:
             console.print(trade_date.isoformat())
@@ -162,7 +169,7 @@ def missing(
 def status() -> None:
     """Show market-data status and scanner readiness."""
     async def _status() -> None:
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = MarketDataService(session)
             data_status = await service.data_status()
             readiness = await service.scanner_readiness()
@@ -213,7 +220,7 @@ def fo_contracts(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else None
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeContractImportService(session)
             summary = await service.import_contract_master_file(
                 content=content,
@@ -256,7 +263,7 @@ def fo_futures(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else None
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeFuturesImportService(session)
             summary = await service.import_futures_bhavcopy(
                 content=content,
@@ -297,7 +304,7 @@ def fo_options(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else None
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeOptionsImportService(session)
             summary = await service.import_options_bhavcopy(
                 content=content,
@@ -340,7 +347,7 @@ def fo_participant_oi(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else rep_date
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeParticipantImportService(session)
             summary = await service.import_participant_oi(
                 content=content,
@@ -380,7 +387,7 @@ def fo_participant_volume(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else rep_date
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeParticipantImportService(session)
             summary = await service.import_participant_volume(
                 content=content,
@@ -420,7 +427,7 @@ def fo_fii_derivatives(
         eff_date = date.fromisoformat(as_of_date) if as_of_date else rep_date
         content = file_path.read_text(encoding="utf-8")
 
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = DerivativeParticipantImportService(session)
             summary = await service.import_fii_derivatives_statistics(
                 content=content,
@@ -453,7 +460,7 @@ def financial_statements(
             raise typer.Exit(1)
 
         content = file_path.read_text(encoding="utf-8")
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = FundamentalCorporateService(session)
             res = await service.import_financial_statements(content)
 
@@ -479,7 +486,7 @@ def corporate_announcements(
             raise typer.Exit(1)
 
         content = file_path.read_text(encoding="utf-8")
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = FundamentalCorporateService(session)
             res = await service.import_corporate_announcements(content)
 
@@ -503,7 +510,7 @@ def shareholding_pattern(
             raise typer.Exit(1)
 
         content = file_path.read_text(encoding="utf-8")
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = FundamentalCorporateService(session)
             res = await service.import_shareholding_patterns(content)
 
@@ -529,7 +536,7 @@ def news_events(
 
         content = file_path.read_text(encoding="utf-8")
         parsed = NewsPolicyParser.parse_csv(content, default_source_type="OFFICIAL_PRIMARY")
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = NewsPolicyService(session)
             inserted = await service.import_news_events(parsed)
 
@@ -555,7 +562,7 @@ def policy_events(
 
         content = file_path.read_text(encoding="utf-8")
         parsed = NewsPolicyParser.parse_csv(content, default_source_type="OFFICIAL_PRIMARY")
-        async with async_session_factory() as session:
+        async with get_async_session() as session:
             service = NewsPolicyService(session)
             inserted = await service.import_news_events(parsed)
 
@@ -573,7 +580,7 @@ def certify() -> None:
     )
 
     async def _certify() -> None:
-        factory = async_session_factory()
+        factory = get_session_factory()
         async with factory() as session:
             service = HistoricalCoverageCertificationService(session)
             report = await service.certify_coverage()

@@ -146,18 +146,31 @@ class NSEImportService:
             ).all()
         )
 
-        stock_rows = [
-            {
-                "symbol": record.symbol,
-                "company_name": record.symbol,
-                "exchange": "NSE",
-                "series": record.series,
-                "isin": record.isin,
-                "is_active": True,
-            }
-            for record in {record.symbol: record for record in records}.values()
-        ]
-        stock_insert = insert(Stock).values(stock_rows)
+        # Deduplicate symbols and handle isin conflicts (same isin for different symbol)
+        unique_records = {record.symbol: record for record in records}
+        # Existing isin -> symbol mapping
+        existing_isin_map = {}
+        if any(r.isin for r in unique_records.values()):
+            isins = [r.isin for r in unique_records.values() if r.isin]
+            rows = await self.session.execute(select(Stock.isin, Stock.symbol).where(Stock.isin.in_(isins)))
+            existing_isin_map = {isin: sym for isin, sym in rows.all() if isin}
+        stock_rows = []
+        for sym, record in unique_records.items():
+            if record.isin and record.isin in existing_isin_map and existing_isin_map[record.isin] != sym:
+                # Isin already owned by different symbol — skip stock insert, will map price to existing stock via isin
+                continue
+            stock_rows.append(
+                {
+                    "symbol": record.symbol,
+                    "company_name": record.symbol,
+                    "exchange": "NSE",
+                    "series": record.series,
+                    "isin": record.isin,
+                    "is_active": True,
+                }
+            )
+        if stock_rows:
+            stock_insert = insert(Stock).values(stock_rows)
         stock_insert = stock_insert.on_conflict_do_update(
             constraint="uq_stock_exchange_symbol",
             set_={
@@ -171,8 +184,9 @@ class NSEImportService:
                 Stock.isin.is_distinct_from(stock_insert.excluded.isin),
             ),
         )
-        await self.session.execute(stock_insert)
-        await self.session.flush()
+        if stock_rows:
+            await self.session.execute(stock_insert)
+            await self.session.flush()
 
         stock_ids = dict(
             (
@@ -183,7 +197,17 @@ class NSEImportService:
                 )
             ).all()
         )
-        keys = {(stock_ids[r.symbol], r.trade_date) for r in records}
+        # Alias via isin for symbols skipped due to isin conflict (e.g., ONIDA -> MIRCELECTR)
+        missing_symbols = [s for s in symbols if s not in stock_ids]
+        if missing_symbols:
+            isin_for_missing = {unique_records[s].isin: s for s in missing_symbols if unique_records[s].isin}
+            if isin_for_missing:
+                rows = await self.session.execute(select(Stock.isin, Stock.id).where(Stock.isin.in_(list(isin_for_missing.keys()))))
+                isin_to_id = {isin: sid for isin, sid in rows.all()}
+                for isin, sym in isin_for_missing.items():
+                    if isin in isin_to_id:
+                        stock_ids[sym] = isin_to_id[isin]
+        keys = {(stock_ids[r.symbol], r.trade_date) for r in records if r.symbol in stock_ids}
         existing_prices = set(
             (
                 await self.session.execute(
@@ -197,6 +221,8 @@ class NSEImportService:
 
         price_rows: list[dict[str, Any]] = []
         for record in records:
+            if record.symbol not in stock_ids:
+                continue
             price_rows.append(
                 {
                     "stock_id": stock_ids[record.symbol],
@@ -214,40 +240,46 @@ class NSEImportService:
                     "delivery_percentage": record.delivery_percentage,
                 }
             )
-        price_insert = insert(DailyPrice).values(price_rows)
-        price_insert = price_insert.on_conflict_do_update(
-            constraint="uq_daily_price_stock_date",
-            set_={
-                "open": price_insert.excluded.open,
-                "high": price_insert.excluded.high,
-                "low": price_insert.excluded.low,
-                "close": price_insert.excluded.close,
-                "previous_close": price_insert.excluded.previous_close,
-                "last_price": price_insert.excluded.last_price,
-                "volume": price_insert.excluded.volume,
-                "turnover": price_insert.excluded.turnover,
-                "trade_count": price_insert.excluded.trade_count,
-                "delivery_quantity": price_insert.excluded.delivery_quantity,
-                "delivery_percentage": price_insert.excluded.delivery_percentage,
-                "updated_at": datetime.now(UTC),
-            },
-            where=or_(
-                DailyPrice.open.is_distinct_from(price_insert.excluded.open),
-                DailyPrice.high.is_distinct_from(price_insert.excluded.high),
-                DailyPrice.low.is_distinct_from(price_insert.excluded.low),
-                DailyPrice.close.is_distinct_from(price_insert.excluded.close),
-                DailyPrice.previous_close.is_distinct_from(price_insert.excluded.previous_close),
-                DailyPrice.last_price.is_distinct_from(price_insert.excluded.last_price),
-                DailyPrice.volume.is_distinct_from(price_insert.excluded.volume),
-                DailyPrice.turnover.is_distinct_from(price_insert.excluded.turnover),
-                DailyPrice.trade_count.is_distinct_from(price_insert.excluded.trade_count),
-                DailyPrice.delivery_quantity.is_distinct_from(price_insert.excluded.delivery_quantity),
-                DailyPrice.delivery_percentage.is_distinct_from(price_insert.excluded.delivery_percentage),
-            ),
-        )
-        await self.session.execute(price_insert)
+        # Batch to avoid PostgreSQL 32767 bind parameter limit (3150*14 > limit)
+        BATCH = 400
+        for i in range(0, len(price_rows), BATCH):
+            batch = price_rows[i : i + BATCH]
+            price_insert = insert(DailyPrice).values(batch)
+            price_insert = price_insert.on_conflict_do_update(
+                constraint="uq_daily_price_stock_date",
+                set_={
+                    "open": price_insert.excluded.open,
+                    "high": price_insert.excluded.high,
+                    "low": price_insert.excluded.low,
+                    "close": price_insert.excluded.close,
+                    "previous_close": price_insert.excluded.previous_close,
+                    "last_price": price_insert.excluded.last_price,
+                    "volume": price_insert.excluded.volume,
+                    "turnover": price_insert.excluded.turnover,
+                    "trade_count": price_insert.excluded.trade_count,
+                    "delivery_quantity": price_insert.excluded.delivery_quantity,
+                    "delivery_percentage": price_insert.excluded.delivery_percentage,
+                    "updated_at": datetime.now(UTC),
+                },
+                where=or_(
+                    DailyPrice.open.is_distinct_from(price_insert.excluded.open),
+                    DailyPrice.high.is_distinct_from(price_insert.excluded.high),
+                    DailyPrice.low.is_distinct_from(price_insert.excluded.low),
+                    DailyPrice.close.is_distinct_from(price_insert.excluded.close),
+                    DailyPrice.previous_close.is_distinct_from(price_insert.excluded.previous_close),
+                    DailyPrice.last_price.is_distinct_from(price_insert.excluded.last_price),
+                    DailyPrice.volume.is_distinct_from(price_insert.excluded.volume),
+                    DailyPrice.turnover.is_distinct_from(price_insert.excluded.turnover),
+                    DailyPrice.trade_count.is_distinct_from(price_insert.excluded.trade_count),
+                    DailyPrice.delivery_quantity.is_distinct_from(price_insert.excluded.delivery_quantity),
+                    DailyPrice.delivery_percentage.is_distinct_from(price_insert.excluded.delivery_percentage),
+                ),
+            )
+            await self.session.execute(price_insert)
 
-        updated = sum((stock_ids[r.symbol], r.trade_date) in existing_prices for r in records)
-        inserted = len(records) - updated
+        updated = sum((stock_ids[r.symbol], r.trade_date) in existing_prices for r in records if r.symbol in stock_ids)
+        inserted = len(price_rows) - updated
+        # Account for skipped isin-aliased records as updated (they map to existing stock)
+        inserted = max(0, inserted)
         _ = existing_symbols
         return inserted, updated

@@ -1,36 +1,23 @@
 # Project State
 
-## Current productization state (2026-08-29) - Stage 1 Checkpoint
+### Current productization state (2026-09-01) — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
 
-- **Current task**: Productization Stage 1 + 1R + 1R-R1 complete and verified; Stage 2 pending authorization
-- **Checkpoint**: `checkpoint/sprint19-20-20260822` at
-  `8adfeb2e59c07d82527c6ed94a262ffa112f4666` → new checkpoint 2026-08-29
+- **Current task**: Stage 2.6.5 Phase F Browser Truth & Product Polish Repair COMPLETE & CERTIFIED
+- **Checkpoint**: `checkpoint/sprint19-20-20260822`
 - **Version**: `0.14.0`
-- **Alembic**: `g7h8i9j0k1l2` (single current head)
-- **Verification**: 1,352 tests passed sequentially (26m32s); Ruff clean; import OK; Alembic current/head/check
-  clean; authenticated real-database browser acceptance PASS; test-hang lifecycle optimization verified
-- **Priority**: truthful navigation and page destinations, decision dashboard, explicit data
-  coverage/readiness, stock and scanner journeys, and discoverability of already-implemented
-  derivatives research.
-- **Deferred**: Sprint 19.2 broker work, OpenAlgo, live trading, real-time feeds, and later
-  productization stages. Historical sections below remain as completion records and may contain
-  point-in-time counts.
-- **Implemented UI reality**: the shell retains the approved workstation design while product
-  queries now exclude centralized fixture symbols, missing metrics remain missing, zero-row imports
-  are labeled NO DATA, scanner results identify their scanner, readiness is scanner-specific,
-  pipeline/scheduler states are explicit, and each full page has one active desktop navigation item.
-- **Current persisted product equity readiness**: 2,779 stock masters, 2,778 with stored prices, latest
-  equity date 2026-08-06, maximum 45 sessions, and zero stocks at the 50-session scanner threshold.
-  Latest product indicator coverage is 3 stocks through 2026-08-04. Product sector mappings are
-  absent. These states are represented as missing/insufficient data, not market conclusions.
-- **Preserved raw data**: all eight known fixture symbols and raw import audit rows remain in the
-  database for development and testing; no migration or destructive cleanup was performed.
-- **Gate**: do not start Stage 2 until the user explicitly accepts Stage 1R.
+- **Alembic**: `478d723971bc` (single current head, no new migrations)
+- **Verification**: 31 focused tests in `test_stock_intelligence.py` passed; 17 tests in `test_stock_detail.py` passed; full test suite 1,413 / 1,413 tests passing (100% PASS, 0 failures, 0 errors); Ruff clean; import OK; Alembic check clean; git diff clean; 11 pilot stocks verified live in database and browser.
+- **Priority**: Deterministic research context aggregation, multi-domain factor attribution (Technicals, Fundamentals, Valuation, News & Policy, Corporate Events, Delivery, Sector, Market Context), strict missing != zero, completeness vs confidence separation, PIT safety, and responsive UI.
+- **Scope Implemented**:
+  - `app/schemas/stock_intelligence.py`: Typed schemas for Stock Intelligence, overall states, evidence items, and factors.
+  - `app/services/stock_intelligence_service.py`: Point-in-time safe evidence synthesis engine across 8 domains.
+  - `app/templates/components/stock_intelligence.html`: Responsive Bootstrap 5 UI component embedded into Stock360.
+  - `tests/test_stock_intelligence.py`: Comprehensive test suite with 31 tests.
+- **Gate**: do not start Phase G until explicitly authorized.
 
 ---
 
-AIStockScanner after Sprint 19 Task 19.1J (Real Historical Data Expansion + Coverage Certification Engine) COMPLETE & VERIFIED (1283 tests). Sprint 18 COMPLETE (released v0.14.0). Sprint 19 IN PROGRESS.
-Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest alembic head: `g7h8i9j0k1l2`.
+AIStockScanner after Sprint 19 Task 19.1J (Real Historical Data Expansion + Coverage Certification Engine) COMPLETE & VERIFIED (1283 tests). Sprint 18 COMPLETE (released v0.14.0). Sprint 19 IN PROGRESS. Stage 2.6.5 Phase F Complete & Certified.
 
 
 ## Stack
@@ -42,7 +29,7 @@ Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest ale
 
 ## Data
 
-- 51 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
+- 58 models: Sector, Stock, DailyPrice, ImportJob, ScanDefinition, ScanResult, IndicatorResult,
   EODPipelineRun, TechnicalAnalysis, AIExplanation, Watchlist, WatchlistStock, Portfolio,
   Holding, AlertRule, AlertEvent, NotificationChannel, NotificationPreference,
   NotificationDelivery, DailySummaryRun, User, Role, Permission, UserRole, RolePermission,
@@ -50,13 +37,15 @@ Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest ale
   BacktestEquityPoint, BacktestMetric, MarketIndex, MarketIndexPrice, InstitutionalFlow,
   MarketIntelligenceSnapshot, TradingAccount, TradingOrder, TradingExecution, TradingPosition,
   SecurityAlias, CorporateAction, IndexMembership, DataQualityIssue, DerivativeContract,
-  DerivativeLotSizeHistory, DerivativeDailyPrice, DerivativeParticipantPosition, FiiDerivativeStatistic
+  DerivativeLotSizeHistory, DerivativeDailyPrice, DerivativeParticipantPosition, FiiDerivativeStatistic,
+  FinancialStatement, CorporateAnnouncement, ShareholdingPattern, NewsEvent, NewsEntityLink,
+  Industry, ComparableCompany
 
 ## Migrations
 
-- Alembic current: `e91f4a5678ab (head)`
-- Alembic heads: `e91f4a5678ab (head)`
-- Linear history: 24 revisions
+- Alembic current: `478d723971bc (head)`
+- Alembic heads: `478d723971bc (head)`
+- Linear history: 27 revisions
 - Sprint 17 Task 17.1 migration: backtesting foundation tables (strategies, runs, trades, equity_points, metrics)
 - Sprint 18 Task 18.1 migration `25e6f159a646`: market intelligence foundation tables
 - Sprint 18 Task 18.8 migration `5f7b2c9d4e3a`: econ_events table
@@ -65,6 +54,13 @@ Sprint 17 was released as v0.13.0. Sprint 18 was released as v0.14.0. Latest ale
 - Sprint 19 Task 19.1D-1 migration `b71d9e2a3456`: derivative contract master tables (derivative_contracts, derivative_lot_size_histories)
 - Sprint 19 Task 19.1D-2 migration `c82e3f4a5678`: derivative daily prices table (derivative_daily_prices)
 - Sprint 19 Task 19.1D-7 migration `e91f4a5678ab`: derivative participant tables (derivative_participant_positions, fii_derivative_statistics)
+- Sprint 19 Task 19.1E migration `f1a2b3c4d5e6`: fundamental corporate tables (financial_statements, corporate_announcements, shareholding_patterns)
+- Sprint 19 Task 19.1F migration `g7h8i9j0k1l2`: news policy tables (news_events, news_entity_links)
+- Stage 2.6.2 migration `478d723971bc`: add Industry and ComparableCompany tables and Stock.industry_id foreign key (head)
+
+## Known Limitations & Architecture Notes
+
+- **Dual Stock Industry Architecture**: `Stock` possesses both a legacy string column `Stock.industry` (String(120), used for raw exchange/master industry names and initial fallback) and a normalized foreign key `Stock.industry_id` (ForeignKey to `industries.id`, added in Stage 2.6.2 migration `478d723971bc`). Services access industry using `industry_val = stock.industry or (stock.industry_ref.name if stock.industry_ref else None)`. Normalization of all legacy strings into `industries` table is intentionally preserved without destructive schema redesign.
 
 ## EOD pipeline
 

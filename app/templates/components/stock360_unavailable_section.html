@@ -1,0 +1,16 @@
+{% macro render_unavailable(title, icon_class, description="This section is currently unavailable because the data provider has not been connected yet.") %}
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0"><i class="{{ icon_class }} me-2"></i>{{ title }}</h5>
+    </div>
+    <div class="card-body py-5 text-center">
+        <div class="state-panel state-panel-info d-inline-flex align-items-center gap-2 mb-0" style="max-width: 500px; text-align: left;">
+            <i class="bi bi-info-circle text-info fs-5"></i>
+            <div>
+                <div class="state-panel-title">Data source not yet connected</div>
+                <div class="state-panel-copy">{{ description }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endmacro %}

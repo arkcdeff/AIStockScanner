@@ -7,12 +7,20 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     create_async_engine,
 )
+from sqlalchemy.pool import NullPool
 
 from app.core.config import settings
 
 
 @lru_cache
 def get_engine() -> AsyncEngine:
+    import sys
+    if "test" in sys.argv[0]:
+        return create_async_engine(
+            settings.database_url_async,
+            echo=settings.database_echo,
+            poolclass=NullPool
+        )
     return create_async_engine(
         settings.database_url_async,
         echo=settings.database_echo,

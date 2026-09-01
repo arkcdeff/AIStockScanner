@@ -1,0 +1,29 @@
+<div class="card border-0 shadow-sm h-100">
+    <div class="card-body">
+        <h6 class="card-title mb-3"><i class="bi bi-newspaper me-2"></i>News &amp; Policy</h6>
+        {% if news_policy %}
+            {% if news_policy.quality_warnings and "NO_MARKET_POLICY_EVENTS" in news_policy.quality_warnings %}
+            <div class="mb-2">
+                <small class="text-muted d-block mb-1">Coverage: Not available</small>
+                <small class="text-muted d-block">Company Events: No recorded events</small>
+                <small class="text-muted d-block">Government / Policy: No recorded events</small>
+                <small class="text-muted d-block">RBI: No recorded events</small>
+                <small class="text-muted d-block">SEBI: No recorded events</small>
+            </div>
+            {% else %}
+            <div class="d-flex justify-content-between mb-2">
+                <strong>Sentiment Context</strong>
+                <span class="{{ 'text-success' if news_policy.overall_sentiment_context == 'POSITIVE_CONTEXT' else 'text-danger' if news_policy.overall_sentiment_context == 'NEGATIVE_CONTEXT' else 'text-muted' }} fw-bold">{{ news_policy.overall_sentiment_context | mi_label }}</span>
+            </div>
+            <hr class="my-2">
+            <small class="text-muted d-block">Company Events: {{ news_policy.recent_market_events | length }}</small>
+            <small class="text-muted d-block">Government / Policy: {{ news_policy.government_policy_events | length }}</small>
+            <small class="text-muted d-block">RBI: {{ news_policy.rbi_monetary_events | length }}</small>
+            <small class="text-muted d-block">SEBI: {{ news_policy.sebi_regulatory_events | length }}</small>
+            {% endif %}
+        {% else %}
+        <p class="text-muted mb-0"><i class="bi bi-info-circle me-1"></i>News coverage: Not available</p>
+        <small class="text-muted d-block mt-2">No news events are currently recorded for this evaluation period.</small>
+        {% endif %}
+    </div>
+</div>

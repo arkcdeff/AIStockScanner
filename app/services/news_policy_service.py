@@ -198,10 +198,19 @@ class NewsPolicyService:
         sebi_events = [e for e in events_read if e.event_type == "SEBI_REGULATORY"]
         gov_events = [e for e in events_read if e.event_type == "GOVERNMENT_POLICY"]
 
-        # Aggregate sentiment context
+        # Aggregate sentiment context — UNKNOWN when no events are available.
+        # NEUTRAL is only returned when events exist but balance is exactly equal.
+        # Fabricating NEUTRAL when events_read is empty is a PIT violation.
         pos = sum(1 for e in events_read if e.deterministic_context == "POSITIVE_CONTEXT")
         neg = sum(1 for e in events_read if e.deterministic_context == "NEGATIVE_CONTEXT")
-        sentiment = "POSITIVE_CONTEXT" if pos > neg else ("NEGATIVE_CONTEXT" if neg > pos else "NEUTRAL")
+        if not events_read:
+            sentiment = "UNKNOWN"
+        elif pos > neg:
+            sentiment = "POSITIVE_CONTEXT"
+        elif neg > pos:
+            sentiment = "NEGATIVE_CONTEXT"
+        else:
+            sentiment = "NEUTRAL"
 
         return MarketNewsPolicySnapshot(
             evaluation_datetime=eval_dt,
@@ -258,5 +267,5 @@ class NewsPolicyService:
             macro_events_count=sum_dict["macro_events_count"],
             unique_stocks_covered=sum_dict["unique_stocks_covered"],
             unique_sectors_covered=sum_dict["unique_sectors_covered"],
-            coverage_status="OPTIMAL" if sum_dict["total_events_count"] > 0 else "PARTIAL",
+            coverage_status="OPTIMAL" if sum_dict["total_events_count"] > 0 else "NOT_AVAILABLE",
         )

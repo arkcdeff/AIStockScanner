@@ -32,3 +32,19 @@ def is_product_symbol(symbol: str | None) -> bool:
 def product_symbols(symbols: Collection[str]) -> list[str]:
     """Filter a symbol collection using the shared product provenance policy."""
     return [symbol for symbol in symbols if is_product_symbol(symbol)]
+
+
+NON_PRODUCTION_SCANNER_CODES = frozenset({"test_scanner"})
+NON_PRODUCTION_SCANNER_CATEGORIES = frozenset({"test"})
+
+
+def is_product_scanner(code: str | None, category: str | None = None) -> bool:
+    """Return whether a scanner definition is eligible for normal product research views."""
+    if not code:
+        return False
+    c_lower = code.strip().lower()
+    if c_lower in NON_PRODUCTION_SCANNER_CODES or c_lower.startswith("test_"):
+        return False
+    if category and category.strip().lower() in NON_PRODUCTION_SCANNER_CATEGORIES:
+        return False
+    return True

@@ -1,0 +1,44 @@
+<div class="card h-100">
+    <div class="card-header"><h2 class="section-card-title"><i class="bi bi-percent"></i>Period performance</h2></div>
+    <div class="card-body">
+        {% if performance and (performance.return_1w_pct is not none or performance.return_1m_pct is not none or performance.return_3m_pct is not none) %}
+        <dl class="row small mb-0">
+            <dt class="col-6 text-muted fw-normal">1-Week return</dt>
+            <dd class="col-6 text-end">
+                {% if performance.return_1w_pct is not none %}
+                    <span class="fw-semibold {{ 'text-success' if performance.return_1w_pct > 0 else 'text-danger' if performance.return_1w_pct < 0 else 'text-muted' }}">
+                        {{ '%+.2f'|format(performance.return_1w_pct) }}%
+                    </span>
+                {% else %}
+                    <span class="text-muted small">Insufficient history</span>
+                {% endif %}
+            </dd>
+            <dt class="col-6 text-muted fw-normal">1-Month return</dt>
+            <dd class="col-6 text-end">
+                {% if performance.return_1m_pct is not none %}
+                    <span class="fw-semibold {{ 'text-success' if performance.return_1m_pct > 0 else 'text-danger' if performance.return_1m_pct < 0 else 'text-muted' }}">
+                        {{ '%+.2f'|format(performance.return_1m_pct) }}%
+                    </span>
+                {% else %}
+                    <span class="text-muted small">Insufficient history</span>
+                {% endif %}
+            </dd>
+            <dt class="col-6 text-muted fw-normal">3-Month return</dt>
+            <dd class="col-6 text-end">
+                {% if performance.return_3m_pct is not none %}
+                    <span class="fw-semibold {{ 'text-success' if performance.return_3m_pct > 0 else 'text-danger' if performance.return_3m_pct < 0 else 'text-muted' }}">
+                        {{ '%+.2f'|format(performance.return_3m_pct) }}%
+                    </span>
+                {% else %}
+                    <span class="text-muted small">Insufficient history</span>
+                {% endif %}
+            </dd>
+        </dl>
+        {% else %}
+        <div class="empty-state py-4 text-center">
+            <i class="bi bi-hourglass text-muted fs-4"></i>
+            <p class="text-muted small mt-2 mb-0">Insufficient price history to calculate returns.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>

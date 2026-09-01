@@ -1,0 +1,36 @@
+<div class="card h-100">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h2 class="section-card-title"><i class="bi bi-search"></i>Scanner matches</h2>
+        {% if scanner_snapshot and scanner_snapshot.total_matches > 0 %}
+            <span class="badge bg-primary">{{ scanner_snapshot.total_matches }} matched</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        {% if scanner_snapshot and scanner_snapshot.total_matches > 0 %}
+        <dl class="row small mb-3">
+            <dt class="col-6 text-muted fw-normal">Bullish / Bearish</dt>
+            <dd class="col-6 text-end">
+                <span class="text-success fw-semibold">{{ scanner_snapshot.bullish_count }}</span> /
+                <span class="text-danger fw-semibold">{{ scanner_snapshot.bearish_count }}</span>
+            </dd>
+            <dt class="col-6 text-muted fw-normal">Latest scan date</dt>
+            <dd class="col-6 text-end">
+                {% if scanner_snapshot.latest_date %}{{ scanner_snapshot.latest_date }}{% else %}—{% endif %}
+            </dd>
+        </dl>
+        <div class="recent-scanners">
+            <div class="text-muted small mb-2">Recent active scanners:</div>
+            <div class="d-flex flex-wrap gap-1">
+                {% for scanner in scanner_snapshot.recent_scanners %}
+                    <span class="badge bg-light text-dark border">{{ scanner }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state py-4 text-center">
+            <i class="bi bi-shield-slash text-muted fs-4"></i>
+            <p class="text-muted small mt-2 mb-0">No active scanner matches for this stock.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
