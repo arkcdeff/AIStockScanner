@@ -214,6 +214,8 @@ def _render_page(request: Request, data: dict, options: dict) -> str:
     from jinja2 import Environment, FileSystemLoader
 
     env = Environment(loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")))
+    env.globals["max"] = max
+    env.globals["min"] = min
     env.globals["_build_sort_params"] = lambda col, req: _build_sort_params(col, req)
     env.globals["_build_page_params"] = lambda p, req: _build_page_params(p, req)
     template = env.get_template("scanner_results.html")
@@ -233,6 +235,8 @@ def _render_table(request: Request, data: dict, options: dict, filters: dict) ->
     from jinja2 import Environment, FileSystemLoader
 
     env = Environment(loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")))
+    env.globals["max"] = max
+    env.globals["min"] = min
     env.globals["_build_sort_params"] = lambda col, req: _build_sort_params(col, req)
     env.globals["_build_page_params"] = lambda p, req: _build_page_params(p, req)
     template = env.get_template("components/scanner_results_table.html")

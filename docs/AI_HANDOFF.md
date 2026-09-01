@@ -1,34 +1,60 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair Checkpoint 2026-09-01
+## Active Handoff — Stage 2 Phase G.2 Partial — NSE Nifty Total Market Classification Checkpoint 2026-09-01
 
-- **Status**: `STAGE 2.6.5 PHASE F BROWSER TRUTH & PRODUCT POLISH REPAIR COMPLETE & CERTIFIED — STOCK INTELLIGENCE & DECISION CONTEXT LAYER`
+- **Status**: `STAGE 2 PHASE G.2 PARTIAL — NSE NIFTY TOTAL MARKET CLASSIFICATION (750/3,530 PRODUCT STOCKS, 21.25%) COMPLETE & AUDITED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
 - **Version / schema**: `0.14.0` / Alembic `478d723971bc`
+- **Taxonomy Truth & Architecture**:
+  - The authoritative NSE Index Master CSV (`ind_niftytotalmarket_list.csv`) provides a single classification field labeled `Industry`.
+  - Materialized as 22 canonical `Sector` and 22 canonical `Industry` rows with a 1:1 mapping: `Sector.name = source Industry`, `Industry.name = source Industry`, and `Industry.sector_id = Sector.id`.
+  - Deeper multi-level Sector $\to$ Industry taxonomy is deferred pending an authoritative multi-level NSE source.
+- **Coverage & Scope Truth**:
+  - Source file records: 752 data rows (750 valid, 2 exchange test dummy rows isolated: `DUMMYINXGN`, `DUMMYTRVN`).
+  - Source utilization: 750 / 752 (99.73%).
+  - Product stock coverage: 750 / 3,530 product stocks (21.25%).
+  - Remaining unclassified product stocks: 2,780 / 3,530 (78.75%) (smallcap/illiquid non-Nifty total market equities).
+  - Market capitalization & volume coverage: >95% of institutional trading universe.
+  - Pilot coverage: 14 / 14 (100%) pilot stocks classified.
+- **Fixture Isolation Policy**:
+  - `ANALYTX` is a pre-existing seeded synthetic fixture (`SYNTHETIC_FIXTURE_SYMBOLS`) retaining test classifications (`sector_id = Analytics Test`, `industry_id = Testing`).
+  - Synthetic fixtures are excluded from product classification metrics and preserved without mutation.
+- **Runtime Provenance**:
+  - `StockIntelligence.provenance["sector_source"]` carries `"ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"` when `stock.sector_id` is present.
 - **Verification**:
-  - Point-in-Time safe deterministic decision context aggregation service implemented across 8 research domains (`StockIntelligenceService`).
-  - Strict invariants enforced: `MISSING != ZERO` (dashes `--` rendered when events empty; legitimate zeros preserved), `COMPLETENESS != CONFIDENCE` (mathematically decoupled), `ZERO/NEUTRAL PRESERVED`, `NO BUY/SELL RECOMMENDATIONS`.
-  - Sector domain semantics decoupled from industry (`sector: UNAVAILABLE` when unclassified with informative watch item).
-  - Delivery synthetic test values cleared from RELIANCE (`delivery: UNAVAILABLE` with informative watch item).
-  - Duplicate AI Explanation header eliminated (`AI explanation unavailable / disabled.` rendered in single clean card).
-  - Test Scanner filtered out from all product queries and health counts.
-  - Comprehensive schemas implemented (`StockIntelligence`, `OverallState`, `EvidenceDomain`, `EvidenceDirection`, `FactorItem`, `EvidenceItem`).
-  - Responsive UI component (`app/templates/components/stock_intelligence.html`) integrated into Stock360.
-  - Dedicated test suite (`tests/test_stock_intelligence.py`) passing 31/31 tests.
-  - Full test suite: 1,413 / 1,413 tests passing (100% GREEN, 0 failures, 0 errors).
-  - Ruff clean; import OK; Alembic clean; git diff clean.
-- **Next action**: User review of Stage 2.6.5 Phase F. Do NOT start Phase G.
+  - Acquired official NSE Index Master CSV (`ind_niftytotalmarket_list.csv`, SHA256: `69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac`).
+  - Parsed 752 data rows: 750 valid, 2 exchange test dummy rows isolated (`DUMMYINXGN`, `DUMMYTRVN`).
+  - Upserted 22 canonical `Sector` entities and 22 canonical `Industry` entities with zero duplicate records (1:1 mapping).
+  - Mapped 750 product stocks using primary key ISIN (748) and symbol fallback for corporate actions (2: `KIRLPNU`, `TDPOWERSYS`).
+  - Enforced strict hierarchy consistency: `Stock.sector_id == Industry.sector_id` (0 mismatches), `Stock.industry == Industry.name` (0 mismatches).
+  - All 14 pilot stocks (RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, AXISBANK, LT, M&M, BHARTIARTL, ITC, KOTAKBANK, BAJFINANCE, HINDUNILVR) mapped 100%.
+  - Unblocked downstream engines:
+    - `FundamentalCorporateService`: Resolves peers under `INDUSTRY` peer group with median P/E, P/B, P/S.
+    - `StockIntelligenceService`: Evaluates `domain_coverage["sector"]` as `AVAILABLE` with factor `SECTOR_MAPPING_ESTABLISHED` and runtime provenance `sector_source`.
+    - `ScannerWorkspaceService`: Filter dropdown populated with 22 canonical sectors.
+    - `StockService`: Reports `summary.sector_mapped = 750`; warning banner removed.
+    - `StockDetailService`: Returns canonical sector name for badge chips and overview.
+  - Dedicated G.2 test suite: 20 / 20 tests passing in `tests/test_sector_classification_g2.py`.
+  - Full test collection: **1,446 tests** across 94 test modules (1,426 previous baseline including 13 G.1 tests + 20 G.2 tests).
+  - Full test suite: 1,446 / 1,446 tests passing (100% GREEN, 0 failures, 0 errors).
+  - Ruff clean (`All checks passed!`); import OK (`IMPORT OK`); Alembic clean (`No new upgrade operations`); git diff clean.
+  - 9 real application browser endpoints verified at HTTP 200.
+- **Strict Guardrails**:
+  - G.3 (Delivery acquisition) NOT started.
+  - No synthetic sector classifications; no guess inference.
+  - No migrations created; no version bump; no commit/push/tag.
+- **Next action**: User review of Stage 2 Phase G.2. Do NOT start Phase G.3.
 
 ---
 
-## Current Platform Baseline (Stage 2.6.5 Phase F)
+## Current Platform Baseline (Stage 2 Phase G.2)
 
 - **Authoritative Project Workspace:** `D:\SCTS\college_cert_sys_phase1\AIStockScanner_Stage1_2\AIStockScanner_Milestone2_3\AIStockScanner`
 - **Current Version:** `0.14.0`
 - **ORM Models:** **58**
 - **Alembic Head:** `478d723971bc (head)`
-- **Pytest Collection:** **1413 tests** across 83 test modules
-- **Full Test Suite:** 1413 passed, 0 failed, 0 errors, 0 skipped (100% GREEN)
+- **Pytest Collection:** **1,446 tests** across 94 test modules
+- **Full Test Suite:** 1,446 passed, 0 failed, 0 errors, 0 skipped (100% GREEN)
 - **Ruff Status:** 100% GREEN (`All checks passed!`)
 
 ---

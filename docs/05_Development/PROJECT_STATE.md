@@ -1,23 +1,28 @@
 # Project State
 
-### Current productization state (2026-09-01) — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
+#### Current productization state (2026-09-01) — Stage 2 Phase G.2 Partial — NSE Nifty Total Market Classification (750/3,530 Product Stocks, 21.25%)
 
-- **Current task**: Stage 2.6.5 Phase F Browser Truth & Product Polish Repair COMPLETE & CERTIFIED
+- **Current task**: Stage 2 Phase G: G.2 Sector & Industry Classification (Partial — Nifty Total Market Source) COMPLETE & HARDENED
 - **Checkpoint**: `checkpoint/sprint19-20-20260822`
 - **Version**: `0.14.0`
 - **Alembic**: `478d723971bc` (single current head, no new migrations)
-- **Verification**: 31 focused tests in `test_stock_intelligence.py` passed; 17 tests in `test_stock_detail.py` passed; full test suite 1,413 / 1,413 tests passing (100% PASS, 0 failures, 0 errors); Ruff clean; import OK; Alembic check clean; git diff clean; 11 pilot stocks verified live in database and browser.
-- **Priority**: Deterministic research context aggregation, multi-domain factor attribution (Technicals, Fundamentals, Valuation, News & Policy, Corporate Events, Delivery, Sector, Market Context), strict missing != zero, completeness vs confidence separation, PIT safety, and responsive UI.
+- **Verification**: 20 focused tests in `test_sector_classification_g2.py` passed; full test suite 1,446 / 1,446 tests passing (100% PASS, 0 failures, 0 errors, 13 G.1 tests preserved); Ruff clean; import OK; Alembic check clean; git diff clean; 750 product stocks mapped to 22 canonical Sectors and 22 canonical Industries; 14/14 pilot stocks mapped; 9 real browser endpoints verified at HTTP 200.
+- **Taxonomy Truth**: The authoritative source (`ind_niftytotalmarket_list.csv`) provides a single classification column (`Industry`). This is materialized as 22 canonical `Sector` and 22 canonical `Industry` rows with a 1:1 mapping (`Industry.sector_id = Sector.id`). Deeper multi-level Sector $\to$ Industry taxonomy is deferred pending an authoritative multi-level NSE source.
+- **Coverage Truth**: Source utilization 750/752 (99.73%); product stock coverage 750/3,530 (21.25%); remaining unclassified product stocks 2,780/3,530 (78.75%); institutional market capitalization and volume coverage >95%.
+- **Fixture Isolation**: `ANALYTX` is a pre-existing seeded synthetic fixture (`SYNTHETIC_FIXTURE_SYMBOLS`) and excluded from product classification metrics.
+- **Runtime Provenance**: `StockIntelligence.provenance["sector_source"]` carries `"ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"`.
 - **Scope Implemented**:
-  - `app/schemas/stock_intelligence.py`: Typed schemas for Stock Intelligence, overall states, evidence items, and factors.
-  - `app/services/stock_intelligence_service.py`: Point-in-time safe evidence synthesis engine across 8 domains.
-  - `app/templates/components/stock_intelligence.html`: Responsive Bootstrap 5 UI component embedded into Stock360.
-  - `tests/test_stock_intelligence.py`: Comprehensive test suite with 31 tests.
-- **Gate**: do not start Phase G until explicitly authorized.
+  - Acquired and validated official NSE Index Master CSV (`ind_niftytotalmarket_list.csv`, SHA256 `69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac`).
+  - Built `app/data/sector_classification_parser.py` with strict header validation, UTF-8 parsing, and exchange test dummy rejection (`DUMMYINXGN`, `DUMMYTRVN`).
+  - Built `app/services/sector_classification_service.py` with transactional execution, primary ISIN matching (748), symbol fallback (2: `KIRLPNU`, `TDPOWERSYS`), 100% idempotency, and zero duplication.
+  - Upserted 22 canonical `Sector` rows and 22 canonical `Industry` rows (1:1 mapping).
+  - Mapped 750 product stocks (`Stock.sector_id`, `Stock.industry_id`) and synchronized legacy `Stock.industry = Industry.name`.
+  - Added dedicated test suite `tests/test_sector_classification_g2.py` (20 tests).
+- **Gate**: do not start Phase G.3 until explicitly authorized.
 
 ---
 
-AIStockScanner after Sprint 19 Task 19.1J (Real Historical Data Expansion + Coverage Certification Engine) COMPLETE & VERIFIED (1283 tests). Sprint 18 COMPLETE (released v0.14.0). Sprint 19 IN PROGRESS. Stage 2.6.5 Phase F Complete & Certified.
+AIStockScanner after Stage 2 Phase G.2 (Partial — NSE Nifty Total Market Classification: 750/3,530 Product Stocks) COMPLETE & AUDITED (1,446 tests). Stage 2 Phase G.1 Complete. Stage 2.6.5 Phase F Complete & Certified. Phase G.2 Complete & Hardened.
 
 
 ## Stack

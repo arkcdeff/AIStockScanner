@@ -248,6 +248,11 @@ class StockIntelligenceService:
                 "price_sessions_used": len(prices),
                 "domains_evaluated": total_domains,
                 "domains_available": available_domains_count,
+                **(
+                    {"sector_source": "ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"}
+                    if stock.sector_id is not None
+                    else {}
+                ),
             },
         )
 
@@ -1072,7 +1077,7 @@ class StockIntelligenceService:
                 description=f"Security mapped to {sector_name} sector.",
                 value=sector_name,
                 evaluation_date=eval_d,
-                source="StockMaster / SectorRegistry",
+                source="ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac",
                 status="AVAILABLE",
             ))
         elif industry_val:

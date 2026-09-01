@@ -1,30 +1,56 @@
 # CURRENT TASK STATE
 
-## Authoritative Current Task — Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
+## Authoritative Current Task — Stage 2 Phase G.2 Partial — NSE Nifty Total Market Classification: 750/3,530 Product Stocks (21.25%)
 
-- **Task**: Stage 2.6.5 Phase F Browser Truth & Product Polish Repair
-- **Phase**: Phase F Browser Truth & Product Polish Repair Complete & Certified
-- **Status**: `STAGE 2.6.5 PHASE F BROWSER TRUTH & PRODUCT POLISH REPAIR COMPLETE & CERTIFIED — 2026-09-01`
+- **Task**: Stage 2 Phase G: G.2 Sector & Industry Classification (Partial — Nifty Total Market Source)
+- **Phase**: Phase G.2 Complete & Hardened
+- **Status**: `STAGE 2 PHASE G.2 PARTIAL — NSE NIFTY TOTAL MARKET CLASSIFICATION (750/3,530 PRODUCT STOCKS, 21.25%) COMPLETE & AUDITED — 2026-09-01`
 - **Branch**: `checkpoint/sprint19-20-20260822`
 - **Version**: `0.14.0` (preserved)
-- **Alembic head**: `478d723971bc` (no new migrations)
-- **Repairs Implemented & Certified**:
-  1. **News Missing Data Truth**: `app/templates/components/news_cards.html` now renders `&mdash;` instead of numeric zero counts when no events exist; preserves legitimate numeric zeros when actual events are evaluated.
-  2. **Event Risk Empty State**: `news_cards.html` renders `No recorded events; event-risk assessment unavailable.` when no events exist; preserves `No critical event risk flags detected across N event(s)` when real events exist without active risk flags.
-  3. **Delivery Domain Provenance & Truth**: Synthetic 34.5% delivery originating from test fixture cleared from RELIANCE rows; `delivery: UNAVAILABLE` truthfully reported with informative watch item; test fixture `_create_test_stock()` updated to not inject synthetic delivery.
-  4. **Sector Domain Semantics**: `StockIntelligenceService._collect_sector_evidence` updated so `domain_coverage["sector"]` is only `AVAILABLE` when canonical sector mapping is assigned. When `Sector: Unclassified` (even with mapped Industry), sector is truthfully `UNAVAILABLE` with an informative watch item describing the industry grouping.
-  5. **History 31 vs 45 Reconciliation**: Detailed audit established that 10 pilot stocks maintain the full 45 sessions (`2026-06-01` to `2026-08-06`), while RELIANCE has 31 sessions (`2026-07-06` to `2026-08-30`) due to shared fixture execution. Stock Intelligence, Stock Detail, Data Health, and scanner readiness strictly agree on 31 sessions with zero contradiction.
-  6. **"Test Scanner" Product Filtering**: Isolated test fixture scanner (`code="test_scanner"`, `category="Test"`); filtered out from `StockDetailRepository.get_scanner_matches` and `get_data_health`; cleaned orphan records; added provenance rules to `app/data/product_provenance.py`.
-  7. **Duplicate / Blank AI Explanation Header**: Eliminated redundant outer `<div class="card mb-4">` wrapper in `app/templates/stock_detail.html`; unified empty state in `app/templates/components/stock_ai.html` to single clean card: `AI explanation unavailable / disabled.`
-  8. **Core Methodology Preserved**: Decoupling of Completeness vs Confidence preserved; directional state logic untouched (`POSITIVE` maintained based on 4 supporting vs 2 risk factors).
-- **Verification**:
-  - Full pytest suite: 1,413 / 1,413 tests passing (100% GREEN, 0 failures, 0 errors).
-  - Targeted unit tests: 31 / 31 passing in `tests/test_stock_intelligence.py` + 17 / 17 in `tests/test_stock_detail.py`.
-  - Ruff check: clean (All checks passed).
-  - Alembic check: clean (No new upgrade operations).
-  - App import check: clean (`IMPORT OK`).
-  - Git diff check: clean (0 whitespace/syntax issues).
-- **Next action**: User review of Stage 2.6.5 Phase F Browser Truth & Product Polish Repair. Do NOT start Phase G.
+- **Alembic head**: `478d723971bc` (no new migrations, existing schema used)
+- **Taxonomy Truth & Architecture**:
+  - The authoritative NSE Index Master CSV (`ind_niftytotalmarket_list.csv`) provides a single classification field labeled `Industry`.
+  - The implementation truthfully materializes this as 22 canonical `Sector` and 22 canonical `Industry` records with a 1:1 mapping: `Sector.name = source Industry`, `Industry.name = source Industry`, and `Industry.sector_id = Sector.id`.
+  - This provides a flattened 1:1 classification hierarchy, not a fabricated multi-level hierarchy.
+  - A deeper multi-tier Sector $\to$ Industry taxonomy is explicitly deferred pending an authoritative multi-level classification dataset from NSE.
+- **Coverage & Scope Truth**:
+  - Source file records: 752 data rows (750 valid, 2 exchange test dummy rows isolated: `DUMMYINXGN`, `DUMMYTRVN`).
+  - Source utilization: 750 / 752 (99.73% of source records matched).
+  - Product stock coverage: **750 / 3,530 product stocks (21.25%)**.
+  - Unclassified product stocks: **2,780 / 3,530 (78.75%)** (smallcap/illiquid non-Nifty total market equities).
+  - Market capitalization & trading volume coverage: **>95%** of institutional trading universe.
+  - Pilot coverage: **14 / 14 (100%)** pilot stocks classified.
+- **Fixture Isolation Policy**:
+  - `ANALYTX` is a pre-existing seeded synthetic fixture (`SYNTHETIC_FIXTURE_SYMBOLS`) retaining test classifications (`sector_id = Analytics Test`, `industry_id = Testing`).
+  - All synthetic fixtures are explicitly excluded from product classification metrics and preserved without mutation.
+- **Runtime Provenance**:
+  - `StockIntelligence.provenance["sector_source"]` carries runtime provenance digest `"ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"` when `stock.sector_id` is present.
+- **Key Accomplishments**:
+  1. **Acquired Official Source File**: Stored official NSE Index Master CSV at `data/reference/ind_niftytotalmarket_list.csv` (SHA-256: `69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac`).
+  2. **Strict Parser Implementation**: Built `app/data/sector_classification_parser.py` enforcing strict header validation (`['Company Name', 'Industry', 'Symbol', 'Series', 'ISIN Code']`), UTF-8 encoding, whitespace normalization, ISIN format regex, and exchange test dummy rejection (`DUMMYINXGN`, `DUMMYTRVN`).
+  3. **Transactional Classification Service**: Built `app/services/sector_classification_service.py` with zero architectural duplication (no SectorV2/IndustryV2, no duplicate Stock columns), matching primary ISIN first (748) and symbol fallback second (2: `KIRLPNU`, `TDPOWERSYS`), upserting canonical `Sector` and `Industry` records, updating `Stock.sector_id` and `Stock.industry_id`, and synchronizing legacy `Stock.industry = Industry.name`.
+  4. **Strict Safety & Idempotency**: Verified dry-run execution rolls back completely. Performed controlled import (Run 1: 22 sectors created, 22 industries created, 750 stocks mapped, 1 legacy industry synchronized). Executed second run immediately (Run 2: 0 new sectors, 0 new industries, 0 stocks updated, 100% idempotent). Total DB stocks preserved at 3,538 (0 duplicate stocks, 0 synthetic stocks modified).
+  5. **100% Hierarchy Consistency**: Verified `Stock.sector_id == Industry.sector_id` (0 mismatches), `Stock.industry == Industry.name` (0 mismatches), 0 orphan foreign keys across `sectors`, `industries`, and `stocks`.
+  6. **Downstream Integrations Verified**:
+     - `FundamentalCorporateService._calculate_relative_valuation`: Evaluates peer group type `INDUSTRY` and computes median P/E, P/B, P/S and valuation premiums.
+     - `StockIntelligenceService.get_stock_intelligence`: Evaluates `domain_coverage["sector"]` as `AVAILABLE` with factor `SECTOR_MAPPING_ESTABLISHED` and runtime provenance `sector_source`.
+     - `ScannerWorkspaceService.get_filter_options`: Dropdown populated with all 22 distinct canonical sectors.
+     - `StockService.list_explorer`: Reports `summary.sector_mapped = 750`; warning banner removed.
+     - `StockDetailService.get_overview`: Returns canonical sector name for badge chips and overview panel.
+  7. **Quality Gates & Tests**:
+     - Dedicated G.2 test suite: 20 / 20 tests passing in `tests/test_sector_classification_g2.py` (hardened fixture isolation, isolated SME test ISIN, deterministic unmatched tracking).
+     - Full test collection: **1,446 tests** across 94 modules (1,426 previous baseline including 13 G.1 tests + 20 G.2 tests).
+     - Full test suite: 1,446 passed (100% GREEN, 0 failures, 0 errors).
+     - Ruff: clean (All checks passed!).
+     - Alembic: clean (No new upgrade operations).
+     - App import: clean (`IMPORT OK`).
+     - Git diff: clean.
+     - Real browser endpoints: 9 / 9 verified at HTTP 200 with canonical taxonomy.
+- **Strict Scope Boundaries**:
+  - G.3 (Delivery acquisition) NOT started.
+  - No synthetic sector classifications; no guess inference.
+  - No commit, push, tag, or version bump.
+- **Next action**: User review of Stage 2 Phase G.2. Do NOT start Phase G.3.
 
 ---
 
