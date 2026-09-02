@@ -1,49 +1,44 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.3 Market Data Download & Backfill Repair & Verification Checkpoint 2026-09-02
+## Active Handoff — Stage 2 Phase G.4 Official Market Context Acquisition & Decision Context Completion Checkpoint 2026-09-02
 
-- **Status**: `STAGE 2 PHASE G.3 MARKET DATA DOWNLOAD & BACKFILL REPAIR & VERIFICATION COMPLETE & VERIFIED`
+- **Status**: `STAGE 2 PHASE G.4 OFFICIAL MARKET CONTEXT ACQUISITION & DECISION CONTEXT COMPLETION COMPLETE & VERIFIED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
-- **Version / schema**: `0.14.0` / Alembic `478d723971bc`
-- **Download & Backfill Repairs**:
-  - **NSE Archive Migration (`nsearchives.nseindia.com`)**: Configured `nse_base_url` to `https://nsearchives.nseindia.com`. Bypassed session initialization handshake that previously triggered 403 Forbidden blocks on `www.nseindia.com`.
-  - **Modern CM Format Routing**: `_bhavcopy_url` dynamically routes dates $\ge$ 2024-07-08 to official `/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip` and legacy dates to historical archive.
-  - **Companion Delivery Acquisition**: Added `download_delivery()` to fetch companion `sec_bhavdata_full_{DDMMYYYY}.csv` and attach it during import so daily prices and delivery metrics are populated together.
-  - **UI Feedback & Card Summary**: `backfill_market_data` route generates accurate feedback (`danger`, `warning`, `success`) based on actual backfill statistics. Dedicated backfill breakdown alert rendered inside the "Download & Backfill" card in `market_data.html`.
-  - **Live E2E Verification**: Executed Download Date for `2026-09-01` (3,383 prices, 3,117 delivery) and Backfill for `2026-09-02` (3,375 prices, 3,109 delivery) with 100% real NSE data.
-- **Browser Truth & Product Consistency Repairs**:
-  - **Issue 1 (Date Context Consistency)**: `ScanRunner._resolve_evaluation_date` resolves `evaluation_date` to latest indicator date (`2026-08-31`) instead of server clock `now()`; `_fetch_indicator_rows` snaps fallback to nearest date with indicators rather than cross-date `.limit(500)`; `scanner_run_results.html` header updated to `Scan Date`.
-  - **Issue 2 (Stale Latest Scan Date)**: `StockDetailRepository.get_scanner_matches` accepts `as_of_date` enforcing PIT integrity; `stock360_scanner_snapshot.html` label updated to `Latest persisted scan: 2026-08-06`.
-  - **Issue 3 (AI Explanation Truth / Staleness)**: Stale mock explanation from 2026-08-04 suppressed from active display for 2026-08-31 evaluation; rendered truthful advisory banner: *"Cached explanation from 2026-08-04 — not applicable to current 2026-08-31 evaluation. AI explanation unavailable for this evaluation date."*
-  - **Issue 4 (3529 vs 3530 Product Universe)**: Disambiguated 3,530 total product stocks from 3,529 stocks with price history (the single difference being the index entity `NIFTYNXT50`); `MarketDataService.scanner_readiness()` returns both counts; `scanner_run.html` explicitly displays: *"Eligible product stocks for this scanner: 3529 / 3529 with price history (total universe: 3530)"*.
-- **Delivery Truth & Storage**:
-  - Acquired 62 official NSE security-wise delivery CSV files (`sec_bhavdata_full_DDMMYYYY.csv`) stored in `data/reference/delivery/`.
-  - Reused official `parse_delivery` parser from `app/data/nse_parser.py` (zero duplicate parser logic).
-  - Built transactional ingestion service `app/services/delivery_import_service.py` (`DeliveryImportService`).
-  - Updates ONLY `DailyPrice.delivery_quantity` and `DailyPrice.delivery_percentage` on matching `(stock_id, trade_date)` rows.
-  - Zero mutation of OHLCV prices, volume, turnover, or trade count.
-  - 100% idempotent: initial single-file test (2026-06-01) enriched 2,923 rows; batch run (2026-06-02 to 2026-08-31) enriched 176,930 rows (total 179,853 populated product rows). Second directory-wide run updated exactly 0 rows (189,010 unchanged).
-  - Enforced strict validation: `qty >= 0`, `0 <= pct <= 100`, `qty <= volume` (204,961 source records audited with 0 anomalies).
-  - Synthetic fixture preservation: `SYNTHETIC_FIXTURE_SYMBOLS` (`ANALYTX`, etc.) strictly excluded from product delivery updates; `ANALYTX` 34 delivery rows preserved.
-- **Coverage & Pilot Truth**:
-  - Total product stocks: 3,530
-  - Product stocks with real delivery data: **3,414 / 3,530 (96.71%)**
-  - Total real delivery rows in database: **179,853**
-  - Latest real delivery date: **2026-08-31**
-  - All 14 pilot stocks possess exactly **62 real delivery sessions** ($\ge 60$ sessions, 100% of trading dates from 2026-06-01 to 2026-08-31).
+- **HEAD Commit**: `135231260a66830ecd3c4aaaabdbc356369f2183`
+- **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
+- **Official NSE Index Sourcing & Storage**:
+  - Acquired 62 official NSE index CSV files (`ind_close_all_DDMMYYYY.csv`) stored in `data/reference/indices/` (spanning 2026-06-01 to 2026-08-31).
+  - SHA256 manifest: `data/reference/indices/manifest.json`.
+  - Parsed with `NSEIndexParser`: exact 13-column header enforcement, deterministic mapping to 19 canonical indices, date parsing, numeric OHLC validation, volume INT32 overflow guard.
+  - Ingested with `NSEIndexImportService`: 1,178 official rows inserted into `market_index_prices` (now 1,199 total rows across 20 indices).
+  - Indices Populated: `NIFTY_50` (62 rows), `INDIA_VIX` (62 rows), all 14 Sectoral Indices (`NIFTY_BANK`, `NIFTY_IT`, `NIFTY_AUTO`, `NIFTY_FMCG`, `NIFTY_PHARMA`, `NIFTY_METAL`, `NIFTY_REALTY`, `NIFTY_ENERGY`, `NIFTY_INFRASTRUCTURE`, `NIFTY_COMMODITIES`, `NIFTY_CONSUMER_DURABLES`, `NIFTY_OIL_GAS`, `NIFTY_HEALTHCARE`, `NIFTY_SERVICES_SECTOR`), and broad indices (`NIFTY_NEXT_50`, `NIFTY_MIDCAP_100`, `NIFTY_SMALLCAP_100`).
+  - Idempotency verified: 100% duplicate-free (Run 1 inserted 1,178; Run 2 had 0 inserted, 0 updated, 1,178 unchanged).
+- **Market Intelligence Snapshots**:
+  - Computed and committed 62 daily `MarketIntelligenceSnapshot` records across all 62 consecutive sessions.
+  - CompositeMarketIntelligence completeness jumped from **15.0% to 60.0%** (Score: `-36.86`, Regime: `bearish`, Confidence: `71.62%` High).
+- **Stock Intelligence Decision Context Unblocking**:
+  - Verified on representative pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`):
+    - `market_context` transitioned from `UNAVAILABLE` to `AVAILABLE`.
+    - Completeness jumped from **62.5% to 75.0%**.
+    - Evidence `MARKET_REGIME_BEARISH` generated with `direction=NEGATIVE` and factual description.
+- **G.2 Sector and Industry Taxonomy Reconciliation (Muse Spark 1.2 Review)**:
+  - **Canonical G.2 Production Taxonomy**: Exactly **22 canonical production sectors** and **22 canonical production industries** (1:1 flattened taxonomy from official NSE `ind_niftytotalmarket_list.csv` classifying 750 product stocks).
+  - **Database Row Count vs. Canonical Production Taxonomy**:
+    - **Sector Table**: 22 canonical production rows + 2 test rows (`Analytics Test`, `Test Sector`) = **24 database rows total**.
+    - **Industry Table**: 22 canonical production rows + 2 non-production/legacy rows (`Oil & Gas`, `Testing`) = **24 database rows total**.
+  - **Reconciliation Invariant**: Canonical G.2 taxonomy remains strictly 22 sectors / 22 industries. G.4 did not modify or expand the G.2 architecture, and the database contains 24 rows in each table because 2 additional test/legacy rows are retained for compatibility/fixtures.
+- **Global & External Factor Truth**:
+  - Stooq Global Provider: Evaluated; Cloudflare JS challenges gracefully kept as missing/unavailable in accordance with strict no-synthetic-data rule.
+  - GIFT Nifty, Currency, Crude, Macro: Truthfully reported as missing/unavailable.
 - **Verification & Quality Gates**:
-  - Dedicated Download & Backfill test suite: 6 / 6 tests passing in `tests/test_download_and_backfill_repair.py`.
-  - Dedicated G.3 delivery test suite: 16 / 16 tests passing in `tests/test_delivery_acquisition_g3.py`.
-  - Dedicated Browser Truth regression test suite: 7 / 7 tests passing in `tests/test_browser_truth_g3_repair.py`.
-  - Full test collection: **1,475 tests** across 97 test modules.
-  - Full test suite: **1,475 / 1,475 tests passing** (100% GREEN, 0 failures, 0 errors, exit code 0).
+  - Dedicated G.4 test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py`.
   - Ruff clean (`All checks passed!`); import OK (`IMPORT OK`); Alembic clean (`No new upgrade operations`); git diff clean.
-  - Live server on port 8004 restarted and verified operational.
-- **Strict Guardrails**:
-  - G.4 NOT started.
-  - No synthetic delivery fabrication; no volume-percentage derivation.
-  - No migrations created; no version bump; no commit/push/tag.
-- **Next action**: User review of Download & Backfill repair on `http://127.0.0.1:8004/market-data`. Do NOT start Phase G.4.
+  - Authenticated browser rendering: HTTP 200 on `/market-intelligence`, `/stocks/RELIANCE`, `/stocks/HDFCBANK`, `/stocks/TCS`.
+- **Strict Scope Boundaries**:
+  - G.5 NOT started.
+  - No synthetic data; no invented index levels.
+  - No new Alembic migrations; existing schema reused.
+  - No commit, push, tag, or version bump.
 
 ---
 
