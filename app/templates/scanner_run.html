@@ -6,7 +6,7 @@
 <div class="page-header"><div><div class="workspace-eyebrow">Scanner journey</div><h1 class="workspace-title">Run Scanner</h1><p class="workspace-subtitle">Execute an existing deterministic rule against available indicator rows.</p></div><div class="d-flex gap-2"><a href="/scanner-library" class="btn btn-sm btn-outline-primary">Library</a><a href="/scanner-results/" class="btn btn-sm btn-outline-primary">All results</a></div></div>
 
 <div class="state-panel {{ 'state-panel-warning' if selected_requirement.state != 'READY' else '' }} mb-3" role="status">
-    <i class="bi bi-database-check"></i><div><div class="state-panel-title">{{ selected_requirement.state }} · {{ selected_requirement.required_sessions }} sessions required</div><div class="state-panel-copy">Maximum stored history: {{ readiness.max_sessions }} sessions. Required inputs: {{ selected_requirement.indicator_inputs }}. Latest-date indicator rows: {{ readiness.latest_indicator_count }}. Eligible product stocks now: {{ selected_requirement.eligible_count }}.</div></div>
+    <i class="bi bi-database-check"></i><div><div class="state-panel-title">{{ selected_requirement.state }} · {{ selected_requirement.required_sessions }} sessions required</div><div class="state-panel-copy">Maximum stored history: {{ readiness.max_sessions }} sessions. Required inputs: {{ selected_requirement.indicator_inputs }}. Latest-date indicator rows: {{ readiness.latest_indicator_count }}. Eligible product stocks for this scanner: {{ selected_requirement.eligible_count }} / {{ readiness.stocks_with_history }} with price history (total universe: {{ readiness.total_product_stocks or 3530 }}).</div></div>
 </div>
 
 <div class="card mb-3">

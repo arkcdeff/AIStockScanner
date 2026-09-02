@@ -13,7 +13,7 @@
                 <span class="text-success fw-semibold">{{ scanner_snapshot.bullish_count }}</span> /
                 <span class="text-danger fw-semibold">{{ scanner_snapshot.bearish_count }}</span>
             </dd>
-            <dt class="col-6 text-muted fw-normal">Latest scan date</dt>
+            <dt class="col-6 text-muted fw-normal">Latest persisted scan</dt>
             <dd class="col-6 text-end">
                 {% if scanner_snapshot.latest_date %}{{ scanner_snapshot.latest_date }}{% else %}—{% endif %}
             </dd>

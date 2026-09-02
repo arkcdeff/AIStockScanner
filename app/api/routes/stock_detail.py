@@ -1,3 +1,5 @@
+from datetime import date
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -239,6 +241,7 @@ async def stock_detail_page(
             "news_policy": news_policy,
             "corporate_events": corporate_events,
             "stock_intelligence": stock_intelligence,
+            "evaluation_date": _eval_d,
         },
     )
     return HTMLResponse(content=html)
@@ -483,9 +486,20 @@ async def stock_ai_partial(
             explanation = await AIExplanationService(session).explain_stock(symbol)
         except AINotFoundError:
             raise HTTPException(status_code=404, detail="Stock not found") from None
+    overview = await StockDetailService(session).get_overview(symbol)
+    eval_date = (
+        overview["latest_price"].trade_date
+        if overview and overview.get("latest_price")
+        else date.today()
+    )
     return HTMLResponse(
         content=_render(
-            "components/stock_ai.html", {"request": request, "explanation": explanation}
+            "components/stock_ai.html",
+            {
+                "request": request,
+                "explanation": explanation,
+                "evaluation_date": eval_date,
+            },
         )
     )
 

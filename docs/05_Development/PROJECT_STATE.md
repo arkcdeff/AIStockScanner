@@ -1,28 +1,29 @@
 # Project State
 
-#### Current productization state (2026-09-01) — Stage 2 Phase G.2 Partial — NSE Nifty Total Market Classification (750/3,530 Product Stocks, 21.25%)
+#### Current productization state (2026-09-02) — Stage 2 Phase G.3 Market Data Download & Backfill Repair & Verification COMPLETE & VERIFIED
 
-- **Current task**: Stage 2 Phase G: G.2 Sector & Industry Classification (Partial — Nifty Total Market Source) COMPLETE & HARDENED
+- **Current task**: Market Data Download & Backfill Repair on `/market-data` (`http://127.0.0.1:8004/market-data`) COMPLETE & VERIFIED
 - **Checkpoint**: `checkpoint/sprint19-20-20260822`
 - **Version**: `0.14.0`
 - **Alembic**: `478d723971bc` (single current head, no new migrations)
-- **Verification**: 20 focused tests in `test_sector_classification_g2.py` passed; full test suite 1,446 / 1,446 tests passing (100% PASS, 0 failures, 0 errors, 13 G.1 tests preserved); Ruff clean; import OK; Alembic check clean; git diff clean; 750 product stocks mapped to 22 canonical Sectors and 22 canonical Industries; 14/14 pilot stocks mapped; 9 real browser endpoints verified at HTTP 200.
-- **Taxonomy Truth**: The authoritative source (`ind_niftytotalmarket_list.csv`) provides a single classification column (`Industry`). This is materialized as 22 canonical `Sector` and 22 canonical `Industry` rows with a 1:1 mapping (`Industry.sector_id = Sector.id`). Deeper multi-level Sector $\to$ Industry taxonomy is deferred pending an authoritative multi-level NSE source.
-- **Coverage Truth**: Source utilization 750/752 (99.73%); product stock coverage 750/3,530 (21.25%); remaining unclassified product stocks 2,780/3,530 (78.75%); institutional market capitalization and volume coverage >95%.
-- **Fixture Isolation**: `ANALYTX` is a pre-existing seeded synthetic fixture (`SYNTHETIC_FIXTURE_SYMBOLS`) and excluded from product classification metrics.
-- **Runtime Provenance**: `StockIntelligence.provenance["sector_source"]` carries `"ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"`.
-- **Scope Implemented**:
-  - Acquired and validated official NSE Index Master CSV (`ind_niftytotalmarket_list.csv`, SHA256 `69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac`).
-  - Built `app/data/sector_classification_parser.py` with strict header validation, UTF-8 parsing, and exchange test dummy rejection (`DUMMYINXGN`, `DUMMYTRVN`).
-  - Built `app/services/sector_classification_service.py` with transactional execution, primary ISIN matching (748), symbol fallback (2: `KIRLPNU`, `TDPOWERSYS`), 100% idempotency, and zero duplication.
-  - Upserted 22 canonical `Sector` rows and 22 canonical `Industry` rows (1:1 mapping).
-  - Mapped 750 product stocks (`Stock.sector_id`, `Stock.industry_id`) and synchronized legacy `Stock.industry = Industry.name`.
-  - Added dedicated test suite `tests/test_sector_classification_g2.py` (20 tests).
-- **Gate**: do not start Phase G.3 until explicitly authorized.
+- **Verification**: 6 dedicated tests in `test_download_and_backfill_repair.py` + 7 in `test_browser_truth_g3_repair.py` + 16 in `test_delivery_acquisition_g3.py`; full test suite 1,475 / 1,475 tests passing (100% PASS, 0 failures, 0 errors); Ruff clean; import OK; Alembic check clean; git diff clean; live server on port 8004 restarted and verified operational.
+- **Download & Backfill Repairs**:
+  - NSE Source Modernization: `NSEDownloader` migrated to `https://nsearchives.nseindia.com`. Bypassed session initialization handshake that previously triggered 403 Forbidden blocks on `www.nseindia.com`.
+  - Modern CM Format Routing: `_bhavcopy_url` dynamically routes dates $\ge$ 2024-07-08 to official `/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip` and legacy dates to historical archive.
+  - Companion Delivery Acquisition: Added `download_delivery()` to fetch companion `sec_bhavdata_full_{DDMMYYYY}.csv` and attach it during import so daily prices and delivery metrics are populated together.
+  - UI Feedback & Card Summary: `backfill_market_data` route generates accurate feedback (`danger`, `warning`, `success`) based on actual backfill statistics. Dedicated backfill breakdown alert rendered inside the "Download & Backfill" card in `market_data.html`.
+  - Live E2E Verification: Executed Download Date for `2026-09-01` (3,383 prices, 3,117 delivery) and Backfill for `2026-09-02` (3,375 prices, 3,109 delivery) with 100% real NSE data.
+- **Browser Truth & Product Consistency Repairs**:
+  - Date Context: `ScanRunner` resolves evaluation date to latest available indicator trade date (`2026-08-31`) instead of clock `now()`; table header in `scanner_run_results.html` accurately labeled `Scan Date`.
+  - PIT Scan Date: `StockDetailRepository.get_scanner_matches` accepts `as_of_date` enforcing PIT integrity; Stock360 snapshot label updated to `Latest persisted scan: 2026-08-06`.
+  - Stale AI Explanation: Suppressed contradictory claims for outdated AI explanations; added explicit advisory: *"Cached explanation from 2026-08-04 — not applicable to current 2026-08-31 evaluation. AI explanation unavailable for this evaluation date."*
+  - Universe Disambiguation: `MarketDataService.scanner_readiness()` returns both `stocks_with_history` (3,529) and `total_product_stocks` (3,530); `scanner_run.html` explicitly distinguishes price-eligible stocks from the total product universe (the single difference being the index entity `NIFTYNXT50`).
+- **Official Delivery Source & Storage Truth**: Acquired 62 official NSE security-wise delivery files (`sec_bhavdata_full_DDMMYYYY.csv`) stored in `data/reference/delivery/` (June 1, 2026 to August 31, 2026, 204,961 source records parsed). Reused `parse_delivery` parser with zero code duplication. Initial single-file test (2026-06-01) enriched 2,923 rows; directory batch run (2026-06-02 to 2026-08-31) enriched 176,930 rows, totaling 179,853 populated product rows. Full repeat run verified 100% idempotent (0 updates, 189,010 unchanged).
+- **Gate**: do not start Phase G.4 until explicitly authorized.
 
 ---
 
-AIStockScanner after Stage 2 Phase G.2 (Partial — NSE Nifty Total Market Classification: 750/3,530 Product Stocks) COMPLETE & AUDITED (1,446 tests). Stage 2 Phase G.1 Complete. Stage 2.6.5 Phase F Complete & Certified. Phase G.2 Complete & Hardened.
+AIStockScanner after Stage 2 Phase G.3 (Market Data Download & Backfill Repair & Verification) COMPLETE & VERIFIED (1,475 tests). Phase G.2 Complete. Phase G.1 Complete. Stage 2.6.5 Phase F Complete & Certified.
 
 
 ## Stack

@@ -21,10 +21,14 @@ class Settings(BaseSettings):
     database_pool_size: int = 10
     database_max_overflow: int = 20
 
-    nse_base_url: str = "https://www.nseindia.com"
+    nse_base_url: str = "https://nsearchives.nseindia.com"
     nse_bhavcopy_url: str = (
-        "https://www.nseindia.com/content/historical/EQUITIES/{year}/{month}/"
-        "cm{day:02d}{month}{year}bhav.csv.zip"
+        "https://nsearchives.nseindia.com/content/cm/"
+        "BhavCopy_NSE_CM_0_0_0_{year}{month_num:02d}{day:02d}_F_0000.csv.zip"
+    )
+    nse_delivery_url: str = (
+        "https://nsearchives.nseindia.com/products/content/"
+        "sec_bhavdata_full_{day:02d}{month_num:02d}{year}.csv"
     )
     raw_data_dir: Path = Field(default=Path("data/raw/nse"))
     download_timeout: int = 30

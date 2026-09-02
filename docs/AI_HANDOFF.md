@@ -1,60 +1,59 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.2 Partial — NSE Nifty Total Market Classification Checkpoint 2026-09-01
+## Active Handoff — Stage 2 Phase G.3 Market Data Download & Backfill Repair & Verification Checkpoint 2026-09-02
 
-- **Status**: `STAGE 2 PHASE G.2 PARTIAL — NSE NIFTY TOTAL MARKET CLASSIFICATION (750/3,530 PRODUCT STOCKS, 21.25%) COMPLETE & AUDITED`
+- **Status**: `STAGE 2 PHASE G.3 MARKET DATA DOWNLOAD & BACKFILL REPAIR & VERIFICATION COMPLETE & VERIFIED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
 - **Version / schema**: `0.14.0` / Alembic `478d723971bc`
-- **Taxonomy Truth & Architecture**:
-  - The authoritative NSE Index Master CSV (`ind_niftytotalmarket_list.csv`) provides a single classification field labeled `Industry`.
-  - Materialized as 22 canonical `Sector` and 22 canonical `Industry` rows with a 1:1 mapping: `Sector.name = source Industry`, `Industry.name = source Industry`, and `Industry.sector_id = Sector.id`.
-  - Deeper multi-level Sector $\to$ Industry taxonomy is deferred pending an authoritative multi-level NSE source.
-- **Coverage & Scope Truth**:
-  - Source file records: 752 data rows (750 valid, 2 exchange test dummy rows isolated: `DUMMYINXGN`, `DUMMYTRVN`).
-  - Source utilization: 750 / 752 (99.73%).
-  - Product stock coverage: 750 / 3,530 product stocks (21.25%).
-  - Remaining unclassified product stocks: 2,780 / 3,530 (78.75%) (smallcap/illiquid non-Nifty total market equities).
-  - Market capitalization & volume coverage: >95% of institutional trading universe.
-  - Pilot coverage: 14 / 14 (100%) pilot stocks classified.
-- **Fixture Isolation Policy**:
-  - `ANALYTX` is a pre-existing seeded synthetic fixture (`SYNTHETIC_FIXTURE_SYMBOLS`) retaining test classifications (`sector_id = Analytics Test`, `industry_id = Testing`).
-  - Synthetic fixtures are excluded from product classification metrics and preserved without mutation.
-- **Runtime Provenance**:
-  - `StockIntelligence.provenance["sector_source"]` carries `"ind_niftytotalmarket_list.csv#69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac"` when `stock.sector_id` is present.
-- **Verification**:
-  - Acquired official NSE Index Master CSV (`ind_niftytotalmarket_list.csv`, SHA256: `69ee01618f0a6a9ca57f63522329d03f4c179cf8cf0da29b5b80804f008dc1ac`).
-  - Parsed 752 data rows: 750 valid, 2 exchange test dummy rows isolated (`DUMMYINXGN`, `DUMMYTRVN`).
-  - Upserted 22 canonical `Sector` entities and 22 canonical `Industry` entities with zero duplicate records (1:1 mapping).
-  - Mapped 750 product stocks using primary key ISIN (748) and symbol fallback for corporate actions (2: `KIRLPNU`, `TDPOWERSYS`).
-  - Enforced strict hierarchy consistency: `Stock.sector_id == Industry.sector_id` (0 mismatches), `Stock.industry == Industry.name` (0 mismatches).
-  - All 14 pilot stocks (RELIANCE, TCS, INFY, HDFCBANK, ICICIBANK, SBIN, AXISBANK, LT, M&M, BHARTIARTL, ITC, KOTAKBANK, BAJFINANCE, HINDUNILVR) mapped 100%.
-  - Unblocked downstream engines:
-    - `FundamentalCorporateService`: Resolves peers under `INDUSTRY` peer group with median P/E, P/B, P/S.
-    - `StockIntelligenceService`: Evaluates `domain_coverage["sector"]` as `AVAILABLE` with factor `SECTOR_MAPPING_ESTABLISHED` and runtime provenance `sector_source`.
-    - `ScannerWorkspaceService`: Filter dropdown populated with 22 canonical sectors.
-    - `StockService`: Reports `summary.sector_mapped = 750`; warning banner removed.
-    - `StockDetailService`: Returns canonical sector name for badge chips and overview.
-  - Dedicated G.2 test suite: 20 / 20 tests passing in `tests/test_sector_classification_g2.py`.
-  - Full test collection: **1,446 tests** across 94 test modules (1,426 previous baseline including 13 G.1 tests + 20 G.2 tests).
-  - Full test suite: 1,446 / 1,446 tests passing (100% GREEN, 0 failures, 0 errors).
+- **Download & Backfill Repairs**:
+  - **NSE Archive Migration (`nsearchives.nseindia.com`)**: Configured `nse_base_url` to `https://nsearchives.nseindia.com`. Bypassed session initialization handshake that previously triggered 403 Forbidden blocks on `www.nseindia.com`.
+  - **Modern CM Format Routing**: `_bhavcopy_url` dynamically routes dates $\ge$ 2024-07-08 to official `/content/cm/BhavCopy_NSE_CM_0_0_0_{YYYYMMDD}_F_0000.csv.zip` and legacy dates to historical archive.
+  - **Companion Delivery Acquisition**: Added `download_delivery()` to fetch companion `sec_bhavdata_full_{DDMMYYYY}.csv` and attach it during import so daily prices and delivery metrics are populated together.
+  - **UI Feedback & Card Summary**: `backfill_market_data` route generates accurate feedback (`danger`, `warning`, `success`) based on actual backfill statistics. Dedicated backfill breakdown alert rendered inside the "Download & Backfill" card in `market_data.html`.
+  - **Live E2E Verification**: Executed Download Date for `2026-09-01` (3,383 prices, 3,117 delivery) and Backfill for `2026-09-02` (3,375 prices, 3,109 delivery) with 100% real NSE data.
+- **Browser Truth & Product Consistency Repairs**:
+  - **Issue 1 (Date Context Consistency)**: `ScanRunner._resolve_evaluation_date` resolves `evaluation_date` to latest indicator date (`2026-08-31`) instead of server clock `now()`; `_fetch_indicator_rows` snaps fallback to nearest date with indicators rather than cross-date `.limit(500)`; `scanner_run_results.html` header updated to `Scan Date`.
+  - **Issue 2 (Stale Latest Scan Date)**: `StockDetailRepository.get_scanner_matches` accepts `as_of_date` enforcing PIT integrity; `stock360_scanner_snapshot.html` label updated to `Latest persisted scan: 2026-08-06`.
+  - **Issue 3 (AI Explanation Truth / Staleness)**: Stale mock explanation from 2026-08-04 suppressed from active display for 2026-08-31 evaluation; rendered truthful advisory banner: *"Cached explanation from 2026-08-04 — not applicable to current 2026-08-31 evaluation. AI explanation unavailable for this evaluation date."*
+  - **Issue 4 (3529 vs 3530 Product Universe)**: Disambiguated 3,530 total product stocks from 3,529 stocks with price history (the single difference being the index entity `NIFTYNXT50`); `MarketDataService.scanner_readiness()` returns both counts; `scanner_run.html` explicitly displays: *"Eligible product stocks for this scanner: 3529 / 3529 with price history (total universe: 3530)"*.
+- **Delivery Truth & Storage**:
+  - Acquired 62 official NSE security-wise delivery CSV files (`sec_bhavdata_full_DDMMYYYY.csv`) stored in `data/reference/delivery/`.
+  - Reused official `parse_delivery` parser from `app/data/nse_parser.py` (zero duplicate parser logic).
+  - Built transactional ingestion service `app/services/delivery_import_service.py` (`DeliveryImportService`).
+  - Updates ONLY `DailyPrice.delivery_quantity` and `DailyPrice.delivery_percentage` on matching `(stock_id, trade_date)` rows.
+  - Zero mutation of OHLCV prices, volume, turnover, or trade count.
+  - 100% idempotent: initial single-file test (2026-06-01) enriched 2,923 rows; batch run (2026-06-02 to 2026-08-31) enriched 176,930 rows (total 179,853 populated product rows). Second directory-wide run updated exactly 0 rows (189,010 unchanged).
+  - Enforced strict validation: `qty >= 0`, `0 <= pct <= 100`, `qty <= volume` (204,961 source records audited with 0 anomalies).
+  - Synthetic fixture preservation: `SYNTHETIC_FIXTURE_SYMBOLS` (`ANALYTX`, etc.) strictly excluded from product delivery updates; `ANALYTX` 34 delivery rows preserved.
+- **Coverage & Pilot Truth**:
+  - Total product stocks: 3,530
+  - Product stocks with real delivery data: **3,414 / 3,530 (96.71%)**
+  - Total real delivery rows in database: **179,853**
+  - Latest real delivery date: **2026-08-31**
+  - All 14 pilot stocks possess exactly **62 real delivery sessions** ($\ge 60$ sessions, 100% of trading dates from 2026-06-01 to 2026-08-31).
+- **Verification & Quality Gates**:
+  - Dedicated Download & Backfill test suite: 6 / 6 tests passing in `tests/test_download_and_backfill_repair.py`.
+  - Dedicated G.3 delivery test suite: 16 / 16 tests passing in `tests/test_delivery_acquisition_g3.py`.
+  - Dedicated Browser Truth regression test suite: 7 / 7 tests passing in `tests/test_browser_truth_g3_repair.py`.
+  - Full test collection: **1,475 tests** across 97 test modules.
+  - Full test suite: **1,475 / 1,475 tests passing** (100% GREEN, 0 failures, 0 errors, exit code 0).
   - Ruff clean (`All checks passed!`); import OK (`IMPORT OK`); Alembic clean (`No new upgrade operations`); git diff clean.
-  - 9 real application browser endpoints verified at HTTP 200.
+  - Live server on port 8004 restarted and verified operational.
 - **Strict Guardrails**:
-  - G.3 (Delivery acquisition) NOT started.
-  - No synthetic sector classifications; no guess inference.
+  - G.4 NOT started.
+  - No synthetic delivery fabrication; no volume-percentage derivation.
   - No migrations created; no version bump; no commit/push/tag.
-- **Next action**: User review of Stage 2 Phase G.2. Do NOT start Phase G.3.
+- **Next action**: User review of Download & Backfill repair on `http://127.0.0.1:8004/market-data`. Do NOT start Phase G.4.
 
 ---
 
-## Current Platform Baseline (Stage 2 Phase G.2)
+## Current Platform Baseline (Stage 2 Phase G.3)
 
 - **Authoritative Project Workspace:** `D:\SCTS\college_cert_sys_phase1\AIStockScanner_Stage1_2\AIStockScanner_Milestone2_3\AIStockScanner`
 - **Current Version:** `0.14.0`
 - **ORM Models:** **58**
-- **Alembic Head:** `478d723971bc (head)`
-- **Pytest Collection:** **1,446 tests** across 94 test modules
-- **Full Test Suite:** 1,446 passed, 0 failed, 0 errors, 0 skipped (100% GREEN)
+- **Pytest Collection:** **1,462 tests** across 95 test modules
+- **Full Test Suite:** 1,462 passed, 0 failed, 0 errors, 0 skipped (100% GREEN)
 - **Ruff Status:** 100% GREEN (`All checks passed!`)
 
 ---

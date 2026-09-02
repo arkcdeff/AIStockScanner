@@ -275,6 +275,15 @@ class MarketDataService:
                 or 0
             )
 
+        total_product_stocks = (
+            await self.session.scalar(
+                select(func.count(Stock.id)).where(
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS)
+                )
+            )
+            or 0
+        )
+
         return {
             "latest_trade_date": latest,
             "readiness": readiness,
@@ -282,6 +291,7 @@ class MarketDataService:
             "latest_delivery_count": delivery_coverage,
             "latest_indicator_count": latest_indicators,
             "stocks_with_history": len(session_counts),
+            "total_product_stocks": total_product_stocks,
             "max_sessions": max_sessions,
             "eligible_sessions": eligible_sessions,
         }

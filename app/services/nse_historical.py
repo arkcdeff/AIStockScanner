@@ -94,9 +94,13 @@ class NSEHistoricalService:
         )
         return bool(count and count > 0)
 
-    async def _import_raw(self, raw_path: Path) -> tuple[int, int]:
+    async def _import_raw(
+        self, raw_path: Path, delivery_path: Path | None = None
+    ) -> tuple[int, int]:
         """Import a raw bhavcopy file and return (inserted, updated)."""
-        job = await NSEImportService(self.session).import_files(raw_path)
+        job = await NSEImportService(self.session).import_files(
+            bhavcopy_path=raw_path, delivery_path=delivery_path
+        )
         return job.rows_inserted or 0, job.rows_updated or 0
 
     async def _download_one(
@@ -146,7 +150,8 @@ class NSEHistoricalService:
                 return DateFetchResult(trade_date, "skipped_holiday", message)
             return DateFetchResult(trade_date, "failed", message)
 
-        inserted, updated = await self._import_raw(raw_path)
+        delivery_path = Path(_meta["delivery_path"]) if _meta.get("delivery_path") else None
+        inserted, updated = await self._import_raw(raw_path, delivery_path=delivery_path)
         if inserted == 0 and updated == 0:
             return DateFetchResult(
                 trade_date, "unavailable", "No valid records imported from bhavcopy"

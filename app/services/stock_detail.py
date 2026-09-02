@@ -51,7 +51,8 @@ class StockDetailService:
         averages = await self.repo.get_20d_averages(stock.id, latest_price.trade_date)
         latest_indicator = await self.repo.get_latest_indicator(stock.id)
         latest_analytics = await self.repo.get_latest_analytics(stock.id)
-        scanner_matches = await self.repo.get_scanner_matches(stock.id)
+        eval_date = latest_price.trade_date if latest_price else None
+        scanner_matches = await self.repo.get_scanner_matches(stock.id, as_of_date=eval_date)
 
         price_change = None
         price_change_pct = None
@@ -82,6 +83,7 @@ class StockDetailService:
 
         stock = overview["stock"]
         latest_price = overview["latest_price"]
+        eval_date = latest_price.trade_date if latest_price else None
 
         # Technical snapshot
         tech_snapshot = self._build_technical_snapshot(
@@ -89,7 +91,7 @@ class StockDetailService:
         )
 
         # Scanner snapshot
-        scanner_summary = await self.repo.get_scanner_match_summary(stock.id)
+        scanner_summary = await self.repo.get_scanner_match_summary(stock.id, as_of_date=eval_date)
         scanner_snapshot = ScannerSnapshotResponse(**scanner_summary)
 
         # Performance returns

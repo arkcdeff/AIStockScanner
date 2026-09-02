@@ -284,16 +284,35 @@ async def backfill_market_data(
             url=_flash_url(level="danger", message=f"Backfill failed: {exc}"),
             status_code=303,
         )
+    downloaded = summary.get("downloaded", 0)
+    already_present = summary.get("already_present", 0)
+    skipped = summary.get("skipped", 0)
+    blocked = summary.get("blocked", 0)
+    failed = summary.get("failed", 0)
+
+    if downloaded == 0 and already_present == 0 and (blocked > 0 or failed > 0):
+        level = "danger"
+        message = f"Backfill failed: {blocked} blocked, {failed} failed (0 downloaded)"
+    elif blocked > 0 or failed > 0:
+        level = "warning"
+        message = (
+            f"Backfill partially completed: {downloaded} downloaded, {already_present} present, "
+            f"{blocked} blocked, {failed} failed"
+        )
+    else:
+        level = "success"
+        message = f"Backfill completed: {downloaded} downloaded, {already_present} already present"
+
     return RedirectResponse(
         url=_flash_url(
-            level="success",
-            message="Backfill completed",
-            imported="completed",
-            downloaded=summary.get("downloaded", 0),
-            already_present=summary.get("already_present", 0),
-            skipped=summary.get("skipped", 0),
-            blocked=summary.get("blocked", 0),
-            failed=summary.get("failed", 0),
+            level=level,
+            message=message,
+            backfill="completed",
+            downloaded=downloaded,
+            already_present=already_present,
+            skipped=skipped,
+            blocked=blocked,
+            failed=failed,
         ),
         status_code=303,
     )

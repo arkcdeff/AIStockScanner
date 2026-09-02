@@ -88,6 +88,16 @@
             <button type="submit" class="btn btn-sm btn-outline-primary"><i class="bi bi-arrow-repeat me-1"></i>Backfill</button>
             <span class="text-muted small">Range capped at 366 days; weekends skipped.</span>
         </form>
+        {% set backfill_status = request.query_params.get('backfill') %}
+        {% if backfill_status %}
+        <div class="mt-2 alert alert-info py-2 mb-0 small">Backfill summary:
+            downloaded <strong>{{ request.query_params.get('downloaded', '0') }}</strong> ·
+            already present <strong>{{ request.query_params.get('already_present', '0') }}</strong> ·
+            skipped (weekends) <strong>{{ request.query_params.get('skipped', '0') }}</strong>
+            {% if request.query_params.get('blocked', '0') != '0' %}· blocked <strong>{{ request.query_params.get('blocked') }}</strong>{% endif %}
+            {% if request.query_params.get('failed', '0') != '0' %}· failed <strong>{{ request.query_params.get('failed') }}</strong>{% endif %}.
+        </div>
+        {% endif %}
     </div>
 </div>
 {% endif %}

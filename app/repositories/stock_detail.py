@@ -80,13 +80,20 @@ class StockDetailRepository:
         )
         return await self.session.scalar(statement)
 
-    async def get_scanner_matches(self, stock_id: int, limit: int = 20) -> list[ScanResult]:
+    async def get_scanner_matches(
+        self, stock_id: int, limit: int = 20, as_of_date: date | None = None
+    ) -> list[ScanResult]:
         statement = (
             select(ScanResult)
             .join(ScanDefinition, ScanResult.scan_definition_id == ScanDefinition.id)
             .where(ScanResult.stock_id == stock_id)
             .where(ScanDefinition.code != "test_scanner")
             .where(func.lower(ScanDefinition.category) != "test")
+        )
+        if as_of_date is not None:
+            statement = statement.where(ScanResult.scan_date <= as_of_date)
+        statement = (
+            statement
             .options(selectinload(ScanResult.scan_definition))
             .order_by(ScanResult.scan_date.desc())
             .limit(limit)
@@ -272,10 +279,10 @@ class StockDetailRepository:
         }
 
     async def get_scanner_match_summary(
-        self, stock_id: int, limit: int = 20
+        self, stock_id: int, limit: int = 20, as_of_date: date | None = None
     ) -> dict[str, Any]:
         """Get scanner match summary for Stock360 snapshot card."""
-        matches = await self.get_scanner_matches(stock_id, limit=limit)
+        matches = await self.get_scanner_matches(stock_id, limit=limit, as_of_date=as_of_date)
         if not matches:
             return {
                 "total_matches": 0,

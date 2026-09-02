@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime
 from typing import Any
 
 from loguru import logger
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.data.product_provenance import SYNTHETIC_FIXTURE_SYMBOLS
@@ -686,8 +686,16 @@ class ScanRunner:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
+    async def _resolve_evaluation_date(self, evaluation_date: date | None = None) -> date:
+        if evaluation_date is not None:
+            return evaluation_date
+        latest = await self.session.scalar(
+            select(func.max(IndicatorResult.trade_date))
+        )
+        return latest or datetime.now(UTC).date()
+
     async def _fetch_indicator_rows(self, evaluation_date: date | None = None) -> list[tuple[IndicatorRow, IndicatorRow | None]]:
-        today = evaluation_date or datetime.now(UTC).date()
+        today = await self._resolve_evaluation_date(evaluation_date)
         statement = (
             select(
                 IndicatorResult,
@@ -709,26 +717,32 @@ class ScanRunner:
         rows = (await self.session.execute(statement)).fetchall()
 
         if not rows:
-            statement = (
-                select(
-                    IndicatorResult,
-                    DailyPrice.close,
-                    DailyPrice.high,
-                    DailyPrice.volume,
-                    DailyPrice.delivery_percentage,
-                    Stock.symbol,
+            nearest_date = await self.session.scalar(
+                select(func.max(IndicatorResult.trade_date)).where(
+                    IndicatorResult.trade_date <= today
                 )
-                .join(Stock, IndicatorResult.stock_id == Stock.id)
-                .join(
-                    DailyPrice,
-                    (DailyPrice.stock_id == IndicatorResult.stock_id)
-                    & (DailyPrice.trade_date == IndicatorResult.trade_date),
-                )
-                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
-                .order_by(IndicatorResult.trade_date.desc())
-                .limit(500)
             )
-            rows = (await self.session.execute(statement)).fetchall()
+            if nearest_date:
+                today = nearest_date
+                statement = (
+                    select(
+                        IndicatorResult,
+                        DailyPrice.close,
+                        DailyPrice.high,
+                        DailyPrice.volume,
+                        DailyPrice.delivery_percentage,
+                        Stock.symbol,
+                    )
+                    .join(Stock, IndicatorResult.stock_id == Stock.id)
+                    .join(
+                        DailyPrice,
+                        (DailyPrice.stock_id == IndicatorResult.stock_id)
+                        & (DailyPrice.trade_date == IndicatorResult.trade_date),
+                    )
+                    .where(IndicatorResult.trade_date == today)
+                    .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+                )
+                rows = (await self.session.execute(statement)).fetchall()
 
         result_map: dict[int, IndicatorRow] = {}
         for ir, close, high, volume, delivery_pct, symbol in rows:
@@ -856,8 +870,9 @@ class ScanRunner:
         if scanner_func is None:
             raise ValueError(f"Unknown scanner: {scan_code}")
 
-        scan_date = evaluation_date or datetime.now(UTC).date()
-        rows = await self._fetch_indicator_rows(scan_date)
+        target_date = await self._resolve_evaluation_date(evaluation_date)
+        rows = await self._fetch_indicator_rows(target_date)
+        scan_date = rows[0][0].trade_date if rows else target_date
         results: list[ScanResultDTO] = []
 
         for current, previous in rows:
@@ -881,12 +896,14 @@ class ScanRunner:
     async def run_all(self, evaluation_date: date | None = None) -> dict[str, list[ScanResultDTO]]:
         scan_defs = await ScanDefinitionRepository(self.session).list_active()
         output: dict[str, list[ScanResultDTO]] = {}
+        target_date = await self._resolve_evaluation_date(evaluation_date)
+        rows = await self._fetch_indicator_rows(target_date)
+        scan_date = rows[0][0].trade_date if rows else target_date
+
         for scan_def in scan_defs:
             scanner_func = ScannerRegistry.get(scan_def.code)
             if scanner_func is None:
                 continue
-            scan_date = evaluation_date or datetime.now(UTC).date()
-            rows = await self._fetch_indicator_rows(scan_date)
             results: list[ScanResultDTO] = []
             for current, previous in rows:
                 try:
