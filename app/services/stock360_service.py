@@ -9,11 +9,12 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import extract, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.daily_price import DailyPrice
 from app.models.derivative_contract import DerivativeContract
+from app.models.indicator_result import IndicatorResult
 from app.models.sector import Sector
 from app.models.stock import Stock
 from app.schemas.stock360 import (
@@ -151,6 +152,7 @@ class Stock360Service:
             select(DailyPrice)
             .where(DailyPrice.stock_id == stock_id)
             .where(DailyPrice.trade_date <= eval_d)
+            .where(extract("dow", DailyPrice.trade_date).notin_([0, 6]))
             .order_by(DailyPrice.trade_date.desc())
             .limit(250)
         )
@@ -172,11 +174,45 @@ class Stock360Service:
         pct_from_h52 = round(((close - h52) / h52) * 100.0, 2) if h52 > 0 else 0.0
         pct_from_l52 = round(((close - l52) / l52) * 100.0, 2) if l52 > 0 else 0.0
 
-        # Simple moving average calculations
+        # Check authoritative IndicatorResult as-of eval_d
+        stmt_ind = (
+            select(IndicatorResult)
+            .where(IndicatorResult.stock_id == stock_id)
+            .where(IndicatorResult.trade_date <= eval_d)
+            .where(extract("dow", IndicatorResult.trade_date).notin_([0, 6]))
+            .order_by(IndicatorResult.trade_date.desc())
+            .limit(1)
+        )
+        ind_row = (await self.session.execute(stmt_ind)).scalar_one_or_none()
+
         closes = [float(p.close) for p in prices]
-        ema20 = sum(closes[:20]) / min(len(closes), 20) if closes else None
-        ema50 = sum(closes[:50]) / min(len(closes), 50) if len(closes) >= 20 else None
-        ema200 = sum(closes[:200]) / min(len(closes), 200) if len(closes) >= 50 else None
+        if ind_row and ind_row.ema_200 is not None:
+            ema20 = float(ind_row.ema_20) if ind_row.ema_20 is not None else (sum(closes[:20]) / min(len(closes), 20) if closes else None)
+            ema50 = float(ind_row.ema_50) if ind_row.ema_50 is not None else (sum(closes[:50]) / min(len(closes), 50) if len(closes) >= 20 else None)
+            ema200 = float(ind_row.ema_200)
+            rsi14 = float(ind_row.rsi_14) if ind_row.rsi_14 is not None else None
+            macd = float(ind_row.macd) if ind_row.macd is not None else None
+            macd_signal = float(ind_row.macd_signal) if ind_row.macd_signal is not None else None
+            atr14 = float(ind_row.atr) if ind_row.atr is not None else None
+            adx14 = float(ind_row.adx) if ind_row.adx is not None else None
+            supertrend = float(ind_row.supertrend) if ind_row.supertrend is not None else None
+            supertrend_dir = (
+                "BULLISH"
+                if ind_row.supertrend_direction == 1
+                else ("BEARISH" if ind_row.supertrend_direction == -1 else None)
+            )
+        else:
+            # Fallback calculation if IndicatorResult is not yet computed
+            ema20 = sum(closes[:20]) / min(len(closes), 20) if closes else None
+            ema50 = sum(closes[:50]) / min(len(closes), 50) if len(closes) >= 20 else None
+            ema200 = sum(closes[:200]) / min(len(closes), 200) if len(closes) >= 50 else None
+            rsi14 = None
+            macd = None
+            macd_signal = None
+            atr14 = None
+            adx14 = None
+            supertrend = None
+            supertrend_dir = None
 
         trend = "SIDEWAYS"
         if ema20 and ema50:
@@ -190,6 +226,13 @@ class Stock360Service:
             ema20=round(ema20, 2) if ema20 else None,
             ema50=round(ema50, 2) if ema50 else None,
             ema200=round(ema200, 2) if ema200 else None,
+            rsi14=round(rsi14, 2) if rsi14 is not None else None,
+            macd=round(macd, 4) if macd is not None else None,
+            macd_signal=round(macd_signal, 4) if macd_signal is not None else None,
+            adx14=round(adx14, 2) if adx14 is not None else None,
+            atr14=round(atr14, 4) if atr14 is not None else None,
+            supertrend=round(supertrend, 2) if supertrend is not None else None,
+            supertrend_direction=supertrend_dir,
             trend_state=trend,
             pct_from_52w_high=pct_from_h52,
             pct_from_52w_low=pct_from_l52,

@@ -1,41 +1,72 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.6 Official Institutional Flow Acquisition Checkpoint 2026-09-03
+## Active Handoff — Stage 2 Phase G.7 Critical Data-Integrity Repair COMPLETE 2026-09-03
+
+- **Status**: `STAGE 2 PHASE G.7 CRITICAL DATA-INTEGRITY REPAIR COMPLETE & VERIFIED — PENDING CHECKPOINT`
+- **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
+- **HEAD Commit**: `b60bdcc`
+- **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
+
+### G.7 Repair: What Was Fixed (Muse Spark 1.2 Review FAIL → REPAIRED)
+
+**Root cause**: 20 synthetic weekend `DailyPrice` rows existed from early test seeding — 10 for RELIANCE (Saturdays/Sundays in Aug 2026) and 10 for ANALYTX (Jul/Aug 2026 weekends). These contaminated EMA/52-week/scanner calculations and left IndicatorResult stale.
+
+| Action | Detail |
+|--------|--------|
+| Purge | Deleted 20 weekend `DailyPrice` + 20 `IndicatorResult` rows |
+| Ingestion guard | `NseHistoricalExtensionService._validate_record()` rejects `weekday() >= 5` |
+| IndicatorEngine | SQL: `AND EXTRACT(DOW FROM dp.trade_date) NOT IN (0, 6)` |
+| Stock360Service | Price & IndicatorResult queries both exclude weekends |
+| MarketDataService | `scanner_readiness` session counts & latest_trade_date exclude weekends |
+| IndicatorResult | Recalculated clean for 51 stocks → 16,834 rows |
+
+### Post-Repair Database Counts
+| Table | Before Repair | After Repair |
+|-------|--------------|-------------|
+| DailyPrice | 1,006,971 | **1,006,951** |
+| Distinct trading dates | 367 | **349** |
+| Weekend DailyPrice rows | 20 | **0** |
+| IndicatorResult | 2,470 | **16,834** (recalculated) |
+| Weekend IndicatorResult | 20 | **0** |
+| Stock | 3,647 | 3,647 ✓ |
+| Sector | 24 | 24 ✓ |
+| MarketIndexPrice | 1,199 | 1,199 ✓ |
+| Snapshots | 62 | 62 ✓ |
+| CorporateAnnouncement | 52,063 | 52,063 ✓ |
+| CorporateAction | 829 | 829 ✓ |
+| InstitutionalFlow | 124 | 124 ✓ |
+
+### Session Semantics (Clarified)
+- Common NSE market sessions Oct 1, 2025 – Aug 31, 2026: **225** (weekdays only; previously misquoted as 222)
+- Q4 2025 G.7 extension: 62 sessions (Oct 1 – Dec 31, 2025)
+- Total distinct trading dates in DB: **349** (2023-01-02 to 2026-09-02)
+- "200 sessions" = per-stock threshold, not blanket market assumption
+- Pilot stocks (RELIANCE etc.): 222 sessions in Oct 2025–Aug 2026 window; 343 total
+
+### EMA-200 Verification (RELIANCE, 2026-08-31)
+- pandas-ta: **1346.1306** | IndicatorEngine: **1346.1306** | PostgreSQL: **1346.1306**
+- **3-way match CONFIRMED**
+
+### Quality Gates (Post-Repair)
+- G.7 tests: **28 / 28** (`tests/test_historical_price_extension_g7.py`) — +6 weekend guard tests added
+- Full test suite: **ALL PASS** (exit code 0)
+- Ruff: **clean** | Alembic: **clean** | `app.main` import: **OK** | git diff: **clean**
+- G.1–G.6 regression: **ALL PASS**
+
+### Next Step for Incoming Agent
+- Create G.7 checkpoint commit with message: `Complete Stage 2 G.7 200-session NSE bhavcopy expansion and weekend data-integrity repair`
+- Tag: `v0.14.0-g7`
+- Do NOT bump version (stays `0.14.0`)
+- Do NOT start G.8 until checkpoint commit is made and user approves G.8 scope
+
+
+---
+
+## Prior Phase Handoff — Stage 2 Phase G.6 Official Institutional Flow Acquisition
 
 - **Status**: `STAGE 2 PHASE G.6 OFFICIAL INSTITUTIONAL FLOW ACQUISITION COMPLETE & VERIFIED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
-- **HEAD Commit**: `97ebf38`
-- **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
-- **Official NSE Institutional Flow Sourcing & Storage**:
-  - Acquired official category-wise turnover reports from NSE API `https://www.nseindia.com/api/reports` stored in `data/reference/institutional/` (spanning 2026-06-01 to 2026-08-31, 62 trading sessions):
-    - `raw/category_turnover_YYYYMMDD.xls` (62 official BIFF8 workbooks)
-    - `nse_fii_dii_cash_20260601_20260831.json` (62 sessions)
-    - `nse_fii_dii_cash_20260601_20260831.csv` (124 rows)
-    - `manifest.json`: Full provenance metadata with SHA-256 hashes.
-  - Parsed and ingested with `NseInstitutionalImportService`:
-    - Ingested 124 official records (62 FII, 62 DII) into PostgreSQL `institutional_flows`.
-    - Computed rolling cumulatives (1D, 3D, 5D, 20D) chronologically per investor category.
-    - Idempotency verified: Run 1 inserted 124, updated 0; Run 2 inserted 0, updated 124.
-- **Market Intelligence Completeness**:
-  - `institutional_score` populated across all 62 sessions in `MarketIntelligenceSnapshot`.
-  - Institutional factor transitioned from `UNAVAILABLE` to `AVAILABLE`.
-  - Composite Market Intelligence data completeness reached **70.0%** (`data_completeness_percent = 70.0`).
-  - Missing factor count reduced to 5 (`['global', 'gift_nifty', 'currency', 'crude', 'macro']`).
-  - Stock Intelligence on pilot stocks maintains **87.5% completeness** (7 of 8 domains available; news remains unavailable).
-- **Point-in-Time (PIT) Safety**:
-  - Strictly follows `institutional_flow_cutoff_date(evaluation_at)` enforcing preceding-date cutoff for date-only series; zero future data leakage.
-- **Verification & Quality Gates**:
-  - Dedicated G.6 test suite: 8 / 8 tests passing in `tests/test_institutional_flow_g6.py`.
-  - G.5 test suite: 22 / 22 tests passing in `tests/test_corporate_events_g5.py`.
-  - G.4 test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py`.
-  - Ruff clean (`All checks passed!`); Alembic clean (`No new upgrade operations detected.`).
-  - Authenticated browser rendering: HTTP 200 on `/market-intelligence` with live FII/DII numbers and combined score.
-- **Strict Scope Boundaries**:
-  - G.6 COMPLETE.
-  - No scanner formulas modified.
-  - No Stock Intelligence scoring methodology modified.
-  - No new Alembic migrations; existing `InstitutionalFlow` table reused.
-  - No commit, push, tag, or version bump.
+- **HEAD Commit**: `b60bdcc`
 
 ---
 

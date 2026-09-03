@@ -14,7 +14,7 @@ from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import extract, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
@@ -209,10 +209,14 @@ class MarketDataService:
 
     async def scanner_readiness(self) -> dict[str, Any]:
         """Stocks with enough history for scanners + delivery coverage at latest date."""
+        weekday_cond = extract("dow", DailyPrice.trade_date).notin_([0, 6])
         latest = await self.session.scalar(
             select(func.max(DailyPrice.trade_date))
             .join(Stock, DailyPrice.stock_id == Stock.id)
-            .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+            .where(
+                Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                weekday_cond,
+            )
         )
         session_counts = (
             await self.session.execute(
@@ -220,7 +224,10 @@ class MarketDataService:
                     DailyPrice.stock_id, func.count(func.distinct(DailyPrice.trade_date))
                 )
                 .join(Stock, DailyPrice.stock_id == Stock.id)
-                .where(Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS))
+                .where(
+                    Stock.symbol.not_in(SYNTHETIC_FIXTURE_SYMBOLS),
+                    weekday_cond,
+                )
                 .group_by(DailyPrice.stock_id)
             )
         ).all()

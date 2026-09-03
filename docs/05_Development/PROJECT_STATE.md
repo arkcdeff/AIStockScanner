@@ -1,43 +1,46 @@
 # Project State
 
-#### Current productization state (2026-09-03) — Stage 2 Phase G.6 Official Institutional Flow Acquisition & Market Context Completion COMPLETE & VERIFIED
+#### Current productization state (2026-09-03) — Stage 2 Phase G.7 Critical Data-Integrity Repair COMPLETE — PENDING CHECKPOINT
 
-- **Current task**: Stage 2 Phase G.6 Official Institutional Flow Acquisition & Market Context Completion COMPLETE & VERIFIED
+- **Current task**: Stage 2 Phase G.7 — Critical Data-Integrity Repair COMPLETE & VERIFIED
 - **Checkpoint**: `checkpoint/sprint19-20-20260822`
-- **Current HEAD Commit**: `97ebf38`
+- **Current HEAD Commit**: `b60bdcc`
 - **Version**: `0.14.0`
 - **Alembic**: `478d723971bc` (single current head, no new migrations, existing schema strictly reused)
-- **Verification**: 8 dedicated tests in `test_institutional_flow_g6.py`; 22 in `test_corporate_events_g5.py`; 22 in `test_market_context_g4.py`; Ruff clean; Alembic check clean; git diff clean; browser verification HTTP 200.
-- **Official NSE Institutional Flow Sourcing & Storage**:
-  - Acquired official NSE category-wise turnover reports under `data/reference/institutional/` (June 1, 2026 to August 31, 2026):
-    - `raw/category_turnover_YYYYMMDD.xls` (62 official BIFF8 workbooks)
-    - `nse_fii_dii_cash_20260601_20260831.json` (62 sessions)
-    - `nse_fii_dii_cash_20260601_20260831.csv` (124 rows)
-    - `manifest.json`: Full provenance metadata with SHA-256 hashes.
-  - Parsed and ingested with `NseInstitutionalImportService`:
-    - Exactly 124 records ingested (62 FII, 62 DII) into PostgreSQL table `institutional_flows`.
-    - Computed rolling cumulatives (1D, 3D, 5D, 20D) chronologically per investor category.
-    - Idempotency verified: Run 1 inserted 124, updated 0; Run 2 inserted 0, updated 124.
-- **Market Intelligence Completeness**:
-  - `institutional_score` populated across all 62 sessions in `MarketIntelligenceSnapshot`.
-  - Institutional factor transitioned from `UNAVAILABLE` to `AVAILABLE`.
-  - Composite Market Intelligence data completeness reached **70.0%** (`data_completeness_percent = 70.0`).
-  - Missing factor count reduced to 5 (`['global', 'gift_nifty', 'currency', 'crude', 'macro']`).
-  - Stock Intelligence on pilot stocks maintains **87.5% completeness** (7 of 8 domains available; news remains unavailable).
+- **Verification**: 28 dedicated tests in `test_historical_price_extension_g7.py` (+6 weekend guard tests); 8 in `test_institutional_flow_g6.py`; 22 in `test_corporate_events_g5.py`; 5 in `test_nse_parser.py`; Full test suite ALL PASS (exit code 0); Ruff clean; Alembic check clean; git diff clean; G.1–G.6 regression ALL PASS.
+- **G.7 Repair Summary** (Muse Spark 1.2 Review FAIL → REPAIRED):
+  - **Purge**: Deleted exactly 20 synthetic weekend `DailyPrice` rows (IDs 923828–923857 for RELIANCE; IDs 20–49 for ANALYTX) and 20 corresponding `IndicatorResult` rows. DailyPrice: 1,006,971 → **1,006,951**; distinct dates: 367 → **349**; weekend rows: 0.
+  - **Ingestion guard**: `NseHistoricalExtensionService._validate_record()` now rejects any `trade_date.weekday() >= 5`.
+  - **IndicatorEngine hardened**: SQL query excludes weekends via `EXTRACT(DOW FROM dp.trade_date) NOT IN (0, 6)`.
+  - **Stock360Service hardened**: Price history query and IndicatorResult query both exclude weekends.
+  - **MarketDataService.scanner_readiness hardened**: Session counts and latest_trade_date exclude weekends.
+  - **IndicatorResult recalculated**: 16,834 rows for 51 stocks. EMA-200 verified: RELIANCE=1346.1306 (3-way match: pandas-ta, IndicatorEngine, PostgreSQL).
+- **Session Semantics**:
+  - Common NSE market sessions Oct 1, 2025 – Aug 31, 2026: **225** (weekdays only).
+  - Q4 2025 G.7 extension: 62 sessions.
+  - Per-stock coverage threshold (≥200 sessions): 2,900 stocks.
+  - "200 sessions" is per-stock, not a blanket market assumption.
+- **Official NSE Historical Price Sourcing & Expansion** (unchanged from pre-repair):
+  - 62 official consecutive trading sessions under `data/reference/bhavcopy/200session/` (Oct 1 – Dec 31, 2025).
+  - 179,736 rows processed into `daily_prices` across 62 sessions.
+  - Idempotency verified.
+- **Technical Indicator & Scanner Readiness**:
+  - Pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`) have 343+ evaluated sessions (all weekday-only).
+  - `IndicatorEngine` computes clean `ema_200`, `ema_50`, `sma_20` (weekend-hardened).
+  - `golden_cross` and `death_cross` scanners: 36/36 READY.
+  - `Stock360Service` snapshot provides non-null `ema200`, `% from 52w High`, `% from 52w Low`, `rsi14`, `macd`, `adx14`, `supertrend`.
 - **Point-in-Time (PIT) Safety**:
-  - Strictly follows `institutional_flow_cutoff_date(evaluation_at)` enforcing preceding-date cutoff for date-only series; zero future data leakage.
-- **Browser Truth Certification**:
-  - Market Intelligence page (`/market-intelligence`) verified rendering live FII/DII cards, buy/sell amounts, net values, and combined score.
+  - Evaluation as of `2026-08-20` strictly uses prices ≤ 2026-08-20; zero future data leakage.
 - **Strict Scope Boundaries**:
-  - G.6 COMPLETE.
+  - G.7 REPAIR COMPLETE. No G.8 work started.
   - No scanner formulas modified.
   - No Stock Intelligence scoring methodology modified.
-  - No new Alembic migrations; existing `InstitutionalFlow` table reused.
+  - No new Alembic migrations; existing schema reused.
   - No commit, push, tag, or version bump.
 
 ---
 
-AIStockScanner after Stage 2 Phase G.6 (Official Institutional Flow Acquisition & Market Context Completion) COMPLETE & VERIFIED. Phase G.5 Complete. Phase G.4 Complete. Phase G.3 Complete. Phase G.2 Complete. Phase G.1 Complete. Stage 2.6.5 Phase F Complete & Certified.
+AIStockScanner after Stage 2 Phase G.7 Critical Data-Integrity Repair COMPLETE & VERIFIED. Phase G.6 Complete. Phase G.5 Complete. Phase G.4 Complete. Phase G.3 Complete. Phase G.2 Complete. Phase G.1 Complete. Stage 2.6.5 Phase F Complete & Certified.
 
 
 ## Stack

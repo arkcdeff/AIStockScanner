@@ -32,6 +32,7 @@ class IndicatorEngine:
                     FROM daily_prices dp
                     JOIN stocks s ON s.id = dp.stock_id
                     WHERE s.symbol = :symbol
+                      AND EXTRACT(DOW FROM dp.trade_date) NOT IN (0, 6)
                     ORDER BY dp.trade_date ASC
                 """)
                 .bindparams(symbol=symbol.upper())
