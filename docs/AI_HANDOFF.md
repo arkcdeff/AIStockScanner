@@ -1,42 +1,38 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.4 Official Market Context Acquisition & Decision Context Completion Checkpoint 2026-09-02
+## Active Handoff — Stage 2 Phase G.5 Official Corporate Events & Action Acquisition Checkpoint 2026-09-03
 
-- **Status**: `STAGE 2 PHASE G.4 OFFICIAL MARKET CONTEXT ACQUISITION & DECISION CONTEXT COMPLETION COMPLETE & VERIFIED`
+- **Status**: `STAGE 2 PHASE G.5 OFFICIAL CORPORATE EVENTS & ACTION ACQUISITION COMPLETE & VERIFIED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
-- **HEAD Commit**: `135231260a66830ecd3c4aaaabdbc356369f2183`
+- **HEAD Commit**: `b316d38`
 - **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
-- **Official NSE Index Sourcing & Storage**:
-  - Acquired 62 official NSE index CSV files (`ind_close_all_DDMMYYYY.csv`) stored in `data/reference/indices/` (spanning 2026-06-01 to 2026-08-31).
-  - SHA256 manifest: `data/reference/indices/manifest.json`.
-  - Parsed with `NSEIndexParser`: exact 13-column header enforcement, deterministic mapping to 19 canonical indices, date parsing, numeric OHLC validation, volume INT32 overflow guard.
-  - Ingested with `NSEIndexImportService`: 1,178 official rows inserted into `market_index_prices` (now 1,199 total rows across 20 indices).
-  - Indices Populated: `NIFTY_50` (62 rows), `INDIA_VIX` (62 rows), all 14 Sectoral Indices (`NIFTY_BANK`, `NIFTY_IT`, `NIFTY_AUTO`, `NIFTY_FMCG`, `NIFTY_PHARMA`, `NIFTY_METAL`, `NIFTY_REALTY`, `NIFTY_ENERGY`, `NIFTY_INFRASTRUCTURE`, `NIFTY_COMMODITIES`, `NIFTY_CONSUMER_DURABLES`, `NIFTY_OIL_GAS`, `NIFTY_HEALTHCARE`, `NIFTY_SERVICES_SECTOR`), and broad indices (`NIFTY_NEXT_50`, `NIFTY_MIDCAP_100`, `NIFTY_SMALLCAP_100`).
-  - Idempotency verified: 100% duplicate-free (Run 1 inserted 1,178; Run 2 had 0 inserted, 0 updated, 1,178 unchanged).
-- **Market Intelligence Snapshots**:
-  - Computed and committed 62 daily `MarketIntelligenceSnapshot` records across all 62 consecutive sessions.
-  - CompositeMarketIntelligence completeness jumped from **15.0% to 60.0%** (Score: `-36.86`, Regime: `bearish`, Confidence: `71.62%` High).
+- **Official NSE Corporate Disclosure Sourcing & Storage**:
+  - Acquired 3 official NSE corporate disclosure datasets stored in `data/reference/corporate/` (spanning 2026-06-01 to 2026-08-31):
+    - `nse_corporate_actions_20260601_20260831.json` (871 rows)
+    - `nse_corporate_announcements_20260601_20260831.json` (52,500 rows)
+    - `nse_event_calendar_20260601_20260831.json` (2,783 rows)
+  - SHA256 manifest: `data/reference/corporate/manifest.json`.
+  - Parsed and ingested with `NseCorporateImportService` and `CorporateAnnouncementParser`:
+    - Ingested 829 official corporate actions (`dividend`: 783, `split`: 12, `bonus`: 11, `rights`: 11, `buyback`: 10, `merger`: 3) into `CorporateAction`.
+    - Ingested 52,063 official corporate announcements across 18 canonical categories into `CorporateAnnouncement`.
+    - Idempotency verified: Run 1 inserted all matched records; Run 2 had exactly 0 inserted, 829 unchanged actions, 52,063 unchanged announcements.
 - **Stock Intelligence Decision Context Unblocking**:
   - Verified on representative pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`):
-    - `market_context` transitioned from `UNAVAILABLE` to `AVAILABLE`.
-    - Completeness jumped from **62.5% to 75.0%**.
-    - Evidence `MARKET_REGIME_BEARISH` generated with `direction=NEGATIVE` and factual description.
-- **G.2 Sector and Industry Taxonomy Reconciliation (Muse Spark 1.2 Review)**:
-  - **Canonical G.2 Production Taxonomy**: Exactly **22 canonical production sectors** and **22 canonical production industries** (1:1 flattened taxonomy from official NSE `ind_niftytotalmarket_list.csv` classifying 750 product stocks).
-  - **Database Row Count vs. Canonical Production Taxonomy**:
-    - **Sector Table**: 22 canonical production rows + 2 test rows (`Analytics Test`, `Test Sector`) = **24 database rows total**.
-    - **Industry Table**: 22 canonical production rows + 2 non-production/legacy rows (`Oil & Gas`, `Testing`) = **24 database rows total**.
-  - **Reconciliation Invariant**: Canonical G.2 taxonomy remains strictly 22 sectors / 22 industries. G.4 did not modify or expand the G.2 architecture, and the database contains 24 rows in each table because 2 additional test/legacy rows are retained for compatibility/fixtures.
-- **Global & External Factor Truth**:
-  - Stooq Global Provider: Evaluated; Cloudflare JS challenges gracefully kept as missing/unavailable in accordance with strict no-synthetic-data rule.
-  - GIFT Nifty, Currency, Crude, Macro: Truthfully reported as missing/unavailable.
+    - `corporate_events` domain transitioned from `UNAVAILABLE` to `AVAILABLE`.
+    - Decision context completeness jumped from **75.0% to 87.5%** (7 of 8 domains available: technical, fundamental, valuation, delivery, sector, market_context, corporate_events; news remains unavailable).
+    - Missing inputs: strictly `['news']`.
+    - Real corporate evidence generated: e.g. TCS detected positive `CORPORATE_ORDER_WIN` factor from official contract disclosure.
+- **Point-in-Time (PIT) Safety**:
+  - Strict PIT evaluation verified at `cutoff = 2026-08-20`: Disclosures from August 21+ are strictly excluded; zero future event leakage.
 - **Verification & Quality Gates**:
-  - Dedicated G.4 test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py`.
-  - Ruff clean (`All checks passed!`); import OK (`IMPORT OK`); Alembic clean (`No new upgrade operations`); git diff clean.
-  - Authenticated browser rendering: HTTP 200 on `/market-intelligence`, `/stocks/RELIANCE`, `/stocks/HDFCBANK`, `/stocks/TCS`.
+  - Dedicated G.5 test suite: 22 / 22 tests passing in `tests/test_corporate_events_g5.py`.
+  - Regression test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py` (44 total across G.4 + G.5).
+  - Ruff clean (`All checks passed!`); Alembic clean (`No new upgrade operations detected.`); git diff clean.
+  - Authenticated browser rendering: HTTP 200 on `/stocks/{symbol}` for all pilot stocks with real Corporate Events table and "PIT Safe" badge.
 - **Strict Scope Boundaries**:
-  - G.5 NOT started.
-  - No synthetic data; no invented index levels.
+  - G.5 COMPLETE.
+  - News remains UNAVAILABLE (no fake news created).
+  - No synthetic corporate data; no invented disclosures.
   - No new Alembic migrations; existing schema reused.
   - No commit, push, tag, or version bump.
 

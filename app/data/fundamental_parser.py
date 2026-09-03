@@ -129,6 +129,50 @@ class CorporateAnnouncementParser:
     }
 
     @classmethod
+    def normalize_category(cls, desc: str | None) -> str:
+        """Map raw exchange announcement description or purpose to canonical category."""
+        if not desc:
+            return "OTHER"
+        d = desc.upper()
+        if "BOARD MEETING" in d or "OUTCOME OF BOARD" in d:
+            return "BOARD_MEETING"
+        if "FINANCIAL RESULT" in d or "FINANCIALS" in d:
+            return "FINANCIAL_RESULTS"
+        if "DIVIDEND" in d:
+            return "DIVIDEND"
+        if "BONUS" in d:
+            return "BONUS"
+        if "SPLIT" in d or "SUB-DIVISION" in d:
+            return "STOCK_SPLIT"
+        if "RIGHTS" in d:
+            return "RIGHTS"
+        if "BUYBACK" in d:
+            return "BUYBACK"
+        if "MERGER" in d or "AMALGAMATION" in d:
+            return "MERGER"
+        if "DEMERGER" in d:
+            return "DEMERGER"
+        if "ACQUISITION" in d:
+            return "ACQUISITION"
+        if "ORDER" in d or "CONTRACT" in d or "BAGGING" in d:
+            return "ORDER_WIN"
+        if "CAPEX" in d or "EXPANSION" in d:
+            return "CAPEX"
+        if "FUND RAISE" in d or "ALLOTMENT OF SECURITIES" in d:
+            return "FUND_RAISE"
+        if any(k in d for k in ["MANAGEMENT", "DIRECTOR", "RESIGNATION", "APPOINTMENT", "CESSATION"]):
+            return "MANAGEMENT_CHANGE"
+        if "CREDIT RATING" in d:
+            return "CREDIT_RATING"
+        if "LITIGATION" in d or "DISPUTE" in d:
+            return "LITIGATION"
+        if "REGULATORY" in d:
+            return "REGULATORY"
+        if d in cls.VALID_CATEGORIES:
+            return d
+        return "OTHER"
+
+    @classmethod
     def parse_csv_content(cls, content: str) -> list[dict[str, Any]]:
         """Parse raw CSV string containing corporate announcements."""
         f = io.StringIO(content.strip())
@@ -140,9 +184,7 @@ class CorporateAnnouncementParser:
             if not symbol:
                 raise FundamentalParseError(f"Row {idx}: missing mandatory 'symbol'")
 
-            category = row.get("category", "OTHER").strip().upper()
-            if category not in cls.VALID_CATEGORIES:
-                category = "OTHER"
+            category = cls.normalize_category(row.get("category", "OTHER"))
 
             announcement_date_str = row.get("announcement_date", "").strip()
             if not announcement_date_str:

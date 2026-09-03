@@ -1,0 +1,29 @@
+{
+  "nse_corporate_actions_20260601_20260831.json": {
+    "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-06-2026&to_date=31-08-2026",
+    "acquisition_date": "2026-09-02T19:31:35.873018+00:00",
+    "date_range": "2026-06-01 to 2026-08-31",
+    "row_count": 871,
+    "size_bytes": 261569,
+    "sha256": "4f41b207e0a5b9999a7e0712e9e75170bb2db75f76a01170845731323875fa4e",
+    "type": "corporate_actions"
+  },
+  "nse_event_calendar_20260601_20260831.json": {
+    "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-06-2026&to_date=31-08-2026",
+    "acquisition_date": "2026-09-02T19:31:36.092383+00:00",
+    "date_range": "2026-06-01 to 2026-08-31",
+    "row_count": 2783,
+    "size_bytes": 692049,
+    "sha256": "70bda00385b19f23b10b6d45005cf58039fe88c00201051f8c86607bfcfc3608",
+    "type": "event_calendar"
+  },
+  "nse_corporate_announcements_20260601_20260831.json": {
+    "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-06-2026&to_date=31-08-2026",
+    "acquisition_date": "2026-09-02T19:31:41.127136+00:00",
+    "date_range": "2026-06-01 to 2026-08-31",
+    "row_count": 52500,
+    "size_bytes": 37115066,
+    "sha256": "533198e464f620785d7b2d6b9c1eed92994b383ac1d5c1a5efa6f8bda5e2e4e6",
+    "type": "corporate_announcements"
+  }
+}
