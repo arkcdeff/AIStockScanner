@@ -1,0 +1,22 @@
+{
+  "dataset": "PROVISIONAL_CASH_MARKET_INSTITUTIONAL_ACTIVITY",
+  "source": "https://www.nseindia.com/all-reports (CM - Category-wise Turnover)",
+  "source_reference": "https://www.nseindia.com/api/reports?archives=[{\"name\":\"CM - Category-wise Turnover\"}]",
+  "start_date": "2026-06-01",
+  "end_date": "2026-08-31",
+  "trading_sessions": 62,
+  "total_records": 124,
+  "unit": "INR_CRORE",
+  "files": {
+    "nse_fii_dii_cash_20260601_20260831.json": {
+      "sha256": "c048a96c7eca7e810ff351e9f175c40f41c4c73bcb47ede6d91f9d54d13272b2",
+      "size_bytes": 73842,
+      "sessions": 62
+    },
+    "nse_fii_dii_cash_20260601_20260831.csv": {
+      "sha256": "53e026640997a0e68bfd80170ed038eea22112389172e552b74cfa0fd863323b",
+      "size_bytes": 23931,
+      "rows": 124
+    }
+  }
+}

@@ -1,39 +1,40 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.5 Official Corporate Events & Action Acquisition Checkpoint 2026-09-03
+## Active Handoff — Stage 2 Phase G.6 Official Institutional Flow Acquisition Checkpoint 2026-09-03
 
-- **Status**: `STAGE 2 PHASE G.5 OFFICIAL CORPORATE EVENTS & ACTION ACQUISITION COMPLETE & VERIFIED`
+- **Status**: `STAGE 2 PHASE G.6 OFFICIAL INSTITUTIONAL FLOW ACQUISITION COMPLETE & VERIFIED`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
-- **HEAD Commit**: `b316d38`
+- **HEAD Commit**: `97ebf38`
 - **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
-- **Official NSE Corporate Disclosure Sourcing & Storage**:
-  - Acquired 3 official NSE corporate disclosure datasets stored in `data/reference/corporate/` (spanning 2026-06-01 to 2026-08-31):
-    - `nse_corporate_actions_20260601_20260831.json` (871 rows)
-    - `nse_corporate_announcements_20260601_20260831.json` (52,500 rows)
-    - `nse_event_calendar_20260601_20260831.json` (2,783 rows)
-  - SHA256 manifest: `data/reference/corporate/manifest.json`.
-  - Parsed and ingested with `NseCorporateImportService` and `CorporateAnnouncementParser`:
-    - Ingested 829 official corporate actions (`dividend`: 783, `split`: 12, `bonus`: 11, `rights`: 11, `buyback`: 10, `merger`: 3) into `CorporateAction`.
-    - Ingested 52,063 official corporate announcements across 18 canonical categories into `CorporateAnnouncement`.
-    - Idempotency verified: Run 1 inserted all matched records; Run 2 had exactly 0 inserted, 829 unchanged actions, 52,063 unchanged announcements.
-- **Stock Intelligence Decision Context Unblocking**:
-  - Verified on representative pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`):
-    - `corporate_events` domain transitioned from `UNAVAILABLE` to `AVAILABLE`.
-    - Decision context completeness jumped from **75.0% to 87.5%** (7 of 8 domains available: technical, fundamental, valuation, delivery, sector, market_context, corporate_events; news remains unavailable).
-    - Missing inputs: strictly `['news']`.
-    - Real corporate evidence generated: e.g. TCS detected positive `CORPORATE_ORDER_WIN` factor from official contract disclosure.
+- **Official NSE Institutional Flow Sourcing & Storage**:
+  - Acquired official category-wise turnover reports from NSE API `https://www.nseindia.com/api/reports` stored in `data/reference/institutional/` (spanning 2026-06-01 to 2026-08-31, 62 trading sessions):
+    - `raw/category_turnover_YYYYMMDD.xls` (62 official BIFF8 workbooks)
+    - `nse_fii_dii_cash_20260601_20260831.json` (62 sessions)
+    - `nse_fii_dii_cash_20260601_20260831.csv` (124 rows)
+    - `manifest.json`: Full provenance metadata with SHA-256 hashes.
+  - Parsed and ingested with `NseInstitutionalImportService`:
+    - Ingested 124 official records (62 FII, 62 DII) into PostgreSQL `institutional_flows`.
+    - Computed rolling cumulatives (1D, 3D, 5D, 20D) chronologically per investor category.
+    - Idempotency verified: Run 1 inserted 124, updated 0; Run 2 inserted 0, updated 124.
+- **Market Intelligence Completeness**:
+  - `institutional_score` populated across all 62 sessions in `MarketIntelligenceSnapshot`.
+  - Institutional factor transitioned from `UNAVAILABLE` to `AVAILABLE`.
+  - Composite Market Intelligence data completeness reached **70.0%** (`data_completeness_percent = 70.0`).
+  - Missing factor count reduced to 5 (`['global', 'gift_nifty', 'currency', 'crude', 'macro']`).
+  - Stock Intelligence on pilot stocks maintains **87.5% completeness** (7 of 8 domains available; news remains unavailable).
 - **Point-in-Time (PIT) Safety**:
-  - Strict PIT evaluation verified at `cutoff = 2026-08-20`: Disclosures from August 21+ are strictly excluded; zero future event leakage.
+  - Strictly follows `institutional_flow_cutoff_date(evaluation_at)` enforcing preceding-date cutoff for date-only series; zero future data leakage.
 - **Verification & Quality Gates**:
-  - Dedicated G.5 test suite: 22 / 22 tests passing in `tests/test_corporate_events_g5.py`.
-  - Regression test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py` (44 total across G.4 + G.5).
-  - Ruff clean (`All checks passed!`); Alembic clean (`No new upgrade operations detected.`); git diff clean.
-  - Authenticated browser rendering: HTTP 200 on `/stocks/{symbol}` for all pilot stocks with real Corporate Events table and "PIT Safe" badge.
+  - Dedicated G.6 test suite: 8 / 8 tests passing in `tests/test_institutional_flow_g6.py`.
+  - G.5 test suite: 22 / 22 tests passing in `tests/test_corporate_events_g5.py`.
+  - G.4 test suite: 22 / 22 tests passing in `tests/test_market_context_g4.py`.
+  - Ruff clean (`All checks passed!`); Alembic clean (`No new upgrade operations detected.`).
+  - Authenticated browser rendering: HTTP 200 on `/market-intelligence` with live FII/DII numbers and combined score.
 - **Strict Scope Boundaries**:
-  - G.5 COMPLETE.
-  - News remains UNAVAILABLE (no fake news created).
-  - No synthetic corporate data; no invented disclosures.
-  - No new Alembic migrations; existing schema reused.
+  - G.6 COMPLETE.
+  - No scanner formulas modified.
+  - No Stock Intelligence scoring methodology modified.
+  - No new Alembic migrations; existing `InstitutionalFlow` table reused.
   - No commit, push, tag, or version bump.
 
 ---
