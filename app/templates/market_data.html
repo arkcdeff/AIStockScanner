@@ -156,15 +156,17 @@
             <form class="row g-2 mb-3" hx-get="/market-data/derivatives/options/chain/table" hx-target="#option-chain-section" hx-swap="innerHTML" hx-trigger="submit">
                 <div class="col-md-3">
                     <label class="form-label small mb-1">Underlying Symbol</label>
-                    <input type="text" class="form-control form-control-sm" name="symbol" value="NIFTY" required>
+                    <input type="text" class="form-control form-control-sm" name="symbol" id="md-chain-symbol" value="NIFTY" required hx-get="/market-data/derivatives/options/expiries-select" hx-target="#md-chain-expiry-container" hx-trigger="change, keyup delay:400ms" hx-include="#md-chain-date">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small mb-1">Trade Date</label>
-                    <input type="date" class="form-control form-control-sm" name="trade_date" required>
+                    <input type="date" class="form-control form-control-sm" name="trade_date" id="md-chain-date" required hx-get="/market-data/derivatives/options/expiries-select" hx-target="#md-chain-expiry-container" hx-trigger="change" hx-include="#md-chain-symbol">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label small mb-1">Expiry Date</label>
-                    <input type="date" class="form-control form-control-sm" name="expiry_date" required>
+                    <div id="md-chain-expiry-container">
+                        <input type="date" class="form-control form-control-sm" name="expiry_date" required placeholder="Choose trade date first">
+                    </div>
                 </div>
                 <div class="col-md-3 d-flex align-items-end">
                     <button type="submit" class="btn btn-sm btn-primary w-100"><i class="bi bi-diagram-3 me-1"></i>Load Option Chain</button>

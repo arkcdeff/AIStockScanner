@@ -89,7 +89,7 @@ class OptionLiquidityAssessment(BaseModel):
 class OptionRiskProfile(BaseModel):
     """Quantitative risk profile per contract."""
 
-    premium_at_risk: Decimal = Field(description="Total capital at risk per contract (price * lot_size)")
+    premium_at_risk: Decimal | None = Field(default=None, description="Total capital at risk per contract (price * lot_size) or None if lot size is unavailable")
     intrinsic_value: Decimal = Field(description="Intrinsic value component")
     time_value: Decimal = Field(description="Time value component")
     theta_per_day: float | None = Field(default=None, description="Daily decay rate per contract")
@@ -99,6 +99,8 @@ class OptionRiskProfile(BaseModel):
     dte: int = Field(description="Days To Expiry")
     liquidity_class: str = Field(description="Liquidity classification")
     breakeven_distance_pct: Decimal = Field(description="Distance % to breakeven")
+    lot_source: str = Field(default="UNAVAILABLE", description="Source of lot size")
+    lot_quality: str = Field(default="UNAVAILABLE", description="Quality of lot size")
 
 
 class EnrichedOptionChainSide(BaseModel):

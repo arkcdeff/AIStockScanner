@@ -1,41 +1,31 @@
 # Project State
 
-#### Current productization state (2026-09-03) — Stage 2 Phase G.7 Critical Data-Integrity Repair COMPLETE — PENDING CHECKPOINT
+##### Current productization state (2026-09-07) — Stage 2 Pre-G.8 Final Hardening (N1 + N2 + N3) COMPLETE — READY FOR FINAL NEMOTRON AUDIT
 
-- **Current task**: Stage 2 Phase G.7 — Critical Data-Integrity Repair COMPLETE & VERIFIED
+- **Current task**: Stage 2 Pre-G.8 Final Hardening (N1, N2, N3) — COMPLETE & VERIFIED
 - **Checkpoint**: `checkpoint/sprint19-20-20260822`
-- **Current HEAD Commit**: `b60bdcc`
-- **Version**: `0.14.0`
-- **Alembic**: `478d723971bc` (single current head, no new migrations, existing schema strictly reused)
-- **Verification**: 28 dedicated tests in `test_historical_price_extension_g7.py` (+6 weekend guard tests); 8 in `test_institutional_flow_g6.py`; 22 in `test_corporate_events_g5.py`; 5 in `test_nse_parser.py`; Full test suite ALL PASS (exit code 0); Ruff clean; Alembic check clean; git diff clean; G.1–G.6 regression ALL PASS.
-- **G.7 Repair Summary** (Muse Spark 1.2 Review FAIL → REPAIRED):
-  - **Purge**: Deleted exactly 20 synthetic weekend `DailyPrice` rows (IDs 923828–923857 for RELIANCE; IDs 20–49 for ANALYTX) and 20 corresponding `IndicatorResult` rows. DailyPrice: 1,006,971 → **1,006,951**; distinct dates: 367 → **349**; weekend rows: 0.
-  - **Ingestion guard**: `NseHistoricalExtensionService._validate_record()` now rejects any `trade_date.weekday() >= 5`.
-  - **IndicatorEngine hardened**: SQL query excludes weekends via `EXTRACT(DOW FROM dp.trade_date) NOT IN (0, 6)`.
-  - **Stock360Service hardened**: Price history query and IndicatorResult query both exclude weekends.
-  - **MarketDataService.scanner_readiness hardened**: Session counts and latest_trade_date exclude weekends.
-  - **IndicatorResult recalculated**: 16,834 rows for 51 stocks. EMA-200 verified: RELIANCE=1346.1306 (3-way match: pandas-ta, IndicatorEngine, PostgreSQL).
-- **Session Semantics**:
-  - Common NSE market sessions Oct 1, 2025 – Aug 31, 2026: **225** (weekdays only).
-  - Q4 2025 G.7 extension: 62 sessions.
-  - Per-stock coverage threshold (≥200 sessions): 2,900 stocks.
-  - "200 sessions" is per-stock, not a blanket market assumption.
-- **Official NSE Historical Price Sourcing & Expansion** (unchanged from pre-repair):
-  - 62 official consecutive trading sessions under `data/reference/bhavcopy/200session/` (Oct 1 – Dec 31, 2025).
-  - 179,736 rows processed into `daily_prices` across 62 sessions.
-  - Idempotency verified.
-- **Technical Indicator & Scanner Readiness**:
-  - Pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`) have 343+ evaluated sessions (all weekday-only).
-  - `IndicatorEngine` computes clean `ema_200`, `ema_50`, `sma_20` (weekend-hardened).
-  - `golden_cross` and `death_cross` scanners: 36/36 READY.
-  - `Stock360Service` snapshot provides non-null `ema200`, `% from 52w High`, `% from 52w Low`, `rsi14`, `macd`, `adx14`, `supertrend`.
-- **Point-in-Time (PIT) Safety**:
-  - Evaluation as of `2026-08-20` strictly uses prices ≤ 2026-08-20; zero future data leakage.
+- **Current HEAD Commit**: `58a9549`
+- **Version**: `0.14.0` (strictly preserved)
+- **Alembic**: `478d723971bc` (head, no new migrations)
+- **G.8 Status**: NOT STARTED — all work strictly restricted to Pre-G.8 hardening
+- **Final Hardening Summary (N1, N2, N3)**:
+  - **N1**: Gamma profile lot quality: checks lot quality and provenance. If `lot_source == UNAVAILABLE` or `lot_quality == UNAVAILABLE` (or missing/non-positive lot_size), returns `None` (gamma flip returns `status="UNAVAILABLE"`). Valid source-backed calculations remain intact.
+  - **N2**: Strike table None -> zero preservation: `AdvancedExposureService.get_strike_exposure_table` preserves `None` for missing lot-scaled exposures, preserving real zeros as `Decimal("0.00")`. Jinja template renders `—` when `None`.
+  - **N3**: Suppressed max-pain candidate payouts: In `HistoricalOptionsAnalyticsService.get_option_chain_analytics`, candidate strikes retain `call_payout=None`, `put_payout=None`, and `total_payout=None` when max-pain is suppressed (no 1-scaled payouts).
+- **Quality Gates**: 1,609/1,609 tests pass (100%, 0 failed, 0 errors, 0 skipped, exit 0) | Focused suite (53) pass | Regression suite (161) pass | Ruff clean | Alembic clean | Import OK | `git diff --check` clean | `scripts/g8_pre_repair.py --verify` clean (all 10 assertions pass)
+- **Pre-G.8 Repair Summary (Preserved)**:
+  - **C1 DONE**: 3,674 index contracts reattributed from NIFTY to correct indices
+  - **C2 DONE**: 422 duplicate stock-future groups canonicalized (76,387→75,962 contracts)
+  - **C3 VERIFIED**: Lot sizes bhavcopy-sourced (150+ distinct values)
+  - **C4 VERIFIED**: Truthful provenance; option lot placeholders strictly tracked
+  - **C5 VERIFIED**: 0 weekend rows; Saturday/Sunday guards active
+- **Database State (Read-Only Certified)**:
+  - DerivativeContract: 75,962 | DerivativeDailyPrice: 1,732,338 | FiiDerivativeStatistic: 0
+  - GIFT_NIFTY: 0 | Option lot=1: 74,902 | Option lot!=1: 0 | Orphans: 0 | Dups: 0 | Semantic dups: 0 | Weekend DDP: 0
 - **Strict Scope Boundaries**:
-  - G.7 REPAIR COMPLETE. No G.8 work started.
-  - No scanner formulas modified.
-  - No Stock Intelligence scoring methodology modified.
-  - No new Alembic migrations; existing schema reused.
+  - Pre-G.8 repair COMPLETE. G.8 NOT STARTED.
+  - No Q4-2025 F&O data acquired.
+  - No new Alembic migrations.
   - No commit, push, tag, or version bump.
 
 ---

@@ -16,7 +16,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.derivative_contract import DerivativeContract
+from app.models.derivative_contract import (
+    DerivativeContract,
+    DerivativeLotSizeHistory,
+)
 from app.schemas.advanced_options import (
     AdvancedOptionsContext,
     EnrichedOptionChainRow,
@@ -50,6 +53,44 @@ class AdvancedOptionsService:
         self.session = session
         self.chain_service = HistoricalOptionChainService(session)
 
+    async def _resolve_historical_lot_size(
+        self,
+        u_type: str,
+        u_id: int,
+        trade_date: date,
+        as_of_date: date,
+    ) -> tuple[int | None, str, str]:
+        """Query historical lot size from DerivativeLotSizeHistory PIT.
+
+        Returns:
+            tuple[lot_size, lot_size_source, lot_size_quality]
+        """
+        col = (
+            DerivativeLotSizeHistory.underlying_index_id
+            if u_type == "INDEX"
+            else DerivativeLotSizeHistory.underlying_stock_id
+        )
+        stmt = (
+            select(DerivativeLotSizeHistory.lot_size)
+            .where(col == u_id)
+            .where(DerivativeLotSizeHistory.effective_from <= trade_date)
+            .where(
+                (DerivativeLotSizeHistory.effective_to.is_(None))
+                | (DerivativeLotSizeHistory.effective_to >= trade_date)
+            )
+            .where(DerivativeLotSizeHistory.available_at <= as_of_date)
+            .order_by(
+                DerivativeLotSizeHistory.effective_from.desc(),
+                DerivativeLotSizeHistory.id.desc(),
+            )
+        )
+        res = await self.session.execute(stmt)
+        hist_lot = res.scalar_one_or_none()
+        if hist_lot is not None:
+            return (hist_lot, "HISTORICAL_PIT", "VERIFIED_HISTORICAL")
+
+        return (None, "UNAVAILABLE", "UNAVAILABLE")
+
     async def get_enriched_option_chain(
         self,
         symbol: str,
@@ -71,7 +112,13 @@ class AdvancedOptionsService:
         dte = chain.calendar_days_to_expiry
         time_to_expiry = max(1e-4, dte / 365.0)
 
-        # Batch load lot sizes
+        u_type = chain.underlying_type
+        u_id = chain.underlying_id
+        hist_lot, hist_lot_source, hist_lot_quality = await self._resolve_historical_lot_size(
+            u_type, u_id, trade_date, as_of
+        )
+
+        # Batch load lot sizes and provenance
         contract_ids: set[int] = set()
         for r in chain.rows:
             if r.call:
@@ -79,14 +126,25 @@ class AdvancedOptionsService:
             if r.put:
                 contract_ids.add(r.put.contract_id)
 
+        contract_lot_info: dict[int, tuple[int | None, str, str]] = {}
         lot_size_map: dict[int, int] = {}
         if contract_ids:
-            c_stmt = select(DerivativeContract.id, DerivativeContract.lot_size).where(
-                DerivativeContract.id.in_(list(contract_ids))
-            )
+            c_stmt = select(
+                DerivativeContract.id,
+                DerivativeContract.lot_size,
+                DerivativeContract.source_name,
+            ).where(DerivativeContract.id.in_(list(contract_ids)))
             c_res = await self.session.execute(c_stmt)
-            for c_id, l_size in c_res.all():
-                lot_size_map[c_id] = l_size or 1
+            for c_id, l_size, src_name in c_res.all():
+                if hist_lot is not None and hist_lot > 0:
+                    contract_lot_info[c_id] = (hist_lot, hist_lot_source, hist_lot_quality)
+                    lot_size_map[c_id] = hist_lot
+                elif src_name is not None and l_size is not None and l_size > 0:
+                    contract_lot_info[c_id] = (l_size, "SOURCE_VERIFIED", "SOURCE_VERIFIED")
+                    lot_size_map[c_id] = l_size
+                else:
+                    contract_lot_info[c_id] = (None, "UNAVAILABLE", "UNAVAILABLE")
+                    lot_size_map[c_id] = 1
 
         enriched_rows: list[EnrichedOptionChainRow] = []
         for r in chain.rows:
@@ -104,6 +162,7 @@ class AdvancedOptionsService:
                 time_to_expiry=time_to_expiry,
                 lot_size_map=lot_size_map,
                 risk_free_rate=risk_free_rate,
+                contract_lot_info=contract_lot_info,
             )
 
             pe_enriched = self._enrich_side(
@@ -117,6 +176,7 @@ class AdvancedOptionsService:
                 time_to_expiry=time_to_expiry,
                 lot_size_map=lot_size_map,
                 risk_free_rate=risk_free_rate,
+                contract_lot_info=contract_lot_info,
             )
 
             enriched_rows.append(
@@ -141,8 +201,9 @@ class AdvancedOptionsService:
         spot_dec: Decimal,
         dte: int,
         time_to_expiry: float,
-        lot_size_map: dict[int, int],
-        risk_free_rate: float,
+        lot_size_map: dict[int, int] | None = None,
+        risk_free_rate: float = DEFAULT_RISK_FREE_RATE,
+        contract_lot_info: dict[int, tuple[int | None, str, str]] | None = None,
     ) -> EnrichedOptionChainSide | None:
         """Enrich a single option side with quantitative IV, Greeks, Moneyness, Breakeven, Liquidity & Risk."""
         if side is None:
@@ -254,11 +315,27 @@ class AdvancedOptionsService:
         )
 
         # Risk Profile
-        lot_size = lot_size_map.get(side.contract_id, 1)
-        prem_risk = (price_used_dec or Decimal("0")) * Decimal(str(lot_size))
+        if contract_lot_info is not None:
+            lot_size, lot_source, lot_quality = contract_lot_info.get(
+                side.contract_id, (None, "UNAVAILABLE", "UNAVAILABLE")
+            )
+        elif lot_size_map:
+            lot_size = lot_size_map.get(side.contract_id)
+            lot_source = "UNAVAILABLE" if lot_size is None else "CONFIGURED"
+            lot_quality = "UNAVAILABLE" if lot_size is None else "ESTIMATED"
+        else:
+            lot_size = None
+            lot_source = "UNAVAILABLE"
+            lot_quality = "UNAVAILABLE"
+
+        if lot_source == "UNAVAILABLE" or lot_size is None or lot_size <= 0:
+            premium_at_risk = None
+        else:
+            prem_risk = (price_used_dec or Decimal("0")) * Decimal(str(lot_size))
+            premium_at_risk = prem_risk.quantize(Decimal("0.01"))
 
         risk_profile = OptionRiskProfile(
-            premium_at_risk=prem_risk.quantize(Decimal("0.01")),
+            premium_at_risk=premium_at_risk,
             intrinsic_value=intrinsic_dec,
             time_value=time_val_dec,
             theta_per_day=greeks.theta_per_day,
@@ -268,6 +345,8 @@ class AdvancedOptionsService:
             dte=dte,
             liquidity_class=l_class,
             breakeven_distance_pct=bk_dist_pct.quantize(Decimal("0.01")),
+            lot_source=lot_source,
+            lot_quality=lot_quality,
         )
 
         rate_info = RiskFreeRateInfo(

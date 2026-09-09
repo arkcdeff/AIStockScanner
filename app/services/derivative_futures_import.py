@@ -123,6 +123,12 @@ class DerivativeFuturesImportService:
                     index_id = index_map.get("NIFTY")
                 elif symbol in ("BANKNIFTY", "NIFTY BANK"):
                     index_id = index_map.get("BANKNIFTY")
+                elif symbol in ("FINNIFTY", "NIFTY FIN SERVICE"):
+                    index_id = index_map.get("FINNIFTY")
+                elif symbol in ("MIDCPNIFTY", "NIFTY MID SELECT"):
+                    index_id = index_map.get("MIDCPNIFTY")
+                elif symbol in ("NIFTYNXT50",):
+                    index_id = index_map.get("NIFTY_NEXT_50")
 
             if not stock_id and not index_id:
                 unresolved_count += 1
@@ -173,7 +179,7 @@ class DerivativeFuturesImportService:
                 )
                 continue
 
-            available_at = record.trade_date if record.trade_date else (as_of_date or date.today())
+            available_at = record.trade_date if record.trade_date else as_of_date
 
             daily_price = DerivativeDailyPrice(
                 contract_id=contract_id,

@@ -400,14 +400,26 @@ class HistoricalOptionChainService:
             return ("INDEX", idx.id, idx.code, idx.name)
 
         # Index alias mapping
-        if sym in ("NIFTY 50", "NIFTY50"):
-            return await self._resolve_underlying("NIFTY")
-        elif sym in ("BANKNIFTY", "NIFTY BANK"):
-            return await self._resolve_underlying("BANKNIFTY")
-        elif sym in ("FINNIFTY", "NIFTY FIN SERVICE"):
-            return await self._resolve_underlying("FINNIFTY")
-        elif sym in ("MIDCPNIFTY", "NIFTY MID SELECT"):
-            return await self._resolve_underlying("MIDCPNIFTY")
+        INDEX_SYM_MAP = {
+            "NIFTY 50": "NIFTY",
+            "NIFTY50": "NIFTY",
+            "BANKNIFTY": "NIFTY_BANK",
+            "NIFTY BANK": "NIFTY_BANK",
+            "FINNIFTY": "NIFTY_FIN_SERV",
+            "NIFTY FIN SERVICE": "NIFTY_FIN_SERV",
+            "MIDCPNIFTY": "NIFTY_MID_SELECT",
+            "NIFTY MID SELECT": "NIFTY_MID_SELECT",
+            "NIFTYNXT50": "NIFTY_NEXT_50",
+            "NIFTY NEXT 50": "NIFTY_NEXT_50",
+        }
+        if sym in INDEX_SYM_MAP:
+            target_code = INDEX_SYM_MAP[sym]
+            idx_mapped_res = await self.session.execute(
+                select(MarketIndex).where(MarketIndex.code == target_code)
+            )
+            idx_mapped = idx_mapped_res.scalar_one_or_none()
+            if idx_mapped:
+                return ("INDEX", idx_mapped.id, idx_mapped.code, idx_mapped.name)
 
         # Check Stock
         stk_res = await self.session.execute(
@@ -447,6 +459,29 @@ class HistoricalOptionChainService:
             )
             res = await self.session.execute(stmt)
             val = res.scalar_one_or_none()
+            if val is None:
+                # Check canonical index aliases (e.g. NIFTY <-> NIFTY_50)
+                alias_code_map = {
+                    "NIFTY": "NIFTY_50",
+                    "NIFTY_50": "NIFTY",
+                    "BANKNIFTY": "NIFTY_BANK",
+                    "FINNIFTY": "NIFTY_FIN_SERV",
+                    "MIDCPNIFTY": "NIFTY_MID_SELECT",
+                }
+                idx_res = await self.session.execute(
+                    select(MarketIndex.code).where(MarketIndex.id == u_id)
+                )
+                curr_code = idx_res.scalar_one_or_none()
+                target_code = alias_code_map.get(curr_code) if curr_code else None
+                if target_code:
+                    stmt_alias = (
+                        select(MarketIndexPrice.close)
+                        .join(MarketIndex, MarketIndex.id == MarketIndexPrice.market_index_id)
+                        .where(MarketIndex.code == target_code)
+                        .where(MarketIndexPrice.trade_date == trade_date)
+                    )
+                    res_alias = await self.session.execute(stmt_alias)
+                    val = res_alias.scalar_one_or_none()
             return Decimal(str(val)) if val is not None else None
         else:
             stmt = (

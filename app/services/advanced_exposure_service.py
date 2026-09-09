@@ -12,6 +12,7 @@ Provides deterministic exposure calculations:
 from __future__ import annotations
 
 import math
+from collections.abc import Iterable
 from datetime import date
 from decimal import Decimal
 from typing import Any
@@ -43,6 +44,34 @@ from app.services.historical_option_chain import HistoricalOptionChainService
 # Assumption Profiles
 PROFILE_GROSS_UNSIGNED = "GROSS_UNSIGNED"
 PROFILE_DEALER_HEURISTIC = "DEALER_SHORT_CALL_LONG_PUT_HEURISTIC"
+
+
+def _add_exposure(a: Decimal | None, b: Decimal | None) -> Decimal | None:
+    """Add two nullable exposure values.
+
+    Preserves UNKNOWN / UNAVAILABLE as None.
+    If both are None, returns None.
+    If either is a Decimal, accumulates treating None as identity.
+    """
+    if a is None and b is None:
+        return None
+    if a is None:
+        return b
+    if b is None:
+        return a
+    return a + b
+
+
+def _sum_exposure(values: Iterable[Decimal | None]) -> Decimal | None:
+    """Sum an iterable of nullable exposures.
+
+    If all values are None (or iterable is empty), returns None.
+    If at least one value is numeric, returns the Decimal sum.
+    """
+    nums = [v for v in values if v is not None]
+    if not nums:
+        return None
+    return sum(nums, Decimal("0.00"))
 
 
 class AdvancedExposureService:
@@ -126,16 +155,24 @@ class AdvancedExposureService:
                 else DerivativeContract.underlying_stock_id == u_id
             )
             c_res = await self.session.execute(
-                select(DerivativeContract.lot_size)
+                select(DerivativeContract.lot_size, DerivativeContract.source_name)
                 .where(col_cond)
                 .where(DerivativeContract.available_at <= trade_date)
                 .where(DerivativeContract.expiry_date == expiry_date)
+                .limit(1)
             )
-            c_lot = c_res.scalar_one_or_none()
-            if c_lot is not None:
-                hist_lot = c_lot
-                lot_source = "SOURCE_VERIFIED"
-                lot_quality = "SOURCE_VERIFIED"
+            c_row = c_res.first()
+            if c_row is not None and c_row.lot_size is not None:
+                hist_lot = c_row.lot_size
+                # Only mark SOURCE_VERIFIED if the contract has source provenance.
+                # Bulk-imported contracts (source_name IS NULL) have fabricated lot sizes.
+                if c_row.source_name is not None:
+                    lot_source = "SOURCE_VERIFIED"
+                    lot_quality = "SOURCE_VERIFIED"
+                else:
+                    hist_lot = None
+                    lot_source = "UNAVAILABLE"
+                    lot_quality = "UNAVAILABLE"
 
         exposures: list[OptionExposureRow] = []
         for r in enriched_rows:
@@ -148,8 +185,9 @@ class AdvancedExposureService:
                 vol = side.volume_contracts or 0
                 greeks = side.greeks
 
-                if lot_size is None or lot_size <= 0:
+                if lot_size is None or lot_size <= 0 or lot_source == "UNAVAILABLE" or lot_quality == "UNAVAILABLE":
                     # Lot size is unavailable - MISSING != ZERO
+                    row_lot_size = None
                     gross_gex_dec = None
                     scenario_gex_dec = None
                     gross_dex_dec = None
@@ -159,6 +197,7 @@ class AdvancedExposureService:
                     gross_charm_dec = None
                     scenario_charm_dec = None
                 else:
+                    row_lot_size = lot_size
                     # Gross GEX = Gamma * OI * Lot * Spot^2 * 0.01 (INR Notional per 1% spot move)
                     if greeks.gamma is not None and oi > 0:
                         gross_gex_flt = greeks.gamma * float(oi) * float(lot_size) * (spot**2) * 0.01
@@ -213,7 +252,7 @@ class AdvancedExposureService:
                         dte=side.risk_profile.dte,
                         open_interest=side.open_interest,
                         volume_contracts=vol,
-                        lot_size=lot_size,
+                        lot_size=row_lot_size,
                         lot_size_source=lot_source,
                         lot_size_quality=lot_quality,
                         price_used=side.close,
@@ -261,30 +300,30 @@ class AdvancedExposureService:
                     "strike": k,
                     "ce_oi": 0,
                     "pe_oi": 0,
-                    "ce_gross_gex": Decimal("0.00"),
-                    "pe_gross_gex": Decimal("0.00"),
-                    "ce_scenario_gex": Decimal("0.00"),
-                    "pe_scenario_gex": Decimal("0.00"),
-                    "gross_dex": Decimal("0.00"),
-                    "net_scenario_dex": Decimal("0.00"),
-                    "gross_vanna": Decimal("0.00"),
-                    "gross_charm": Decimal("0.00"),
+                    "ce_gross_gex": None,
+                    "pe_gross_gex": None,
+                    "ce_scenario_gex": None,
+                    "pe_scenario_gex": None,
+                    "gross_dex": None,
+                    "net_scenario_dex": None,
+                    "gross_vanna": None,
+                    "gross_charm": None,
                 }
             entry = strike_map[k]
             oi = row.open_interest or 0
             if row.option_type == "CE":
                 entry["ce_oi"] += oi
-                entry["ce_gross_gex"] += row.gross_gamma_exposure or Decimal("0.00")
-                entry["ce_scenario_gex"] += row.scenario_gex or Decimal("0.00")
+                entry["ce_gross_gex"] = _add_exposure(entry["ce_gross_gex"], row.gross_gamma_exposure)
+                entry["ce_scenario_gex"] = _add_exposure(entry["ce_scenario_gex"], row.scenario_gex)
             else:
                 entry["pe_oi"] += oi
-                entry["pe_gross_gex"] += row.gross_gamma_exposure or Decimal("0.00")
-                entry["pe_scenario_gex"] += row.scenario_gex or Decimal("0.00")
+                entry["pe_gross_gex"] = _add_exposure(entry["pe_gross_gex"], row.gross_gamma_exposure)
+                entry["pe_scenario_gex"] = _add_exposure(entry["pe_scenario_gex"], row.scenario_gex)
 
-            entry["gross_dex"] += row.gross_delta_exposure or Decimal("0.00")
-            entry["net_scenario_dex"] += row.scenario_dex or Decimal("0.00")
-            entry["gross_vanna"] += row.gross_vanna_exposure or Decimal("0.00")
-            entry["gross_charm"] += row.gross_charm_exposure or Decimal("0.00")
+            entry["gross_dex"] = _add_exposure(entry["gross_dex"], row.gross_delta_exposure)
+            entry["net_scenario_dex"] = _add_exposure(entry["net_scenario_dex"], row.scenario_dex)
+            entry["gross_vanna"] = _add_exposure(entry["gross_vanna"], row.gross_vanna_exposure)
+            entry["gross_charm"] = _add_exposure(entry["gross_charm"], row.gross_charm_exposure)
 
         sorted_strikes = sorted(strike_map.keys())
 
@@ -295,8 +334,8 @@ class AdvancedExposureService:
         for k in sorted_strikes:
             e = strike_map[k]
             tot_oi = e["ce_oi"] + e["pe_oi"]
-            tot_gross_gex = e["ce_gross_gex"] + e["pe_gross_gex"]
-            net_scen_gex = e["ce_scenario_gex"] + e["pe_scenario_gex"]
+            tot_gross_gex = _add_exposure(e["ce_gross_gex"], e["pe_gross_gex"])
+            net_scen_gex = _add_exposure(e["ce_scenario_gex"], e["pe_scenario_gex"])
 
             result.append(
                 StrikeExposureRow(
@@ -330,7 +369,7 @@ class AdvancedExposureService:
         spot_range_pct: float = 10.0,
         spot_step_pct: float = 0.5,
         risk_free_rate: float = DEFAULT_RISK_FREE_RATE,
-    ) -> list[GammaProfilePoint]:
+    ) -> list[GammaProfilePoint] | None:
         """Compute Scenario Gamma Profile across a bounded spot grid (S +/- range_pct, STATIC_IV)."""
         if spot_range_pct <= 0 or spot_step_pct <= 0:
             raise ValueError("spot_range_pct and spot_step_pct must be strictly positive")
@@ -348,6 +387,18 @@ class AdvancedExposureService:
         )
         if not contracts:
             return []
+
+        # N1: If lot size provenance is unavailable, do not calculate using placeholder lot_size=1
+        if any(
+            c.lot_size_source == "UNAVAILABLE"
+            or c.lot_size_quality == "UNAVAILABLE"
+            or c.lot_source == "UNAVAILABLE"
+            or c.lot_quality == "UNAVAILABLE"
+            or c.lot_size is None
+            or c.lot_size <= 0
+            for c in contracts
+        ):
+            return None
 
         chain = await self.chain_service.get_historical_option_chain(
             symbol, trade_date, expiry_date, as_of
@@ -411,10 +462,19 @@ class AdvancedExposureService:
         spot_step_pct: float = 0.5,
     ) -> GammaFlipResult:
         """Locate Scenario Gamma Flip (Zero Gamma level) via spot grid zero-crossing detection."""
-        if assumption_profile == PROFILE_GROSS_UNSIGNED:
-            grid = await self.get_gamma_profile(
-                symbol, trade_date, expiry_date, as_of_date, assumption_profile, spot_range_pct, spot_step_pct
+        grid = await self.get_gamma_profile(
+            symbol, trade_date, expiry_date, as_of_date, assumption_profile, spot_range_pct, spot_step_pct
+        )
+        if grid is None:
+            return GammaFlipResult(
+                gamma_flip_level=None,
+                status="UNAVAILABLE",
+                grid_lower_bound=Decimal("0.00"),
+                grid_upper_bound=Decimal("0.00"),
+                crossing_count=0,
             )
+
+        if assumption_profile == PROFILE_GROSS_UNSIGNED:
             grid_lower = grid[0].spot_level if grid else Decimal("0.00")
             grid_upper = grid[-1].spot_level if grid else Decimal("0.00")
             return GammaFlipResult(
@@ -425,9 +485,6 @@ class AdvancedExposureService:
                 crossing_count=0,
             )
 
-        grid = await self.get_gamma_profile(
-            symbol, trade_date, expiry_date, as_of_date, assumption_profile, spot_range_pct, spot_step_pct
-        )
         if not grid or len(grid) < 2:
             return GammaFlipResult(
                 status="INSUFFICIENT_DATA",
@@ -532,33 +589,46 @@ class AdvancedExposureService:
             symbol, trade_date, target_expiry, as_of, assumption_profile
         )
 
-        gross_call_gex = sum((r.ce_gross_gex for r in strikes), Decimal("0.00"))
-        gross_put_gex = sum((r.pe_gross_gex for r in strikes), Decimal("0.00"))
-        gross_tot_gex = gross_call_gex + gross_put_gex
+        gross_call_gex = _sum_exposure(r.ce_gross_gex for r in strikes)
+        gross_put_gex = _sum_exposure(r.pe_gross_gex for r in strikes)
+        gross_tot_gex = _add_exposure(gross_call_gex, gross_put_gex)
 
-        scen_call_gex = sum((r.ce_scenario_gex for r in strikes), Decimal("0.00"))
-        scen_put_gex = sum((r.pe_scenario_gex for r in strikes), Decimal("0.00"))
-        scen_net_gex = scen_call_gex + scen_put_gex
+        scen_call_gex = _sum_exposure(r.ce_scenario_gex for r in strikes)
+        scen_put_gex = _sum_exposure(r.pe_scenario_gex for r in strikes)
+        scen_net_gex = _add_exposure(scen_call_gex, scen_put_gex)
 
-        gross_tot_dex = sum((r.gross_dex for r in strikes), Decimal("0.00"))
-        scen_net_dex = sum((r.net_scenario_dex for r in strikes), Decimal("0.00"))
+        gross_tot_dex = _sum_exposure(r.gross_dex for r in strikes)
+        scen_net_dex = _sum_exposure(r.net_scenario_dex for r in strikes)
 
-        gross_tot_vanna = sum((r.gross_vanna for r in strikes), Decimal("0.00"))
-        gross_tot_charm = sum((r.gross_charm for r in strikes), Decimal("0.00"))
+        gross_tot_vanna = _sum_exposure(r.gross_vanna for r in strikes)
+        gross_tot_charm = _sum_exposure(r.gross_charm for r in strikes)
 
         # Concentration metrics
-        sorted_by_gex = sorted(strikes, key=lambda r: r.total_gross_gex, reverse=True)
+        valid_strikes = [r for r in strikes if r.total_gross_gex is not None]
+        sorted_by_gex = sorted(valid_strikes, key=lambda r: r.total_gross_gex, reverse=True)
         top1_k = sorted_by_gex[0].strike_price if sorted_by_gex else None
-        top1_gex = sorted_by_gex[0].total_gross_gex if sorted_by_gex else Decimal("0.00")
-        top1_share = (top1_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01")) if gross_tot_gex > 0 else Decimal("0.00")
+        top1_gex = sorted_by_gex[0].total_gross_gex if sorted_by_gex else None
+        top1_share = (
+            (top1_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01"))
+            if gross_tot_gex is not None and gross_tot_gex > 0 and top1_gex is not None
+            else (Decimal("0.00") if gross_tot_gex is not None and gross_tot_gex == 0 else None)
+        )
 
         top3_ks = [r.strike_price for r in sorted_by_gex[:3]]
-        top3_gex = sum((r.total_gross_gex for r in sorted_by_gex[:3]), Decimal("0.00"))
-        top3_share = (top3_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01")) if gross_tot_gex > 0 else Decimal("0.00")
+        top3_gex = _sum_exposure(r.total_gross_gex for r in sorted_by_gex[:3])
+        top3_share = (
+            (top3_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01"))
+            if gross_tot_gex is not None and gross_tot_gex > 0 and top3_gex is not None
+            else (Decimal("0.00") if gross_tot_gex is not None and gross_tot_gex == 0 else None)
+        )
 
         top5_ks = [r.strike_price for r in sorted_by_gex[:5]]
-        top5_gex = sum((r.total_gross_gex for r in sorted_by_gex[:5]), Decimal("0.00"))
-        top5_share = (top5_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01")) if gross_tot_gex > 0 else Decimal("0.00")
+        top5_gex = _sum_exposure(r.total_gross_gex for r in sorted_by_gex[:5])
+        top5_share = (
+            (top5_gex / gross_tot_gex * Decimal("100.0")).quantize(Decimal("0.01"))
+            if gross_tot_gex is not None and gross_tot_gex > 0 and top5_gex is not None
+            else (Decimal("0.00") if gross_tot_gex is not None and gross_tot_gex == 0 else None)
+        )
 
         concentration = GammaConcentration(
             top1_strike=top1_k,
@@ -579,7 +649,7 @@ class AdvancedExposureService:
         has_unavailable_lot = any(c.lot_size_quality == "UNAVAILABLE" for c in contracts_list)
         if has_unavailable_lot or not contracts_list:
             quality_str = "INSUFFICIENT" if not contracts_list else "LOW"
-        elif gross_tot_gex == Decimal("0.00"):
+        elif gross_tot_gex is None or gross_tot_gex == Decimal("0.00"):
             quality_str = "MEDIUM"
         else:
             quality_str = "HIGH"

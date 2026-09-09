@@ -25,7 +25,10 @@ from decimal import Decimal
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.derivative_contract import DerivativeContract
+from app.models.derivative_contract import (
+    DerivativeContract,
+    DerivativeLotSizeHistory,
+)
 from app.models.derivative_daily_price import DerivativeDailyPrice
 from app.schemas.derivative_options_analytics import (
     ExpiryOptionAnalyticsItem,
@@ -50,6 +53,36 @@ class HistoricalOptionsAnalyticsService:
         self.session = session
         self.chain_service = HistoricalOptionChainService(session)
 
+    async def _resolve_historical_lot_size(
+        self,
+        u_type: str,
+        u_id: int,
+        trade_date: date,
+        as_of_date: date,
+    ) -> int | None:
+        """Query historical lot size from DerivativeLotSizeHistory PIT."""
+        col = (
+            DerivativeLotSizeHistory.underlying_index_id
+            if u_type == "INDEX"
+            else DerivativeLotSizeHistory.underlying_stock_id
+        )
+        stmt = (
+            select(DerivativeLotSizeHistory.lot_size)
+            .where(col == u_id)
+            .where(DerivativeLotSizeHistory.effective_from <= trade_date)
+            .where(
+                (DerivativeLotSizeHistory.effective_to.is_(None))
+                | (DerivativeLotSizeHistory.effective_to >= trade_date)
+            )
+            .where(DerivativeLotSizeHistory.available_at <= as_of_date)
+            .order_by(
+                DerivativeLotSizeHistory.effective_from.desc(),
+                DerivativeLotSizeHistory.id.desc(),
+            )
+        )
+        res = await self.session.execute(stmt)
+        return res.scalar_one_or_none()
+
     async def get_option_chain_analytics(
         self,
         symbol: str,
@@ -72,7 +105,11 @@ class HistoricalOptionsAnalyticsService:
         quality_warnings: list[str] = list(chain.quality_warnings)
         spot_val = chain.resolved_spot
 
-        # 1. Fetch contract lot sizes for accuracy
+        u_type = chain.underlying_type
+        u_id = chain.underlying_id
+        hist_lot = await self._resolve_historical_lot_size(u_type, u_id, trade_date, as_of)
+
+        # 1. Fetch contract lot sizes and provenance for accuracy
         contract_ids: set[int] = set()
         for row in chain.rows:
             if row.call:
@@ -81,13 +118,20 @@ class HistoricalOptionsAnalyticsService:
                 contract_ids.add(row.put.contract_id)
 
         lot_size_map: dict[int, int] = {}
+        source_unavailable: set[int] = set()
         if contract_ids:
-            c_stmt = select(DerivativeContract.id, DerivativeContract.lot_size).where(
+            c_stmt = select(DerivativeContract.id, DerivativeContract.lot_size, DerivativeContract.source_name).where(
                 DerivativeContract.id.in_(list(contract_ids))
             )
             c_res = await self.session.execute(c_stmt)
-            for c_id, l_size in c_res.all():
-                lot_size_map[c_id] = l_size or 1
+            for c_id, l_size, src_name in c_res.all():
+                if hist_lot is not None and hist_lot > 0:
+                    lot_size_map[c_id] = hist_lot
+                elif src_name is not None and l_size is not None and l_size > 0:
+                    lot_size_map[c_id] = l_size
+                else:
+                    source_unavailable.add(c_id)
+                    lot_size_map[c_id] = 1
 
         # 2. Compute PCR & Observations counts
         total_call_oi = 0
@@ -153,71 +197,93 @@ class HistoricalOptionsAnalyticsService:
             quality_warnings.append("OPTIONS_ANALYTICS_NO_SPOT")
 
         # 3. Max Pain Calculation
+        # If any contract has unknown provenance (source_name IS NULL), max-pain
+        # is suppressed since lot_size=1 is a placeholder, not a real multiplier.
+        any_unknown_lot = bool(source_unavailable)
+
         candidate_strikes = sorted([r.strike_price for r in chain.rows])
         max_pain_candidates: list[MaxPainCandidate] = []
 
-        for candidate_s in candidate_strikes:
-            call_payout = Decimal("0")
-            put_payout = Decimal("0")
-
-            for row in chain.rows:
-                k = row.strike_price
-                if candidate_s > k and row.call and row.call.open_interest:
-                    l_size = lot_size_map.get(row.call.contract_id, 1)
-                    payout = (
-                        (candidate_s - k)
-                        * Decimal(str(row.call.open_interest))
-                        * Decimal(str(l_size))
+        if any_unknown_lot:
+            # N3: When lot provenance is unavailable, candidate payouts are NOT computed with fake lot_size=1.
+            # Candidate strikes are preserved with None payouts.
+            for candidate_s in candidate_strikes:
+                max_pain_candidates.append(
+                    MaxPainCandidate(
+                        candidate_strike=candidate_s,
+                        call_payout=None,
+                        put_payout=None,
+                        total_payout=None,
                     )
-                    call_payout += payout
-
-                if candidate_s < k and row.put and row.put.open_interest:
-                    l_size = lot_size_map.get(row.put.contract_id, 1)
-                    payout = (
-                        (k - candidate_s)
-                        * Decimal(str(row.put.open_interest))
-                        * Decimal(str(l_size))
-                    )
-                    put_payout += payout
-
-            tot_payout = call_payout + put_payout
-            max_pain_candidates.append(
-                MaxPainCandidate(
-                    candidate_strike=candidate_s,
-                    call_payout=call_payout,
-                    put_payout=put_payout,
-                    total_payout=tot_payout,
                 )
-            )
 
-        max_pain_res = MaxPainAnalytics(spot_value=spot_val, candidates=max_pain_candidates)
-
-        if max_pain_candidates:
-            min_payout = min(c.total_payout for c in max_pain_candidates)
-            tied_candidates = [
-                c.candidate_strike
-                for c in max_pain_candidates
-                if c.total_payout == min_payout
-            ]
-            max_pain_res.tie_count = len(tied_candidates)
-            max_pain_res.tied_strikes = tied_candidates
-
-            # Primary choice: nearest to spot; lower strike if distance tied
-            if spot_val is not None and spot_val > Decimal("0"):
-                selected_strike = min(
-                    tied_candidates,
-                    key=lambda k: (abs(k - spot_val), k),
-                )
-            else:
-                selected_strike = tied_candidates[0]
-
-            max_pain_res.max_pain_strike = selected_strike
-            if spot_val is not None and spot_val > Decimal("0"):
-                dist_abs = selected_strike - spot_val
-                max_pain_res.distance_from_spot = dist_abs
-                max_pain_res.distance_pct = (dist_abs / spot_val) * Decimal("100")
+            max_pain_res = MaxPainAnalytics(spot_value=spot_val, candidates=max_pain_candidates)
+            max_pain_res.max_pain_strike = None
+            max_pain_res.distance_from_spot = None
+            max_pain_res.distance_pct = None
+            quality_warnings.append("LOT_UNAVAILABLE_MAX_PAIN_SUPPRESSED")
         else:
-            quality_warnings.append("OPTIONS_ANALYTICS_MAX_PAIN_UNAVAILABLE")
+            for candidate_s in candidate_strikes:
+                call_payout = Decimal("0")
+                put_payout = Decimal("0")
+
+                for row in chain.rows:
+                    k = row.strike_price
+                    if candidate_s > k and row.call and row.call.open_interest:
+                        l_size = lot_size_map.get(row.call.contract_id, 1)
+                        payout = (
+                            (candidate_s - k)
+                            * Decimal(str(row.call.open_interest))
+                            * Decimal(str(l_size))
+                        )
+                        call_payout += payout
+
+                    if candidate_s < k and row.put and row.put.open_interest:
+                        l_size = lot_size_map.get(row.put.contract_id, 1)
+                        payout = (
+                            (k - candidate_s)
+                            * Decimal(str(row.put.open_interest))
+                            * Decimal(str(l_size))
+                        )
+                        put_payout += payout
+
+                tot_payout = call_payout + put_payout
+                max_pain_candidates.append(
+                    MaxPainCandidate(
+                        candidate_strike=candidate_s,
+                        call_payout=call_payout,
+                        put_payout=put_payout,
+                        total_payout=tot_payout,
+                    )
+                )
+
+            max_pain_res = MaxPainAnalytics(spot_value=spot_val, candidates=max_pain_candidates)
+            if max_pain_candidates:
+                min_payout = min(c.total_payout for c in max_pain_candidates)
+                tied_candidates = [
+                    c.candidate_strike
+                    for c in max_pain_candidates
+                    if c.total_payout == min_payout
+                ]
+                max_pain_res.tie_count = len(tied_candidates)
+                max_pain_res.tied_strikes = tied_candidates
+
+                # Primary choice: nearest to spot; lower strike if distance tied
+                if spot_val is not None and spot_val > Decimal("0"):
+                    selected_strike = min(
+                        tied_candidates,
+                        key=lambda k: (abs(k - spot_val), k),
+                    )
+                else:
+                    selected_strike = tied_candidates[0]
+
+                max_pain_res.max_pain_strike = selected_strike
+                if spot_val is not None and spot_val > Decimal("0"):
+                    dist_abs = selected_strike - spot_val
+                    max_pain_res.distance_from_spot = dist_abs
+                    max_pain_res.distance_pct = (dist_abs / spot_val) * Decimal("100")
+            else:
+                quality_warnings.append("OPTIONS_ANALYTICS_MAX_PAIN_UNAVAILABLE")
 
         # 4. Static Walls (Highest OI)
         static_call_wall = self._calculate_static_wall(

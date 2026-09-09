@@ -215,6 +215,7 @@ async def test_gross_unsigned_gamma_flip_returns_signed_assumption_required() ->
             strike_price=Decimal("24500.0"),
             option_type="CE",
             lot_size=25,
+            source_name="NSE_FO_BHAV",
             available_at=trade_d,
         )
         session.add_all([idx_price, c_ce])
@@ -275,6 +276,7 @@ async def test_advanced_exposure_rest_api_and_ui_partial() -> None:
             strike_price=Decimal("24500.0"),
             option_type="CE",
             lot_size=25,
+            source_name="NSE_FO_BHAV",
             available_at=trade_d,
         )
         session.add_all([idx_price, c_ce])

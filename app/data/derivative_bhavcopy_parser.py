@@ -237,7 +237,14 @@ class DerivativeBhavcopyParser:
         if not trade_date and "trade_date" in field_map:
             trade_date = self._parse_date(row.get(field_map["trade_date"], "").strip())
         if not trade_date:
-            trade_date = date.today()
+            # Never fall back to date.today() for historical imports.
+            # A missing trade_date means the row cannot be placed in time.
+            return ParsedDerivativePriceRowError(
+                row_index=idx,
+                issue_code=DQ_DERIVATIVE_UNSUPPORTED_FORMAT,
+                description="Missing trade_date and no trade_date_override provided",
+                raw_row=dict(row),
+            )
 
         if trade_date > expiry_date:
             return ParsedDerivativePriceRowError(

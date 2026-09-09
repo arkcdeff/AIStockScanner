@@ -175,6 +175,7 @@ async def test_max_pain_calculation_and_tie_handling():
                 strike_price=k,
                 option_type="CE",
                 lot_size=25,
+                source_name="NSE_FO_BHAV",
                 available_at=date(2026, 8, 1),
             )
             pe = DerivativeContract(
@@ -186,6 +187,7 @@ async def test_max_pain_calculation_and_tie_handling():
                 strike_price=k,
                 option_type="PE",
                 lot_size=25,
+                source_name="NSE_FO_BHAV",
                 available_at=date(2026, 8, 1),
             )
             db_session.add_all([ce, pe])

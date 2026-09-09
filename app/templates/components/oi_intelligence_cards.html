@@ -1,0 +1,251 @@
+{% if error_message %}
+<div class="alert alert-warning my-3">
+  <i class="bi bi-exclamation-triangle me-2"></i>{{ error_message }}
+</div>
+{% elif not snapshot %}
+<div class="empty-state py-4">
+  <i class="bi bi-bar-chart"></i>
+  <p>Select a stored trade date and expiry to view deterministic Open Interest Intelligence.</p>
+</div>
+{% else %}
+
+{% if snapshot.quality_warnings %}
+<div class="alert alert-warning alert-dismissible fade show my-2" role="alert">
+  <strong>Data Quality Warnings:</strong>
+  <ul class="mb-0 ps-3">
+    {% for w in snapshot.quality_warnings %}
+      <li><code>{{ w }}</code></li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<!-- Primary Metric Strip -->
+<div class="row g-3 mb-4">
+  <!-- Spot Reference & Movement -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Spot Reference</div>
+        <div class="fs-4 fw-bold text-info">
+          {% if snapshot.resolved_spot %}{{ "{:,.2f}".format(snapshot.resolved_spot) }}{% else %}—{% endif %}
+        </div>
+        <div class="small text-secondary">
+          {% if snapshot.summary.spot_change is not none and snapshot.summary.spot_change_pct is not none %}
+            <span class="{% if snapshot.summary.spot_change >= 0 %}text-success{% else %}text-danger{% endif %} fw-semibold">
+              {{ "{:+,.2f}".format(snapshot.summary.spot_change) }} ({{ "{:+.2f}%".format(snapshot.summary.spot_change_pct) }})
+            </span>
+            vs {{ snapshot.summary.previous_trade_date or 'prev' }}
+          {% else %}
+            {{ snapshot.underlying_symbol }} • {{ snapshot.trade_date }}
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PCR Metrics -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Put-Call Ratios</div>
+        <div class="fs-5 fw-bold text-light">
+          PCR (OI): {% if snapshot.summary.current_pcr_oi is not none %}{{ "{:.2f}".format(snapshot.summary.current_pcr_oi) }}{% else %}—{% endif %}
+          {% if snapshot.summary.pcr_oi_change is not none %}
+            <span class="small {% if snapshot.summary.pcr_oi_change >= 0 %}text-success{% else %}text-danger{% endif %}">
+              ({{ "{:+.2f}".format(snapshot.summary.pcr_oi_change) }})
+            </span>
+          {% endif %}
+        </div>
+        <div class="small text-secondary mt-1">
+          <span>Vol PCR: {% if snapshot.summary.volume_pcr is not none %}{{ "{:.2f}".format(snapshot.summary.volume_pcr) }}{% else %}—{% endif %}</span>
+          <span class="ms-2">ΔOI PCR: {% if snapshot.summary.delta_oi_pcr is not none %}{{ "{:.2f}".format(snapshot.summary.delta_oi_pcr) }}{% else %}—{% endif %}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Call Wall Movement -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Call Wall (Resistance)</div>
+        <div class="fs-4 fw-bold text-warning">
+          {{ "{:,.0f}".format(snapshot.call_wall.current_strike) }}
+          <span class="fs-6 badge {% if snapshot.call_wall.shift_direction == 'UP' %}bg-success{% elif snapshot.call_wall.shift_direction == 'DOWN' %}bg-danger{% else %}bg-secondary{% endif %}">
+            {{ snapshot.call_wall.shift_direction }}
+            {% if snapshot.call_wall.shift_points %}({{ "{:+,.0f}".format(snapshot.call_wall.shift_points) }}){% endif %}
+          </span>
+        </div>
+        <div class="small text-secondary">
+          OI: {{ "{:,}".format(snapshot.call_wall.current_oi) }}
+          {% if snapshot.call_wall.oi_share_pct %}({{ "{:.1f}%".format(snapshot.call_wall.oi_share_pct) }}){% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Put Wall Movement -->
+  <div class="col-md-3">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-body py-3">
+        <div class="text-muted small">Put Wall (Support)</div>
+        <div class="fs-4 fw-bold text-warning">
+          {{ "{:,.0f}".format(snapshot.put_wall.current_strike) }}
+          <span class="fs-6 badge {% if snapshot.put_wall.shift_direction == 'UP' %}bg-success{% elif snapshot.put_wall.shift_direction == 'DOWN' %}bg-danger{% else %}bg-secondary{% endif %}">
+            {{ snapshot.put_wall.shift_direction }}
+            {% if snapshot.put_wall.shift_points %}({{ "{:+,.0f}".format(snapshot.put_wall.shift_points) }}){% endif %}
+          </span>
+        </div>
+        <div class="small text-secondary">
+          OI: {{ "{:,}".format(snapshot.put_wall.current_oi) }}
+          {% if snapshot.put_wall.oi_share_pct %}({{ "{:.1f}%".format(snapshot.put_wall.oi_share_pct) }}){% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- "What Changed?" Comparative Narrative Panel -->
+<div class="card bg-dark border-secondary text-white mb-4">
+  <div class="card-header bg-dark border-secondary py-2 d-flex justify-content-between align-items-center">
+    <h6 class="mb-0 text-light fs-7 fw-semibold"><i class="bi bi-clock-history me-1"></i>What Changed Since Previous Session?</h6>
+    <span class="badge bg-primary text-uppercase">{{ snapshot.summary.predominant_buildup }}</span>
+  </div>
+  <div class="card-body py-3">
+    <p class="mb-3 lead fs-6 text-light">{{ snapshot.summary.narrative_summary }}</p>
+    <div class="row g-2 text-center">
+      <div class="col-md-3">
+        <div class="p-2 border border-secondary rounded">
+          <div class="text-success fw-bold fs-5">{{ snapshot.summary.long_buildup_count }}</div>
+          <div class="text-muted small">Long Buildup Strikes</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 border border-secondary rounded">
+          <div class="text-danger fw-bold fs-5">{{ snapshot.summary.short_buildup_count }}</div>
+          <div class="text-muted small">Short Buildup Strikes</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 border border-secondary rounded">
+          <div class="text-info fw-bold fs-5">{{ snapshot.summary.short_covering_count }}</div>
+          <div class="text-muted small">Short Covering Strikes</div>
+        </div>
+      </div>
+      <div class="col-md-3">
+        <div class="p-2 border border-secondary rounded">
+          <div class="text-warning fw-bold fs-5">{{ snapshot.summary.long_unwinding_count }}</div>
+          <div class="text-muted small">Long Unwinding Strikes</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Active Strikes & Concentration Row -->
+<div class="row g-3 mb-4">
+  <!-- Active Strikes by Volume -->
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-header bg-dark border-secondary py-2">
+        <h6 class="mb-0 text-light fs-7 fw-semibold"><i class="bi bi-fire me-1"></i>Most Active Strikes (By Volume)</h6>
+      </div>
+      <div class="table-responsive">
+        <table class="table table-sm table-dark table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Strike</th>
+              <th>Type</th>
+              <th class="text-end">Volume</th>
+              <th class="text-end">OI</th>
+              <th class="text-end">ΔOI</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in snapshot.active_strikes_by_volume[:5] %}
+            <tr>
+              <td class="fw-semibold">{{ "{:,.0f}".format(item.strike_price) }}</td>
+              <td><span class="badge {% if item.option_type == 'CE' %}bg-primary{% else %}bg-warning text-dark{% endif %}">{{ item.option_type }}</span></td>
+              <td class="text-end font-monospace">{{ "{:,}".format(item.volume) }}</td>
+              <td class="text-end font-monospace">{{ "{:,}".format(item.open_interest) }}</td>
+              <td class="text-end font-monospace {% if item.change_in_oi > 0 %}text-success{% elif item.change_in_oi < 0 %}text-danger{% else %}text-muted{% endif %}">
+                {{ "{:+,}".format(item.change_in_oi) }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Multi-Strike Concentration -->
+  <div class="col-md-6">
+    <div class="card bg-dark border-secondary text-white h-100">
+      <div class="card-header bg-dark border-secondary py-2">
+        <h6 class="mb-0 text-light fs-7 fw-semibold"><i class="bi bi-pie-chart me-1"></i>Multi-Strike Concentration</h6>
+      </div>
+      <div class="card-body py-3">
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Calls Concentration:</span>
+            <span>Top 1: {{ "{:.1f}%".format(snapshot.concentration_call.top1_share_pct or 0) }} | Top 3: {{ "{:.1f}%".format(snapshot.concentration_call.top3_share_pct or 0) }} | Top 5: {{ "{:.1f}%".format(snapshot.concentration_call.top5_share_pct or 0) }}</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-primary" role="progressbar" style="width: {{ snapshot.concentration_call.top3_share_pct or 0 }}%;"></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="d-flex justify-content-between small text-muted mb-1">
+            <span>Puts Concentration:</span>
+            <span>Top 1: {{ "{:.1f}%".format(snapshot.concentration_put.top1_share_pct or 0) }} | Top 3: {{ "{:.1f}%".format(snapshot.concentration_put.top3_share_pct or 0) }} | Top 5: {{ "{:.1f}%".format(snapshot.concentration_put.top5_share_pct or 0) }}</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ snapshot.concentration_put.top3_share_pct or 0 }}%;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- OI Spurts (Surge in OI) -->
+{% if snapshot.oi_spurts %}
+<div class="card bg-dark border-secondary text-white mb-4">
+  <div class="card-header bg-dark border-secondary py-2">
+    <h6 class="mb-0 text-light fs-7 fw-semibold"><i class="bi bi-lightning-charge text-warning me-1"></i>OI Spurt Candidates (≥50% Surge in OI)</h6>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-dark table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Strike</th>
+          <th>Type</th>
+          <th class="text-end">Current OI</th>
+          <th class="text-end">Previous OI</th>
+          <th class="text-end">+ΔOI</th>
+          <th class="text-end">Growth %</th>
+          <th class="text-end">Volume</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for spurt in snapshot.oi_spurts[:5] %}
+        <tr>
+          <td class="fw-semibold">{{ "{:,.0f}".format(spurt.strike_price) }}</td>
+          <td><span class="badge {% if spurt.option_type == 'CE' %}bg-primary{% else %}bg-warning text-dark{% endif %}">{{ spurt.option_type }}</span></td>
+          <td class="text-end font-monospace">{{ "{:,}".format(spurt.current_oi) }}</td>
+          <td class="text-end font-monospace text-muted">{{ "{:,}".format(spurt.previous_oi) }}</td>
+          <td class="text-end font-monospace text-success">+{{ "{:,}".format(spurt.oi_change) }}</td>
+          <td class="text-end font-monospace text-success fw-bold">+{{ "{:.1f}%".format(spurt.oi_growth_pct) }}</td>
+          <td class="text-end font-monospace">{{ "{:,}".format(spurt.volume) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{% endif %}

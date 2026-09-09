@@ -339,7 +339,7 @@ OPTSTK,RELIANCE,26-Mar-2026,3000.00,CE,250,12346
     official_udiff = """TradDt,FinInstrmTp,FinInstrmId,TckrSymb,XpryDt,StrkPric,OptnTp,FinInstrmNm,NewBrdLotQty
 2026-06-01,STF,62333,ABCAPITAL,2026-06-30,,,ABCAPITAL26JUNFUT,3100
 """
-    udiff_result = parser.parse_csv(official_udiff)
+    udiff_result = parser.parse_csv(official_udiff, as_of_date=date(2026, 6, 1))
 
     assert len(udiff_result.contracts) == 1
     assert udiff_result.contracts[0].trading_symbol == "ABCAPITAL26JUNFUT"
@@ -374,7 +374,20 @@ def test_parser_unsupported_header_throws() -> None:
     parser = DerivativeContractParser()
     csv_header = "COL_A,COL_B,COL_C\n1,2,3\n"
     with pytest.raises(DerivativeParserError):
-        parser.parse_csv(csv_header)
+        parser.parse_csv(csv_header, as_of_date=date(2026, 3, 1))
+
+
+def test_parser_omission_of_as_of_date_fails_closed() -> None:
+    """Parser fails closed when as_of_date is omitted or None."""
+    parser = DerivativeContractParser()
+    csv_sample = """INSTRUMENT,SYMBOL,EXPIRY_DT,STRIKE_PR,OPTION_TYP,MARKET_LOT
+FUTSTK,RELIANCE,26-Mar-2026,0.00,XX,250
+"""
+    with pytest.raises(TypeError):
+        parser.parse_csv(csv_sample)  # type: ignore[call-arg]
+
+    with pytest.raises(DerivativeParserError, match="as_of_date is required"):
+        parser.parse_csv(csv_sample, as_of_date=None)  # type: ignore[arg-type]
 
 
 @pytest.mark.asyncio

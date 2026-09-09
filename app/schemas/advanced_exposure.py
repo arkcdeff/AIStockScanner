@@ -37,6 +37,14 @@ class OptionExposureRow(BaseModel):
     lot_size_quality: str = "VERIFIED_HISTORICAL"  # VERIFIED_HISTORICAL, SOURCE_VERIFIED, UNAVAILABLE
     price_used: Decimal | None = None
 
+    @property
+    def lot_source(self) -> str:
+        return self.lot_size_source
+
+    @property
+    def lot_quality(self) -> str:
+        return self.lot_size_quality
+
     iv: float | None = None
     greeks: OptionGreeksRead
 
@@ -63,19 +71,19 @@ class StrikeExposureRow(BaseModel):
     pe_open_interest: int = 0
     total_open_interest: int = 0
 
-    ce_gross_gex: Decimal = Decimal("0.00")
-    pe_gross_gex: Decimal = Decimal("0.00")
-    total_gross_gex: Decimal = Decimal("0.00")
+    ce_gross_gex: Decimal | None = None
+    pe_gross_gex: Decimal | None = None
+    total_gross_gex: Decimal | None = None
 
-    ce_scenario_gex: Decimal = Decimal("0.00")
-    pe_scenario_gex: Decimal = Decimal("0.00")
-    net_scenario_gex: Decimal = Decimal("0.00")
+    ce_scenario_gex: Decimal | None = None
+    pe_scenario_gex: Decimal | None = None
+    net_scenario_gex: Decimal | None = None
 
-    gross_dex: Decimal = Decimal("0.00")
-    net_scenario_dex: Decimal = Decimal("0.00")
+    gross_dex: Decimal | None = None
+    net_scenario_dex: Decimal | None = None
 
-    gross_vanna: Decimal = Decimal("0.00")
-    gross_charm: Decimal = Decimal("0.00")
+    gross_vanna: Decimal | None = None
+    gross_charm: Decimal | None = None
 
 
 class ExpiryExposureRow(BaseModel):
@@ -85,16 +93,16 @@ class ExpiryExposureRow(BaseModel):
     dte: int
     resolved_spot: Decimal
 
-    gross_call_gex: Decimal = Decimal("0.00")
-    gross_put_gex: Decimal = Decimal("0.00")
-    gross_total_gex: Decimal = Decimal("0.00")
+    gross_call_gex: Decimal | None = None
+    gross_put_gex: Decimal | None = None
+    gross_total_gex: Decimal | None = None
 
-    scenario_net_gex: Decimal = Decimal("0.00")
-    gross_total_dex: Decimal = Decimal("0.00")
-    scenario_net_dex: Decimal = Decimal("0.00")
+    scenario_net_gex: Decimal | None = None
+    gross_total_dex: Decimal | None = None
+    scenario_net_dex: Decimal | None = None
 
     largest_gamma_strikes: list[Decimal] = Field(default_factory=list)
-    top1_strike_share_pct: Decimal = Decimal("0.00")
+    top1_strike_share_pct: Decimal | None = None
 
 
 class GammaProfilePoint(BaseModel):
@@ -112,7 +120,7 @@ class GammaFlipResult(BaseModel):
     gamma_flip_level: Decimal | None = Field(default=None, description="Interpolated zero-crossing spot level")
     status: str = Field(
         default="NO_FLIP_IN_RANGE",
-        description="FLIP_FOUND, NO_FLIP_IN_RANGE, MULTIPLE_FLIPS_FOUND, SIGNED_ASSUMPTION_REQUIRED, INSUFFICIENT_DATA",
+        description="FLIP_FOUND, NO_FLIP_IN_RANGE, MULTIPLE_FLIPS_FOUND, SIGNED_ASSUMPTION_REQUIRED, INSUFFICIENT_DATA, UNAVAILABLE",
     )
     distance_from_spot: Decimal | None = None
     distance_pct: Decimal | None = None
@@ -132,14 +140,14 @@ class GammaConcentration(BaseModel):
     """Exposure concentration metrics across strikes."""
 
     top1_strike: Decimal | None = None
-    top1_gex: Decimal = Decimal("0.00")
-    top1_share_pct: Decimal = Decimal("0.00")
+    top1_gex: Decimal | None = None
+    top1_share_pct: Decimal | None = None
 
     top3_strikes: list[Decimal] = Field(default_factory=list)
-    top3_share_pct: Decimal = Decimal("0.00")
+    top3_share_pct: Decimal | None = None
 
     top5_strikes: list[Decimal] = Field(default_factory=list)
-    top5_share_pct: Decimal = Decimal("0.00")
+    top5_share_pct: Decimal | None = None
 
 
 class AdvancedExposureSnapshot(BaseModel):
@@ -157,19 +165,19 @@ class AdvancedExposureSnapshot(BaseModel):
         "Gross values represent factual magnitude. Signed values depend strictly on the selected scenario profile."
     )
 
-    gross_call_gex: Decimal = Decimal("0.00")
-    gross_put_gex: Decimal = Decimal("0.00")
-    gross_total_gex: Decimal = Decimal("0.00")
+    gross_call_gex: Decimal | None = None
+    gross_put_gex: Decimal | None = None
+    gross_total_gex: Decimal | None = None
 
-    scenario_call_gex: Decimal = Decimal("0.00")
-    scenario_put_gex: Decimal = Decimal("0.00")
-    scenario_net_gex: Decimal = Decimal("0.00")
+    scenario_call_gex: Decimal | None = None
+    scenario_put_gex: Decimal | None = None
+    scenario_net_gex: Decimal | None = None
 
-    gross_total_dex: Decimal = Decimal("0.00")
-    scenario_net_dex: Decimal = Decimal("0.00")
+    gross_total_dex: Decimal | None = None
+    scenario_net_dex: Decimal | None = None
 
-    gross_total_vanna: Decimal = Decimal("0.00")
-    gross_total_charm: Decimal = Decimal("0.00")
+    gross_total_vanna: Decimal | None = None
+    gross_total_charm: Decimal | None = None
 
     gamma_flip: GammaFlipResult
     concentration: GammaConcentration

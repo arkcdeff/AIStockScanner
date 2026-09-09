@@ -93,13 +93,13 @@
             <td class="p-2 font-mono">{{ r.strike_price }} {% if r.is_atm %}<span class="text-[10px] px-1 bg-indigo-500/30 text-indigo-200 rounded ml-1">ATM</span>{% endif %}</td>
             <td class="p-2 text-right font-mono">{{ r.ce_open_interest }}</td>
             <td class="p-2 text-right font-mono">{{ r.pe_open_interest }}</td>
-            <td class="p-2 text-right font-mono">₹ {{ r.ce_gross_gex }}</td>
-            <td class="p-2 text-right font-mono">₹ {{ r.pe_gross_gex }}</td>
-            <td class="p-2 text-right font-mono font-semibold">₹ {{ r.total_gross_gex }}</td>
-            <td class="p-2 text-right font-mono {% if r.net_scenario_gex > 0 %}text-emerald-400{% elif r.net_scenario_gex < 0 %}text-rose-400{% endif %}">
-              ₹ {{ r.net_scenario_gex }}
+            <td class="p-2 text-right font-mono">{% if r.ce_gross_gex is not none %}₹ {{ r.ce_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
+            <td class="p-2 text-right font-mono">{% if r.pe_gross_gex is not none %}₹ {{ r.pe_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
+            <td class="p-2 text-right font-mono font-semibold">{% if r.total_gross_gex is not none %}₹ {{ r.total_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
+            <td class="p-2 text-right font-mono {% if r.net_scenario_gex and r.net_scenario_gex > 0 %}text-emerald-400{% elif r.net_scenario_gex and r.net_scenario_gex < 0 %}text-rose-400{% endif %}">
+              {% if r.net_scenario_gex is not none %}₹ {{ r.net_scenario_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}
             </td>
-            <td class="p-2 text-right font-mono">₹ {{ r.gross_dex }}</td>
+            <td class="p-2 text-right font-mono">{% if r.gross_dex is not none %}₹ {{ r.gross_dex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
           </tr>
           {% else %}
           <tr>

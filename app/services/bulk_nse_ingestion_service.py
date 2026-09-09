@@ -207,7 +207,12 @@ class BulkNSEIngestionService:
         text_content = content.decode("utf-8", errors="ignore")
         reader = csv.DictReader(io.StringIO(text_content))
 
-        nifty_idx_id = self._index_cache.get("NIFTY") or self._index_cache.get("NIFTY_50")
+        # R1: Per-symbol index resolution — no fallback to NIFTY for all indices.
+        _idx_sym_to_db: dict[str, str] = {
+            "NIFTY": "NIFTY", "NIFTY50": "NIFTY", "NIFTY_50": "NIFTY",
+            "BANKNIFTY": "BANKNIFTY", "FINNIFTY": "FINNIFTY",
+            "MIDCPNIFTY": "MIDCPNIFTY", "SENSEX": "SENSEX",
+        }
         fut_created = 0
         opt_created = 0
         ddp_records: list[dict[str, Any]] = []
@@ -246,23 +251,33 @@ class BulkNSEIngestionService:
             strike_p = Decimal(row.get("STRIKE_PR", "0")) if is_option else None
             opt_type = row.get("OPTION_TYP", "").strip().upper() if is_option else None
 
-            # Resolve underlying
+            # Resolve underlying — R1: per-symbol index mapping
             u_stock_id = None
             u_index_id = None
             if sym in INDEX_CODES:
-                u_index_id = nifty_idx_id or 8
+                db_key = _idx_sym_to_db.get(sym, sym)
+                u_index_id = self._index_cache.get(db_key)
             else:
                 u_stock_id = await self._get_or_create_stock(sym)
 
-            # Contract key fingerprint
+            # Contract key fingerprint — must match DerivativeContract.compute_fingerprint()
+            def _fmt(val):
+                if val is None:
+                    return "NULL"
+                if isinstance(val, Decimal):
+                    return str(val.normalize())
+                if hasattr(val, "isoformat"):
+                    return val.isoformat()
+                return str(val)
+
             hash_parts = [
-                "NSE",
-                str(u_stock_id) if u_stock_id is not None else "NONE",
-                str(u_index_id) if u_index_id is not None else "NONE",
-                inst_type,
-                exp_date.isoformat(),
-                f"{strike_p:.4f}" if strike_p is not None else "NONE",
-                opt_type if opt_type is not None else "NONE",
+                _fmt("NSE"),
+                _fmt(u_stock_id),
+                _fmt(u_index_id),
+                _fmt(inst_type),
+                _fmt(exp_date),
+                _fmt(strike_p),
+                _fmt(opt_type),
             ]
             idem_hash = hashlib.sha256("|".join(hash_parts).encode("utf-8")).hexdigest()
 
@@ -281,7 +296,7 @@ class BulkNSEIngestionService:
                         "expiry_date": exp_date,
                         "strike_price": strike_p,
                         "option_type": opt_type,
-                        "lot_size": 25 if sym == "NIFTY" else 500,
+                        "lot_size": 1,  # R3: unknown lot; advanced_exposure handles <= 0 as UNAVAILABLE
                         "lifecycle_status": "ACTIVE",
                         "idempotency_hash": idem_hash,
                         "available_at": trade_d,

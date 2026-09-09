@@ -35,9 +35,9 @@ class MaxPainCandidate:
     """Candidate settlement strike payout evaluation in Max Pain calculation."""
 
     candidate_strike: Decimal
-    call_payout: Decimal
-    put_payout: Decimal
-    total_payout: Decimal
+    call_payout: Decimal | None = None
+    put_payout: Decimal | None = None
+    total_payout: Decimal | None = None
 
 
 @dataclass

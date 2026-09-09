@@ -76,10 +76,15 @@ class DerivativeContractParser:
     def parse_csv(
         self,
         content: str | bytes,
-        as_of_date: date | None = None,
+        as_of_date: date,
         source_name: str = "NSE_FO_CONTRACT_MASTER",
     ) -> DerivativeParseResult:
-        """Parse CSV text or bytes into a DerivativeParseResult."""
+        """Parse CSV text or bytes into a DerivativeParseResult.
+
+        R4: as_of_date is required — no date.today() fallback.
+        """
+        if as_of_date is None:
+            raise DerivativeParserError("as_of_date is required; refusing to guess via date.today()")
         if isinstance(content, bytes):
             try:
                 text_content = content.decode("utf-8")
@@ -99,7 +104,7 @@ class DerivativeContractParser:
         row_errors: list[ParsedDerivativeRowError] = []
         total_rows = 0
 
-        default_available_at = as_of_date or date.today()
+        default_available_at = as_of_date
 
         for idx, row in enumerate(reader, start=1):
             total_rows += 1

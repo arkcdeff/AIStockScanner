@@ -1,63 +1,51 @@
 # AI HANDOFF & CROSS-AGENT CONTINUATION STATE
 
-## Active Handoff — Stage 2 Phase G.7 Critical Data-Integrity Repair COMPLETE 2026-09-03
+## Active Handoff — Stage 2 Pre-G.8 Final Hardening (N1 + N2 + N3 ONLY) COMPLETE 2026-09-07
 
-- **Status**: `STAGE 2 PHASE G.7 CRITICAL DATA-INTEGRITY REPAIR COMPLETE & VERIFIED — PENDING CHECKPOINT`
+- **Status**: `N1-N3 COMPLETE — READY FOR FINAL NEMOTRON AUDIT`
 - **Safe checkpoint**: branch `checkpoint/sprint19-20-20260822`
-- **HEAD Commit**: `b60bdcc`
-- **Version / schema**: `0.14.0` / Alembic `478d723971bc` (no new migrations, existing schema strictly reused)
+- **HEAD Commit**: `58a9549`
+- **Version / schema**: `0.14.0` / Alembic `478d723971bc` (head, no new migrations)
+- **G.8 Status**: NOT STARTED — all work strictly restricted to Pre-G.8 hardening (N1-N3)
+- **Q4-2025 F&O Acquisition**: NOT ACQUIRED (forbidden)
 
-### G.7 Repair: What Was Fixed (Muse Spark 1.2 Review FAIL → REPAIRED)
+### Final Hardening Summary (N1, N2, N3)
 
-**Root cause**: 20 synthetic weekend `DailyPrice` rows existed from early test seeding — 10 for RELIANCE (Saturdays/Sundays in Aug 2026) and 10 for ANALYTX (Jul/Aug 2026 weekends). These contaminated EMA/52-week/scanner calculations and left IndicatorResult stale.
+| Defect | Status | Implementation Detail |
+|--------|--------|-----------------------|
+| N1 Gamma Profile Lot Quality | DONE | `OptionExposureRow` exposes `@property def lot_source` and `@property def lot_quality`. In `AdvancedExposureService`, if any contract has `lot_size_source == "UNAVAILABLE"`, `lot_size_quality == "UNAVAILABLE"`, `lot_source == "UNAVAILABLE"`, `lot_quality == "UNAVAILABLE"`, `lot_size is None`, or `lot_size <= 0`, gamma profile returns `None` (gamma flip returns `status="UNAVAILABLE"`). Valid source-backed calculations remain intact. |
+| N2 Strike Table None -> Zero Preservation | DONE | In `AdvancedExposureService.get_strike_exposure_table`, missing lot-scaled exposures remain `None` rather than coercing to `Decimal("0.00")`. Real calculated zero is preserved as `Decimal("0.00")`. In `app/templates/components/advanced_exposure_tab.html`, cells render `—` when `r.* is not none` is false. |
+| N3 Suppressed Max-Pain Candidate Payouts | DONE | In `HistoricalOptionsAnalyticsService.get_option_chain_analytics`, when `LOT_UNAVAILABLE_MAX_PAIN_SUPPRESSED` is active, candidate strikes are preserved with `call_payout=None`, `put_payout=None`, and `total_payout=None` (no 1-scaled payouts). |
 
-| Action | Detail |
-|--------|--------|
-| Purge | Deleted 20 weekend `DailyPrice` + 20 `IndicatorResult` rows |
-| Ingestion guard | `NseHistoricalExtensionService._validate_record()` rejects `weekday() >= 5` |
-| IndicatorEngine | SQL: `AND EXTRACT(DOW FROM dp.trade_date) NOT IN (0, 6)` |
-| Stock360Service | Price & IndicatorResult queries both exclude weekends |
-| MarketDataService | `scanner_readiness` session counts & latest_trade_date exclude weekends |
-| IndicatorResult | Recalculated clean for 51 stocks → 16,834 rows |
+### Post-Hardening Database Counts (Read-Only Certified)
+| Metric | Expected | Live Count | Status |
+|--------|----------|------------|--------|
+| DerivativeContract | 75,962 | 75,962 | PASS |
+| DerivativeDailyPrice | 1,732,338 | 1,732,338 | PASS |
+| FiiDerivativeStatistic | 0 | 0 | PASS |
+| GIFT_NIFTY contracts | 0 | 0 | PASS |
+| Option lot_size = 1 | 74,902 | 74,902 | PASS |
+| Option lot_size != 1 | 0 | 0 | PASS |
+| Orphan DerivativeDailyPrice | 0 | 0 | PASS |
+| Duplicate contract/date | 0 | 0 | PASS |
+| Semantic duplicate contracts | 0 | 0 | PASS |
+| Weekend DerivativeDailyPrice | 0 | 0 | PASS |
 
-### Post-Repair Database Counts
-| Table | Before Repair | After Repair |
-|-------|--------------|-------------|
-| DailyPrice | 1,006,971 | **1,006,951** |
-| Distinct trading dates | 367 | **349** |
-| Weekend DailyPrice rows | 20 | **0** |
-| IndicatorResult | 2,470 | **16,834** (recalculated) |
-| Weekend IndicatorResult | 20 | **0** |
-| Stock | 3,647 | 3,647 ✓ |
-| Sector | 24 | 24 ✓ |
-| MarketIndexPrice | 1,199 | 1,199 ✓ |
-| Snapshots | 62 | 62 ✓ |
-| CorporateAnnouncement | 52,063 | 52,063 ✓ |
-| CorporateAction | 829 | 829 ✓ |
-| InstitutionalFlow | 124 | 124 ✓ |
+### Quality Gates
+- Focused repair suite: **53/53 passing** (`tests/test_g8_pre_repair.py`)
+- Regression suite: **161/161 passing** (`tests/test_g8_pre_repair.py`, `tests/test_advanced_exposure_analytics.py`, `tests/test_options_analytics.py`, etc.)
+- Full test suite: **1,609/1,609 passing** (0 failed, 0 errors, 0 skipped, exit code 0)
+- Ruff: **clean** (`All checks passed!`)
+- Alembic: **clean** (`478d723971bc (head)`, no new upgrades)
+- Import: **OK** (`import app.main` -> `IMPORT OK`)
+- `git diff --check`: **clean** (exit code 0)
+- `python scripts/g8_pre_repair.py --verify`: **All 10 assertions PASSED** (exit code 0)
 
-### Session Semantics (Clarified)
-- Common NSE market sessions Oct 1, 2025 – Aug 31, 2026: **225** (weekdays only; previously misquoted as 222)
-- Q4 2025 G.7 extension: 62 sessions (Oct 1 – Dec 31, 2025)
-- Total distinct trading dates in DB: **349** (2023-01-02 to 2026-09-02)
-- "200 sessions" = per-stock threshold, not blanket market assumption
-- Pilot stocks (RELIANCE etc.): 222 sessions in Oct 2025–Aug 2026 window; 343 total
-
-### EMA-200 Verification (RELIANCE, 2026-08-31)
-- pandas-ta: **1346.1306** | IndicatorEngine: **1346.1306** | PostgreSQL: **1346.1306**
-- **3-way match CONFIRMED**
-
-### Quality Gates (Post-Repair)
-- G.7 tests: **28 / 28** (`tests/test_historical_price_extension_g7.py`) — +6 weekend guard tests added
-- Full test suite: **ALL PASS** (exit code 0)
-- Ruff: **clean** | Alembic: **clean** | `app.main` import: **OK** | git diff: **clean**
-- G.1–G.6 regression: **ALL PASS**
-
-### Next Step for Incoming Agent
-- Create G.7 checkpoint commit with message: `Complete Stage 2 G.7 200-session NSE bhavcopy expansion and weekend data-integrity repair`
-- Tag: `v0.14.0-g7`
-- Do NOT bump version (stays `0.14.0`)
-- Do NOT start G.8 until checkpoint commit is made and user approves G.8 scope
+### Next Step for Incoming Agent / Auditor
+- Ready for Final Nemotron Audit.
+- Do NOT start G.8.
+- Do NOT acquire Q4-2025 F&O data.
+- Do NOT commit, push, tag, or version-bump.
 
 
 ---

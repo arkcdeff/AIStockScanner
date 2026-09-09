@@ -454,6 +454,76 @@ async def option_chain_table_partial(
     return HTMLResponse(content=html)
 
 
+
+@router.get("/derivatives/options/expiries-select", response_class=HTMLResponse)
+async def option_expiries_select_partial(
+    request: Request,
+    symbol: str = Query(...),
+    trade_date: date = Query(...),
+    as_of_date: date | None = Query(default=None),
+    selected_expiry: date | None = Query(default=None),
+    select_name: str = Query(default="expiry_date"),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render dynamic HTML select dropdown of valid non-expired expiries with DTE."""
+    from app.services.historical_option_chain import HistoricalOptionChainService
+
+    service = HistoricalOptionChainService(session)
+    expiries = []
+    try:
+        all_expiries = await service.get_available_expiries(symbol, trade_date, as_of_date)
+        # Filter expiries >= trade_date to guarantee non-expired
+        expiries = [d for d in all_expiries if d >= trade_date]
+    except Exception:
+        expiries = []
+
+    if not expiries:
+        html = (
+            f'<input type="date" class="form-control form-control-sm" name="{select_name}" '
+            f'value="{selected_expiry.isoformat() if selected_expiry else ""}" '
+            f'placeholder="No stored expiries">'
+        )
+        return HTMLResponse(content=html)
+
+    options = [f'<select class="form-select form-select-sm" name="{select_name}" required>']
+    for idx, exp in enumerate(expiries):
+        dte = (exp - trade_date).days
+        is_sel = (selected_expiry == exp) or (selected_expiry is None and idx == 0)
+        sel_attr = " selected" if is_sel else ""
+        nearest_badge = " [Nearest]" if idx == 0 else ""
+        options.append(
+            f'<option value="{exp.isoformat()}"{sel_attr}>{exp.isoformat()} ({dte}d DTE){nearest_badge}</option>'
+        )
+    options.append("</select>")
+    return HTMLResponse(content="".join(options))
+
+
+@router.get("/derivatives/options/oi-intelligence/cards", response_class=HTMLResponse)
+async def oi_intelligence_cards_partial(
+    request: Request,
+    symbol: str = Query(...),
+    trade_date: date = Query(...),
+    expiry_date: date | None = Query(default=None),
+    as_of_date: date | None = Query(default=None),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render deterministic Open Interest Intelligence cards component."""
+    from app.services.historical_oi_intelligence_service import HistoricalOIIntelligenceService
+
+    service = HistoricalOIIntelligenceService(session)
+    snapshot = None
+    error_msg = None
+    try:
+        snapshot = await service.get_oi_intelligence(symbol, trade_date, expiry_date, as_of_date)
+    except Exception as exc:
+        error_msg = str(exc)
+
+    html = _render(
+        "components/oi_intelligence_cards.html",
+        {"request": request, "snapshot": snapshot, "error_message": error_msg},
+    )
+    return HTMLResponse(content=html)
+
 @router.get("/derivatives/futures/analytics/table", response_class=HTMLResponse)
 async def futures_analytics_table_partial(
     request: Request,

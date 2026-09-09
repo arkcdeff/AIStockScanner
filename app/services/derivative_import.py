@@ -80,7 +80,7 @@ class DerivativeContractImportService:
 
         for parsed in parse_result.contracts:
             underlying_sym = parsed.underlying_symbol
-            eff_available_at = parsed.available_at or (as_of_date or date.today())
+            eff_available_at = parsed.available_at or as_of_date
 
             # Resolve Underlying Index vs Stock
             stock_id: int | None = None

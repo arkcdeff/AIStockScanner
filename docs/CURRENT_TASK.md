@@ -1,56 +1,47 @@
 # CURRENT TASK STATE
 
-## Authoritative Current Task — Stage 2 Phase G.7 Critical Data-Integrity Repair
+## Authoritative Current Task — Stage 2 Pre-G.8 Final Hardening (N1 + N2 + N3 ONLY)
 
-- **Task**: G.7 200-Session NSE Bhavcopy Expansion — Critical Data-Integrity Repair (Muse Review FAIL → REPAIRED)
-- **Phase**: Repair Complete & Verified — 2026-09-03
-- **Status**: `STAGE 2 — PHASE G.7 REPAIRED — PENDING CHECKPOINT`
+- **Task**: Pre-G.8 Final Hardening — Muse Audit Notes Repairs (N1 + N2 + N3)
+- **Phase**: Implementation & Verification Complete — 2026-09-07
+- **Status**: `N1-N3 COMPLETE — READY FOR FINAL NEMOTRON AUDIT`
 - **Branch**: `checkpoint/sprint19-20-20260822`
-- **HEAD Commit**: `b60bdcc`
-- **Version**: `0.14.0` (preserved)
-- **Alembic head**: `478d723971bc` (no new migrations, existing schema strictly reused)
-- **Official NSE Historical Price Sourcing**:
-  - Source Endpoints: `https://nsearchives.nseindia.com/content/cm/BhavCopy_NSE_CM_0_0_0_YYYYMMDD_F_0000.csv.zip` and companion `https://archives.nseindia.com/products/content/sec_bhavdata_full_DDMMYYYY.csv`
-  - Target Historical Window: `2025-10-01` to `2025-12-31` (62 certified trading sessions).
-  - Acquired Files:
-    - `data/reference/bhavcopy/200session/raw/` (124 official files: 62 bhavcopy zips + 62 companion delivery csvs)
-    - `data/reference/bhavcopy/200session/manifest.json`: Full provenance metadata with SHA-256 hashes, byte sizes, and row counts.
-- **Parser & Ingestion Implementation**:
-  - `app/services/nse_historical_extension_service.py` (`NseHistoricalExtensionService`):
-    - Uses `parse_bhavcopy_detailed` and companion `parse_delivery` from `app.data.nse_parser`.
-    - Matches entities via ISIN primary (`Stock.isin == record.isin`) with symbol fallback (`Stock.symbol == record.symbol` and `Stock.exchange == "NSE"`).
-    - Preserves existing `Stock` count strictly at 3,647 (0 new stocks created).
-    - Preserves existing delivery values using PostgreSQL `func.coalesce(stmt.excluded.delivery_quantity, DailyPrice.delivery_quantity)`.
-    - Batch upserts into `daily_prices` with chunking and conflict handling.
-    - Exactly 179,736 rows processed across 62 sessions (+176,886 inserted, 0 updated, 2,850 unchanged).
-    - Idempotency Proven: Run 1 inserted 176,886, unchanged 2,850; Run 2 inserted 0, updated 0, unchanged 179,736.
-- **Database & Coverage Expansion**:
-  - Total `DailyPrice` rows grew from **827,235 to 1,006,971** (+179,736 records).
-  - Total distinct trading dates grew from **305 to 367**.
-  - Consecutive trading session coverage ending 2026-08-31 reached **222 consecutive sessions** (Oct 1, 2025 to Aug 31, 2026), comfortably exceeding the 200-session target.
-  - Universe stocks with $\ge 200$ sessions increased from 2,668 to **2,900 stocks**.
-  - Classified product-stock universe (751 stocks) coverage $\ge 200$ sessions increased from 701 to **733 stocks (97.6%)**. Remaining 18 stocks are late-2025/2026 recent IPO listings (e.g. GROWW, MEESHO).
-- **Indicator & Scanner Readiness**:
-  - `IndicatorEngine` computes `ema_200`, `ema_50`, `sma_20` across 343+ sessions for pilot stocks (`RELIANCE`, `HDFCBANK`, `TCS`, `INFY`, `SBIN`).
-  - `golden_cross` and `death_cross` scanners evaluate cleanly with valid `ema_50` and `ema_200` metadata.
-  - `Stock360Service` snapshot provides non-null `ema200`, `% from 52w High`, and `% from 52w Low`.
-  - Point-in-Time (PIT) isolation verified: evaluation at `2026-08-20` strictly uses prices $\le 2026-08-20$.
-- **Quality Gates & Test Results (Post-Repair)**:
-  - G.7 test suite: **28 / 28 passing** in `tests/test_historical_price_extension_g7.py` (was 22/22 pre-repair; +6 new weekend guard tests).
-  - G.6 test suite: 8 / 8 passing in `tests/test_institutional_flow_g6.py`.
-  - G.5 test suite: 22 / 22 passing in `tests/test_corporate_events_g5.py`.
-  - NSE parser test suite: 5 / 5 passing in `tests/test_nse_parser.py`.
-  - Full test suite: **ALL PASS** (exit code 0).
-  - Ruff: clean (`All checks passed!`).
-  - Alembic: clean (`No new upgrade operations detected.`, head `478d723971bc`).
-  - `app.main` import: `IMPORT OK`.
-  - git diff --check: clean.
-  - G.1–G.6 regression: ALL PASS (Stock=3647, Sector=24, MIP=1199, Snapshots=62, Announcements=52063, Actions=829, Flows=124).
+- **HEAD Commit**: `58a9549`
+- **Version**: `0.14.0` (strictly preserved)
+- **Alembic head**: `478d723971bc` (no new migrations)
+- **G.8 Status**: NOT STARTED — all work strictly restricted to Pre-G.8 final hardening (N1-N3)
+- **Hardening Scope (N1, N2, N3)**:
+  - **N1 DONE**: Gamma Profile Lot Quality
+    - `OptionExposureRow`: added `@property def lot_source` and `@property def lot_quality` mapping to underlying source and quality fields.
+    - `AdvancedExposureService.get_contract_exposures`: missing historical lot or `source_name is None` sets `hist_lot = None` and `lot_size = None` (no placeholder 1).
+    - `AdvancedExposureService.get_gamma_profile`: enforces that if any contract has `lot_size_source == "UNAVAILABLE"`, `lot_size_quality == "UNAVAILABLE"`, `lot_source == "UNAVAILABLE"`, `lot_quality == "UNAVAILABLE"`, `lot_size is None`, or `lot_size <= 0`, gamma profile returns `None` (gamma flip returns `status="UNAVAILABLE"`).
+    - Valid source-backed calculations remain intact.
+  - **N2 DONE**: Strike Table None -> Zero Preservation
+    - `AdvancedExposureService.get_strike_exposure_table`: preserves `None` for missing lot-scaled exposures rather than converting to `Decimal("0.00")`. Real calculated zero is preserved as `Decimal("0.00")`.
+    - `app/templates/components/advanced_exposure_tab.html`: properly renders `—` when exposure is `None` using `is not none` Jinja test.
+  - **N3 DONE**: Suppressed Max-Pain Candidate Payouts
+    - `HistoricalOptionsAnalyticsService.get_option_chain_analytics`: when `LOT_UNAVAILABLE_MAX_PAIN_SUPPRESSED` is active, candidate strikes are preserved with `call_payout=None`, `put_payout=None`, and `total_payout=None` (no 1-scaled payouts).
+- **Quality Gates (All PASS)**:
+  - Focused repair suite (`tests/test_g8_pre_repair.py`): 53/53 passed in 26.69s (exit 0)
+  - Regression suite (G4-G7 + repair): 161/161 passed (exit 0)
+  - Full test suite: 1609/1609 passed (0 failed, 0 errors, 0 skipped, exit 0)
+  - `uv run ruff check .`: All checks passed!
+  - `uv run alembic current`: `478d723971bc (head)`
+  - `uv run alembic heads`: `478d723971bc (head)`
+  - `uv run alembic check`: No new upgrade operations detected.
+  - `import app.main`: IMPORT OK
+  - `git diff --check`: Clean (exit code 0)
+  - `scripts/g8_pre_repair.py --verify`: All 10 assertions PASSED (exit code 0)
+- **Database State (Read-Only Certified)**:
+  - DerivativeContract: 75,962 | DerivativeDailyPrice: 1,732,338
+  - FiiDerivativeStatistic: 0 | GIFT_NIFTY contracts: 0
+  - Option lot=1: 74,902 | Option lot!=1: 0
+  - Orphans: 0 | Duplicates: 0 | Semantic duplicates: 0 | Weekend DDP: 0
+  - Stock: 3,652 | DailyPrice: 1,013,721 | IndicatorResult: 16,834
 - **Strict Scope Boundaries**:
-  - G.7 REPAIR COMPLETE. No G.8 work started.
-  - No scanner formulas modified.
-  - No Stock Intelligence scoring methodology modified.
-  - No new Alembic migrations; existing schema strictly reused.
+  - G.8 NOT STARTED.
+  - No Q4-2025 F&O data acquired.
+  - No new Alembic migrations.
   - No commit, push, tag, or version bump.
 
 ---

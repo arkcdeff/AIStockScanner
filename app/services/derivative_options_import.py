@@ -216,7 +216,7 @@ class DerivativeOptionsImportService:
                 )
                 continue
 
-            available_at = record.trade_date if record.trade_date else (as_of_date or date.today())
+            available_at = record.trade_date if record.trade_date else as_of_date
 
             daily_price = DerivativeDailyPrice(
                 contract_id=contract_id,

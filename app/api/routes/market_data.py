@@ -302,7 +302,45 @@ async def derivatives_available_expiries(
     expiries = await service.get_available_expiries(
         symbol=symbol, trade_date=trade_date, as_of_date=as_of_date
     )
-    return {"expiries": [d.isoformat() for d in expiries]}
+    items = [
+        {
+            "expiry_date": d.isoformat(),
+            "dte": (d - trade_date).days,
+            "is_nearest": idx == 0,
+        }
+        for idx, d in enumerate(expiries)
+    ]
+    return {
+        "symbol": symbol.upper(),
+        "trade_date": trade_date.isoformat(),
+        "expiries": [d.isoformat() for d in expiries],
+        "items": items,
+    }
+
+
+@router.get("/derivatives/options/oi-intelligence")
+async def derivatives_oi_intelligence(
+    symbol: str,
+    trade_date: date,
+    expiry_date: date | None = None,
+    as_of_date: date | None = None,
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return deterministic Open Interest Intelligence snapshot."""
+    from app.services.historical_oi_intelligence_service import HistoricalOIIntelligenceService
+
+    service = HistoricalOIIntelligenceService(session)
+    try:
+        snapshot = await service.get_oi_intelligence(
+            symbol=symbol,
+            trade_date=trade_date,
+            expiry_date=expiry_date,
+            as_of_date=as_of_date,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    return snapshot.model_dump(mode="json")
 
 
 @router.get("/derivatives/futures/analytics")

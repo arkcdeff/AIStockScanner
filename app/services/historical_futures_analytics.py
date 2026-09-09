@@ -513,14 +513,26 @@ class HistoricalFuturesAnalyticsService:
         if idx:
             return ("INDEX", idx.id, idx.code, idx.name)
 
-        if sym in ("NIFTY 50", "NIFTY50"):
-            return await self._resolve_underlying("NIFTY")
-        elif sym in ("BANKNIFTY", "NIFTY BANK"):
-            return await self._resolve_underlying("BANKNIFTY")
-        elif sym in ("FINNIFTY", "NIFTY FIN SERVICE"):
-            return await self._resolve_underlying("FINNIFTY")
-        elif sym in ("MIDCPNIFTY", "NIFTY MID SELECT"):
-            return await self._resolve_underlying("MIDCPNIFTY")
+        INDEX_SYM_MAP = {
+            "NIFTY 50": "NIFTY",
+            "NIFTY50": "NIFTY",
+            "BANKNIFTY": "NIFTY_BANK",
+            "NIFTY BANK": "NIFTY_BANK",
+            "FINNIFTY": "NIFTY_FIN_SERV",
+            "NIFTY FIN SERVICE": "NIFTY_FIN_SERV",
+            "MIDCPNIFTY": "NIFTY_MID_SELECT",
+            "NIFTY MID SELECT": "NIFTY_MID_SELECT",
+            "NIFTYNXT50": "NIFTY_NEXT_50",
+            "NIFTY NEXT 50": "NIFTY_NEXT_50",
+        }
+        if sym in INDEX_SYM_MAP:
+            target_code = INDEX_SYM_MAP[sym]
+            idx_mapped_res = await self.session.execute(
+                select(MarketIndex).where(MarketIndex.code == target_code)
+            )
+            idx_mapped = idx_mapped_res.scalar_one_or_none()
+            if idx_mapped:
+                return ("INDEX", idx_mapped.id, idx_mapped.code, idx_mapped.name)
 
         stk_res = await self.session.execute(
             select(Stock).where(Stock.symbol == sym)
