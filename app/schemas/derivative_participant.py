@@ -18,6 +18,7 @@ class ParticipantPositionItem:
     long_contracts: int
     short_contracts: int
     net_contracts: int
+    report_date: date | None = None
     reported_total_long: int | None = None
     reported_total_short: int | None = None
     long_share_pct: Decimal = Decimal("0")

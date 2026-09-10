@@ -460,6 +460,7 @@ async def derivatives_participant_history(
     end_date: date,
     dataset_type: str = "OPEN_INTEREST",
     participant_type: str = "FII",
+    instrument_bucket: str | None = None,
     as_of_date: date | None = None,
     session: AsyncSession = Depends(get_db_session),
 ) -> list[dict]:
@@ -476,6 +477,7 @@ async def derivatives_participant_history(
         end_date=end_date,
         dataset_type=dataset_type,
         participant_type=participant_type,
+        instrument_bucket=instrument_bucket,
         as_of_date=as_of_date,
     )
     return [asdict(r) for r in rows]

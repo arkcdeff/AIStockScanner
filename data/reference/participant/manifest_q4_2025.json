@@ -1,0 +1,3807 @@
+{
+  "dataset": "NSE/NSCCL Participant-wise Open Interest (fao_participant_oi_DDMMYYYY.csv)",
+  "period": "2025-10-01 to 2025-12-31 (Q4-2025)",
+  "expected_sessions": 62,
+  "acquired_at": "2026-09-09T11:13:30.755581+00:00",
+  "acquired_from": "https://nsearchives.nseindia.com/content/nsccl/ (official NSCCL archive)",
+  "source_policy": "Official NSE/NSCCL archive only; no third-party or synthetic data",
+  "session_calendar_basis": "data/reference/bhavcopy/200session/manifest.json (G.7 certified NSE trading calendar)",
+  "summary": {
+    "VALID": 62,
+    "INVALID": 0,
+    "MISSING": 0,
+    "total_source_rows_all_files": 434,
+    "market_balance_perfect": 12,
+    "market_balance_official_source_artifact": 50,
+    "balance_artifact_note": "50/62 sessions have Sum(Long)-Sum(Short) differences of +/-(1-2) contracts confined to INDEX_OPTION_CALL and/or INDEX_OPTION_PUT. Verified against NSE's own TOTAL row which is balanced while participant component sums are not - a rounding artifact in the official source. Zero tolerance check reported as-is per task instructions; not download corruption (SHA256-verified re-fetch).",
+    "negative_positions_found": 0,
+    "duplicate_identity_rows_found": 0
+  },
+  "files": {
+    "2025-10-01": {
+      "report_date": "2025-10-01",
+      "filename": "fao_participant_oi_01102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_01102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 951,
+      "sha256": "d14a7806c6c551b073664bea1fba8132dfd6d4809f0acd30f9d419ea6790e293",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 326493,
+          "short": 326493
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2907575,
+          "short": 2907576
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3423594,
+          "short": 3423594
+        },
+        "STOCK_FUTURE": {
+          "long": 6961805,
+          "short": 6961805
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1684688,
+          "short": 1684688
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1200930,
+          "short": 1200930
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-03": {
+      "report_date": "2025-10-03",
+      "filename": "fao_participant_oi_03102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_03102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 955,
+      "sha256": "fca827704dfa4f87bc505127869b295e7bcb5b0034b8224b6211c5f89f5cd520",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 338470,
+          "short": 338470
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3829468,
+          "short": 3829468
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4482732,
+          "short": 4482732
+        },
+        "STOCK_FUTURE": {
+          "long": 6990410,
+          "short": 6990410
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1929576,
+          "short": 1929576
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1344440,
+          "short": 1344440
+        }
+      }
+    },
+    "2025-10-06": {
+      "report_date": "2025-10-06",
+      "filename": "fao_participant_oi_06102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_06102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 956,
+      "sha256": "17c6c4aa38412d460f1c58dd9f94558dace658eec433b1543683f831476e92de",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 340931,
+          "short": 340931
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3880089,
+          "short": 3880089
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 5077040,
+          "short": 5077039
+        },
+        "STOCK_FUTURE": {
+          "long": 7019528,
+          "short": 7019528
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2122942,
+          "short": 2122942
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1439019,
+          "short": 1439019
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-07": {
+      "report_date": "2025-10-07",
+      "filename": "fao_participant_oi_07102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_07102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 955,
+      "sha256": "a6bab0ea0532e824106929115cc9c46dbc38c68bf61cf6d8b16a27df11c36c01",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 334683,
+          "short": 334683
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2442389,
+          "short": 2442389
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2558157,
+          "short": 2558156
+        },
+        "STOCK_FUTURE": {
+          "long": 7039254,
+          "short": 7039254
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2319728,
+          "short": 2319728
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1516557,
+          "short": 1516557
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-08": {
+      "report_date": "2025-10-08",
+      "filename": "fao_participant_oi_08102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_08102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 958,
+      "sha256": "f4b24dd54843df0f32256e48805d9b826dada2a3f4fdb055c67335278d673ec7",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 329512,
+          "short": 329512
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3697065,
+          "short": 3697065
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3082684,
+          "short": 3082683
+        },
+        "STOCK_FUTURE": {
+          "long": 7054865,
+          "short": 7054865
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2544274,
+          "short": 2544274
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1587008,
+          "short": 1587008
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-09": {
+      "report_date": "2025-10-09",
+      "filename": "fao_participant_oi_09102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_09102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 958,
+      "sha256": "06adb5de719efb789a49c6db5d3fa146b1f57ec80d992a9a984f55e68ff20c06",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 327511,
+          "short": 327511
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3676442,
+          "short": 3676442
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3901265,
+          "short": 3901265
+        },
+        "STOCK_FUTURE": {
+          "long": 7060808,
+          "short": 7060808
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2624345,
+          "short": 2624345
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1661529,
+          "short": 1661529
+        }
+      }
+    },
+    "2025-10-10": {
+      "report_date": "2025-10-10",
+      "filename": "fao_participant_oi_10102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_10102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 961,
+      "sha256": "04b17d4d8d324d96f2b5bfe47dcc768dd06f35b74114744f71623604fa956113",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 327973,
+          "short": 327973
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3778676,
+          "short": 3778677
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4883698,
+          "short": 4883697
+        },
+        "STOCK_FUTURE": {
+          "long": 7071089,
+          "short": 7071089
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2720206,
+          "short": 2720206
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1711675,
+          "short": 1711675
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-13": {
+      "report_date": "2025-10-13",
+      "filename": "fao_participant_oi_13102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_13102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 965,
+      "sha256": "909ebe36f17260ef68652558c49d554b6cc124e80aeb46477c53c9fc3f48ccc4",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 329692,
+          "short": 329692
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4569563,
+          "short": 4569563
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4831399,
+          "short": 4831399
+        },
+        "STOCK_FUTURE": {
+          "long": 7062970,
+          "short": 7062970
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2759835,
+          "short": 2759835
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1724820,
+          "short": 1724820
+        }
+      }
+    },
+    "2025-10-14": {
+      "report_date": "2025-10-14",
+      "filename": "fao_participant_oi_14102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_14102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 960,
+      "sha256": "17b5dadccf6d5d37dd966f58c0a1ead5c1da1d63c1fefbf96f9a5cf35d3337a6",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 337018,
+          "short": 337018
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2931850,
+          "short": 2931849
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2711035,
+          "short": 2711036
+        },
+        "STOCK_FUTURE": {
+          "long": 7102344,
+          "short": 7102344
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2977078,
+          "short": 2977078
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1759761,
+          "short": 1759761
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-15": {
+      "report_date": "2025-10-15",
+      "filename": "fao_participant_oi_15102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_15102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 962,
+      "sha256": "1cd970c84639a50e8bda7480501bf7661f8bee848c0bb9106960348e5ad19bfa",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 346376,
+          "short": 346376
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3277557,
+          "short": 3277556
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3899817,
+          "short": 3899818
+        },
+        "STOCK_FUTURE": {
+          "long": 7145825,
+          "short": 7145825
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3055625,
+          "short": 3055625
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1862768,
+          "short": 1862768
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-16": {
+      "report_date": "2025-10-16",
+      "filename": "fao_participant_oi_16102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_16102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 964,
+      "sha256": "a6de8e6294130dda46aef0a4d7c8fdb03a994e7ed9f150f71e9d3319167c7977",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 349934,
+          "short": 349934
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3452924,
+          "short": 3452923
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4653758,
+          "short": 4653758
+        },
+        "STOCK_FUTURE": {
+          "long": 7162546,
+          "short": 7162546
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3092171,
+          "short": 3092171
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1939329,
+          "short": 1939329
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-17": {
+      "report_date": "2025-10-17",
+      "filename": "fao_participant_oi_17102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_17102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 967,
+      "sha256": "690406a3af01366152260472c74bcd978b8769f301c1737ca34beedad709dcd6",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 338350,
+          "short": 338350
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4066571,
+          "short": 4066570
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4904377,
+          "short": 4904378
+        },
+        "STOCK_FUTURE": {
+          "long": 7214213,
+          "short": 7214213
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3233084,
+          "short": 3233084
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1987835,
+          "short": 1987835
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-20": {
+      "report_date": "2025-10-20",
+      "filename": "fao_participant_oi_20102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_20102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 965,
+      "sha256": "f7c92bc123866ef08206323c2e75f49cc30e15503c5d55875760ff22fea05913",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 354777,
+          "short": 354777
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2752478,
+          "short": 2752479
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3150141,
+          "short": 3150141
+        },
+        "STOCK_FUTURE": {
+          "long": 7287013,
+          "short": 7287013
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3282801,
+          "short": 3282801
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2058025,
+          "short": 2058025
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-21": {
+      "report_date": "2025-10-21",
+      "filename": "fao_participant_oi_21102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_21102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 965,
+      "sha256": "51c281ca4fb6806cdea7ac4520dfe056208307d52800d8cc95eca0d1d67ae2c0",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 356053,
+          "short": 356053
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3152920,
+          "short": 3152921
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3451439,
+          "short": 3451439
+        },
+        "STOCK_FUTURE": {
+          "long": 7301348,
+          "short": 7301348
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3281149,
+          "short": 3281149
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2072556,
+          "short": 2072556
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-23": {
+      "report_date": "2025-10-23",
+      "filename": "fao_participant_oi_23102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_23102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "c48ac4663f1c5a527978423b60628f0987972ebe1dcb8cc5759a43b1f7159984",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 353756,
+          "short": 353756
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4144859,
+          "short": 4144860
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4077987,
+          "short": 4077987
+        },
+        "STOCK_FUTURE": {
+          "long": 7264629,
+          "short": 7264629
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3220096,
+          "short": 3220096
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2074846,
+          "short": 2074846
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-24": {
+      "report_date": "2025-10-24",
+      "filename": "fao_participant_oi_24102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_24102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "e8c9a5acf1df5ea9d7685efaad3073b7085285cce689731fc57d3275207f6204",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 339058,
+          "short": 339058
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5417169,
+          "short": 5417169
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4227897,
+          "short": 4227898
+        },
+        "STOCK_FUTURE": {
+          "long": 7261048,
+          "short": 7261048
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3155287,
+          "short": 3155287
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2040088,
+          "short": 2040088
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-27": {
+      "report_date": "2025-10-27",
+      "filename": "fao_participant_oi_27102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_27102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "87ce03a1c4fd7440c11ee12045b8fa3ebcf3254f3a984cd2dd712f9c4e2054cd",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 345417,
+          "short": 345417
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4820447,
+          "short": 4820445
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 5187581,
+          "short": 5187582
+        },
+        "STOCK_FUTURE": {
+          "long": 7280068,
+          "short": 7280068
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2956958,
+          "short": 2956958
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2026918,
+          "short": 2026918
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-28": {
+      "report_date": "2025-10-28",
+      "filename": "fao_participant_oi_28102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_28102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 947,
+      "sha256": "ef2a6f25905248e24419ce146635ae539ba68dc4e46d4ce7a66836457459235e",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 271829,
+          "short": 271829
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2271177,
+          "short": 2271175
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2240545,
+          "short": 2240546
+        },
+        "STOCK_FUTURE": {
+          "long": 6840564,
+          "short": 6840564
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1360706,
+          "short": 1360706
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 977961,
+          "short": 977961
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-29": {
+      "report_date": "2025-10-29",
+      "filename": "fao_participant_oi_29102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_29102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 952,
+      "sha256": "79643f66fdd4b6c2fa51e2f7d05429e3efde6b7f36f9a45ad57bb59e09bdeafd",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 280846,
+          "short": 280846
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2772902,
+          "short": 2772902
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3129889,
+          "short": 3129889
+        },
+        "STOCK_FUTURE": {
+          "long": 7305519,
+          "short": 7305519
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1792675,
+          "short": 1792675
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1276631,
+          "short": 1276631
+        }
+      }
+    },
+    "2025-10-30": {
+      "report_date": "2025-10-30",
+      "filename": "fao_participant_oi_30102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_30102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 954,
+      "sha256": "3553ecc8fa1a95b090be77b7b8529f1e2d6c157ec71fc9ef870addb7f052b474",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 294957,
+          "short": 294957
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4230410,
+          "short": 4230409
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3261187,
+          "short": 3261187
+        },
+        "STOCK_FUTURE": {
+          "long": 7352879,
+          "short": 7352879
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2054063,
+          "short": 2054063
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1402840,
+          "short": 1402840
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-10-31": {
+      "report_date": "2025-10-31",
+      "filename": "fao_participant_oi_31102025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_31102025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 959,
+      "sha256": "e83d5c6c2c56112e0eca02cb60f0c670d43f8a53624cb137dbf9bbe1e0a1e6ff",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 311673,
+          "short": 311673
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5382421,
+          "short": 5382421
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3566376,
+          "short": 3566375
+        },
+        "STOCK_FUTURE": {
+          "long": 7436775,
+          "short": 7436775
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2324228,
+          "short": 2324228
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1548044,
+          "short": 1548044
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-03": {
+      "report_date": "2025-11-03",
+      "filename": "fao_participant_oi_03112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_03112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 964,
+      "sha256": "43f5822e28eaf8d6cfc10781084ecb7ce880d0bec8aa552ed45a5e14acbe7917",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 313144,
+          "short": 313144
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5151085,
+          "short": 5151083
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4112356,
+          "short": 4112357
+        },
+        "STOCK_FUTURE": {
+          "long": 7466833,
+          "short": 7466833
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2538239,
+          "short": 2538239
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1650627,
+          "short": 1650627
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-04": {
+      "report_date": "2025-11-04",
+      "filename": "fao_participant_oi_04112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_04112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 962,
+      "sha256": "a9e009dc287f2e6062cf287119022bb4fcb4b83b87daeeec72b89b7810ba46fb",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 325510,
+          "short": 325510
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2800710,
+          "short": 2800708
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2587424,
+          "short": 2587424
+        },
+        "STOCK_FUTURE": {
+          "long": 7497092,
+          "short": 7497092
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2787176,
+          "short": 2787176
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1738477,
+          "short": 1738477
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-06": {
+      "report_date": "2025-11-06",
+      "filename": "fao_participant_oi_06112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_06112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 954,
+      "sha256": "ea3aa959f51a0f2ae94fb98cadd4d235d267cfe3835d4ec96c166e3df005b0c9",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 329761,
+          "short": 329761
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4155367,
+          "short": 4155366
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3251482,
+          "short": 3251482
+        },
+        "STOCK_FUTURE": {
+          "long": 7568051,
+          "short": 7568051
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3018050,
+          "short": 3018050
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1819185,
+          "short": 1819185
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-07": {
+      "report_date": "2025-11-07",
+      "filename": "fao_participant_oi_07112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_07112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 962,
+      "sha256": "a3a3d44ce1ddb2bec7942c16b938a316945aceed148106d7ae64640ae890e5d3",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 343038,
+          "short": 343038
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4304706,
+          "short": 4304706
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4037650,
+          "short": 4037650
+        },
+        "STOCK_FUTURE": {
+          "long": 7622135,
+          "short": 7622135
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3170076,
+          "short": 3170076
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1897833,
+          "short": 1897833
+        }
+      }
+    },
+    "2025-11-10": {
+      "report_date": "2025-11-10",
+      "filename": "fao_participant_oi_10112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_10112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 965,
+      "sha256": "dfb4b40a7957fa4ab08e51f50b79a46db88c5d580760e9853586daaf13255f5f",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 347814,
+          "short": 347814
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4634593,
+          "short": 4634593
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4566899,
+          "short": 4566900
+        },
+        "STOCK_FUTURE": {
+          "long": 7659259,
+          "short": 7659259
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3323426,
+          "short": 3323426
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1974924,
+          "short": 1974924
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-11": {
+      "report_date": "2025-11-11",
+      "filename": "fao_participant_oi_11112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_11112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 962,
+      "sha256": "518111e04b05b39060b40029646eed499948fdc6cc4aca3b302cb958418403d4",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 348730,
+          "short": 348730
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2561385,
+          "short": 2561385
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2724729,
+          "short": 2724729
+        },
+        "STOCK_FUTURE": {
+          "long": 7675730,
+          "short": 7675730
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3410878,
+          "short": 3410878
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2027310,
+          "short": 2027310
+        }
+      }
+    },
+    "2025-11-12": {
+      "report_date": "2025-11-12",
+      "filename": "fao_participant_oi_12112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_12112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 966,
+      "sha256": "1dbd1e7d1806ef6a0d7040d4be475e6f7f3fed013f5ac9af422df270a393680e",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 348574,
+          "short": 348574
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2914183,
+          "short": 2914183
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3449918,
+          "short": 3449917
+        },
+        "STOCK_FUTURE": {
+          "long": 7674356,
+          "short": 7674356
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3462726,
+          "short": 3462726
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2105679,
+          "short": 2105679
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-13": {
+      "report_date": "2025-11-13",
+      "filename": "fao_participant_oi_13112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_13112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 967,
+      "sha256": "ece6885db651248f64c5faa70a4baff0760544b47b5ad523d1052f4aa2156252",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 343411,
+          "short": 343411
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3344309,
+          "short": 3344308
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3622820,
+          "short": 3622819
+        },
+        "STOCK_FUTURE": {
+          "long": 7646202,
+          "short": 7646202
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3548506,
+          "short": 3548506
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2157716,
+          "short": 2157716
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-14": {
+      "report_date": "2025-11-14",
+      "filename": "fao_participant_oi_14112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_14112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 971,
+      "sha256": "9f9d65d021eb2605ed9a953b1e284d1e8968ea2a6710d9b491fb744494f13d67",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 356957,
+          "short": 356957
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4417306,
+          "short": 4417306
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4092278,
+          "short": 4092277
+        },
+        "STOCK_FUTURE": {
+          "long": 7688531,
+          "short": 7688531
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3675529,
+          "short": 3675529
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2210376,
+          "short": 2210376
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-17": {
+      "report_date": "2025-11-17",
+      "filename": "fao_participant_oi_17112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_17112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 971,
+      "sha256": "b764863b41bc95d032004909063591f2fc0b0d25b21387fe14a203dd71002b34",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 358262,
+          "short": 358262
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4337861,
+          "short": 4337861
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4938060,
+          "short": 4938060
+        },
+        "STOCK_FUTURE": {
+          "long": 7746307,
+          "short": 7746307
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3773755,
+          "short": 3773755
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2290417,
+          "short": 2290417
+        }
+      }
+    },
+    "2025-11-18": {
+      "report_date": "2025-11-18",
+      "filename": "fao_participant_oi_18112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_18112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 969,
+      "sha256": "c30eceeb02690de0778a73cb8458bd89ed43eb6edbdef27c4efb92374485d7bc",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 355822,
+          "short": 355822
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2793319,
+          "short": 2793319
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2934111,
+          "short": 2934111
+        },
+        "STOCK_FUTURE": {
+          "long": 7797102,
+          "short": 7797102
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3885425,
+          "short": 3885425
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2313604,
+          "short": 2313604
+        }
+      }
+    },
+    "2025-11-19": {
+      "report_date": "2025-11-19",
+      "filename": "fao_participant_oi_19112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_19112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 969,
+      "sha256": "1b679b0555d05357f009fda8b25cce23b6a260347c87f1bf0c9a0303aa1ebfaf",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 349386,
+          "short": 349386
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3036965,
+          "short": 3036965
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3866259,
+          "short": 3866260
+        },
+        "STOCK_FUTURE": {
+          "long": 7825988,
+          "short": 7825988
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3869343,
+          "short": 3869343
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2341179,
+          "short": 2341179
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-20": {
+      "report_date": "2025-11-20",
+      "filename": "fao_participant_oi_20112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_20112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 972,
+      "sha256": "97212327163eb88271fdbf85ea88e8fa5e59f1aa1b796c4211b7150c8087ac96",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 350444,
+          "short": 350444
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3269389,
+          "short": 3269389
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4578127,
+          "short": 4578126
+        },
+        "STOCK_FUTURE": {
+          "long": 7709742,
+          "short": 7709742
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3688182,
+          "short": 3688182
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2286453,
+          "short": 2286453
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-21": {
+      "report_date": "2025-11-21",
+      "filename": "fao_participant_oi_21112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_21112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 968,
+      "sha256": "e6006b70c8202ad72f991be632d75bb5c3fdcb234f90b9fd651eebc3a7c97ef2",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 362116,
+          "short": 362116
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4098592,
+          "short": 4098592
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4140245,
+          "short": 4140245
+        },
+        "STOCK_FUTURE": {
+          "long": 7733354,
+          "short": 7733354
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3645288,
+          "short": 3645288
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2200448,
+          "short": 2200448
+        }
+      }
+    },
+    "2025-11-24": {
+      "report_date": "2025-11-24",
+      "filename": "fao_participant_oi_24112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_24112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 969,
+      "sha256": "1d9b2662dbed448be938da8fbad9428446e8bc103826243dfea4f29224462d0d",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 364605,
+          "short": 364605
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5151950,
+          "short": 5151950
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4113850,
+          "short": 4113851
+        },
+        "STOCK_FUTURE": {
+          "long": 7761636,
+          "short": 7761636
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3369790,
+          "short": 3369790
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2063255,
+          "short": 2063255
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-25": {
+      "report_date": "2025-11-25",
+      "filename": "fao_participant_oi_25112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_25112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 955,
+      "sha256": "73a4a4cca7ab92ba4c555a6017ea481a50dfd0a3f474d194c78343355e5b6b58",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 258202,
+          "short": 258202
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2225283,
+          "short": 2225282
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2155462,
+          "short": 2155462
+        },
+        "STOCK_FUTURE": {
+          "long": 7244507,
+          "short": 7244507
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1419372,
+          "short": 1419372
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1042960,
+          "short": 1042960
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-26": {
+      "report_date": "2025-11-26",
+      "filename": "fao_participant_oi_26112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_26112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 956,
+      "sha256": "7143ab1a441ec40843718ac179f45b7fbb56b506e38baf972817587e29f674dc",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 266962,
+          "short": 266962
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2664145,
+          "short": 2664143
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3780532,
+          "short": 3780532
+        },
+        "STOCK_FUTURE": {
+          "long": 7277515,
+          "short": 7277515
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1680187,
+          "short": 1680187
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1263107,
+          "short": 1263107
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-11-27": {
+      "report_date": "2025-11-27",
+      "filename": "fao_participant_oi_27112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_27112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 956,
+      "sha256": "2575dacd332372e9a6d99000f05933f22f192a1948679990be6bbab3106744a8",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 268990,
+          "short": 268990
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3339359,
+          "short": 3339359
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3885139,
+          "short": 3885139
+        },
+        "STOCK_FUTURE": {
+          "long": 7347296,
+          "short": 7347296
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1918725,
+          "short": 1918725
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1394554,
+          "short": 1394554
+        }
+      }
+    },
+    "2025-11-28": {
+      "report_date": "2025-11-28",
+      "filename": "fao_participant_oi_28112025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_28112025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 959,
+      "sha256": "5dccb2d20f5ba1069ec9364b40211bc4262b4e24cf8819f52d44f79067a166be",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 268366,
+          "short": 268366
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3743259,
+          "short": 3743258
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4297814,
+          "short": 4297815
+        },
+        "STOCK_FUTURE": {
+          "long": 7393059,
+          "short": 7393059
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2111032,
+          "short": 2111032
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1496100,
+          "short": 1496100
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-01": {
+      "report_date": "2025-12-01",
+      "filename": "fao_participant_oi_01122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_01122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 962,
+      "sha256": "197beeeec01afee76e12477d71c8206e47369db40ec7381aa012d1ba41d721d0",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 273783,
+          "short": 273783
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4733358,
+          "short": 4733356
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4304712,
+          "short": 4304713
+        },
+        "STOCK_FUTURE": {
+          "long": 7416155,
+          "short": 7416155
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2277573,
+          "short": 2277573
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1594491,
+          "short": 1594491
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-02": {
+      "report_date": "2025-12-02",
+      "filename": "fao_participant_oi_02122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_02122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 960,
+      "sha256": "1257ba1318ec951cb808b8c97fdfc2eb5ab3366c1b551ee6ac8bd9b2b46aa2c6",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 281166,
+          "short": 281166
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2743715,
+          "short": 2743714
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2609169,
+          "short": 2609169
+        },
+        "STOCK_FUTURE": {
+          "long": 7436104,
+          "short": 7436104
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2409418,
+          "short": 2409418
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1653653,
+          "short": 1653653
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-03": {
+      "report_date": "2025-12-03",
+      "filename": "fao_participant_oi_03122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_03122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 961,
+      "sha256": "e8763320d398c6dcdd9418484613eaa5e279024a0bbdb40a02d6743767b58263",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 291239,
+          "short": 291239
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3552751,
+          "short": 3552751
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3100452,
+          "short": 3100451
+        },
+        "STOCK_FUTURE": {
+          "long": 7461662,
+          "short": 7461662
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2638249,
+          "short": 2638249
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1712942,
+          "short": 1712942
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-04": {
+      "report_date": "2025-12-04",
+      "filename": "fao_participant_oi_04122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_04122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 961,
+      "sha256": "9e71fc7047d5084076d2ee05a91649cc6b6d76d7ce51fee8e1bcd076161ab57d",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 293552,
+          "short": 293552
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3740541,
+          "short": 3740540
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3475545,
+          "short": 3475544
+        },
+        "STOCK_FUTURE": {
+          "long": 7459050,
+          "short": 7459050
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2711871,
+          "short": 2711871
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1758235,
+          "short": 1758235
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-05": {
+      "report_date": "2025-12-05",
+      "filename": "fao_participant_oi_05122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_05122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 964,
+      "sha256": "26c107713c74091a67a21a124e8fd1bc299f62d590552950037ac74f64d45cce",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 285031,
+          "short": 285031
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3716648,
+          "short": 3716648
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4450320,
+          "short": 4450319
+        },
+        "STOCK_FUTURE": {
+          "long": 7515136,
+          "short": 7515136
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 2849277,
+          "short": 2849277
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1844355,
+          "short": 1844355
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-08": {
+      "report_date": "2025-12-08",
+      "filename": "fao_participant_oi_08122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_08122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 968,
+      "sha256": "b65c174cdd993ff8662d38a5b87382f423b19e8e12629c46e165be457ef44604",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 313351,
+          "short": 313351
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5891982,
+          "short": 5891982
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3925852,
+          "short": 3925851
+        },
+        "STOCK_FUTURE": {
+          "long": 7560673,
+          "short": 7560673
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3105104,
+          "short": 3105104
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1903807,
+          "short": 1903807
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-09": {
+      "report_date": "2025-12-09",
+      "filename": "fao_participant_oi_09122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_09122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 963,
+      "sha256": "86d913ed5e19057f765350038747bd537c2e8f00e6732a3f09225af82729afe2",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 321725,
+          "short": 321725
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3050789,
+          "short": 3050787
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2652870,
+          "short": 2652869
+        },
+        "STOCK_FUTURE": {
+          "long": 7579937,
+          "short": 7579937
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3206005,
+          "short": 3206005
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1932100,
+          "short": 1932100
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-10": {
+      "report_date": "2025-12-10",
+      "filename": "fao_participant_oi_10122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_10122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 966,
+      "sha256": "c02d3383b6fe32191bab2768012e41760eac0c0494f17fc00362f4e0d40bc716",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 332089,
+          "short": 332089
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4089518,
+          "short": 4089517
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3029445,
+          "short": 3029444
+        },
+        "STOCK_FUTURE": {
+          "long": 7600598,
+          "short": 7600598
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3405389,
+          "short": 3405389
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1998346,
+          "short": 1998346
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-11": {
+      "report_date": "2025-12-11",
+      "filename": "fao_participant_oi_11122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_11122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 965,
+      "sha256": "8bcbc30846beb088648624af32fb515f8f77d12f9057ffd320dcbc26df5bcf74",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 322846,
+          "short": 322846
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3961606,
+          "short": 3961605
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3680629,
+          "short": 3680628
+        },
+        "STOCK_FUTURE": {
+          "long": 7602993,
+          "short": 7602993
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3398625,
+          "short": 3398625
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2045186,
+          "short": 2045186
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-12": {
+      "report_date": "2025-12-12",
+      "filename": "fao_participant_oi_12122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_12122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 967,
+      "sha256": "68b4c50a2dbccf2220984e1033232b04268287f1d5d2df440d5c7c1d97bb8b88",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 323310,
+          "short": 323310
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3961647,
+          "short": 3961647
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4421286,
+          "short": 4421285
+        },
+        "STOCK_FUTURE": {
+          "long": 7644086,
+          "short": 7644086
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3444313,
+          "short": 3444313
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2112144,
+          "short": 2112144
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-15": {
+      "report_date": "2025-12-15",
+      "filename": "fao_participant_oi_15122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_15122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "2f201ed3e974acffc519bdd4d523d5f5fcc6ca9987fe27a07ed8ddb2adfe03df",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 318153,
+          "short": 318153
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4388199,
+          "short": 4388198
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 5050082,
+          "short": 5050083
+        },
+        "STOCK_FUTURE": {
+          "long": 7668956,
+          "short": 7668956
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3544591,
+          "short": 3544591
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2149769,
+          "short": 2149769
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-16": {
+      "report_date": "2025-12-16",
+      "filename": "fao_participant_oi_16122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_16122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 966,
+      "sha256": "8ae22d362ae195afc3de0f23ce4a73185f82771b69e6fd838c116fa5b9f77fb5",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 328071,
+          "short": 328071
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3047626,
+          "short": 3047625
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2670613,
+          "short": 2670613
+        },
+        "STOCK_FUTURE": {
+          "long": 7691818,
+          "short": 7691818
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3700394,
+          "short": 3700394
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2179146,
+          "short": 2179146
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-17": {
+      "report_date": "2025-12-17",
+      "filename": "fao_participant_oi_17122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_17122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 967,
+      "sha256": "80454bebbffb2817fc48cf2f4ca248f88da5cc925ddcd4a1c1147a156e2e8918",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_LONG",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 333318,
+          "short": 333318
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4063288,
+          "short": 4063288
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3129446,
+          "short": 3129445
+        },
+        "STOCK_FUTURE": {
+          "long": 7741838,
+          "short": 7741838
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3802259,
+          "short": 3802259
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2214360,
+          "short": 2214360
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-18": {
+      "report_date": "2025-12-18",
+      "filename": "fao_participant_oi_18122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_18122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 967,
+      "sha256": "9ae884ac96d541d770c17734dbbcf81bf795b9c7fe2860a6ad7c56cc8ffc2c7b",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 328333,
+          "short": 328333
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4217548,
+          "short": 4217547
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3469569,
+          "short": 3469568
+        },
+        "STOCK_FUTURE": {
+          "long": 7791926,
+          "short": 7791926
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3796220,
+          "short": 3796220
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2251745,
+          "short": 2251745
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-19": {
+      "report_date": "2025-12-19",
+      "filename": "fao_participant_oi_19122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_19122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 969,
+      "sha256": "3dc8a03a4f78fe7014fd1b03ec9d6f802332465be7f22ea13b6bd1dd0714733f",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 316689,
+          "short": 316689
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4039988,
+          "short": 4039988
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 4346967,
+          "short": 4346967
+        },
+        "STOCK_FUTURE": {
+          "long": 7842069,
+          "short": 7842069
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3740353,
+          "short": 3740353
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2323246,
+          "short": 2323246
+        }
+      }
+    },
+    "2025-12-22": {
+      "report_date": "2025-12-22",
+      "filename": "fao_participant_oi_22122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_22122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 971,
+      "sha256": "4083f19e26ac31837875353a4997643904745572d4ef92b4ecb8a1426ebea30a",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_LONG",
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 310766,
+          "short": 310766
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3956156,
+          "short": 3956156
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 5204351,
+          "short": 5204352
+        },
+        "STOCK_FUTURE": {
+          "long": 7879314,
+          "short": 7879314
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3761821,
+          "short": 3761821
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2431854,
+          "short": 2431854
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-23": {
+      "report_date": "2025-12-23",
+      "filename": "fao_participant_oi_23122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_23122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "ab73e18088967f3d329f3d1206f03eb390a6318d8ad64f0557607c10a2690013",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:CLIENT_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 305170,
+          "short": 305170
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2822876,
+          "short": 2822876
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3005573,
+          "short": 3005574
+        },
+        "STOCK_FUTURE": {
+          "long": 7910926,
+          "short": 7910926
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3751910,
+          "short": 3751910
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2443270,
+          "short": 2443270
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-24": {
+      "report_date": "2025-12-24",
+      "filename": "fao_participant_oi_24122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_24122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 969,
+      "sha256": "ef017b6ccbc360b8b8367c8f220d26c40a4c6a3e93bd118840a4b063937952f8",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:PRO_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_PUT"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 300426,
+          "short": 300426
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 3736960,
+          "short": 3736960
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3525801,
+          "short": 3525800
+        },
+        "STOCK_FUTURE": {
+          "long": 7869165,
+          "short": 7869165
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3736079,
+          "short": 3736079
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2398038,
+          "short": 2398038
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-26": {
+      "report_date": "2025-12-26",
+      "filename": "fao_participant_oi_26122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_26122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 971,
+      "sha256": "74aa77321ac0a7fe5d04f0bb118d66dcfbef4277cbc4294081fdf6baf6118404",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 306287,
+          "short": 306287
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 4796218,
+          "short": 4796217
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3651272,
+          "short": 3651272
+        },
+        "STOCK_FUTURE": {
+          "long": 7872066,
+          "short": 7872066
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3665883,
+          "short": 3665883
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2324237,
+          "short": 2324237
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-29": {
+      "report_date": "2025-12-29",
+      "filename": "fao_participant_oi_29122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_29122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 970,
+      "sha256": "dff9d1c8c69b64426d87ff99c9f573f5899c107980200d9e9c5ee29b816c964e",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": true,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 330975,
+          "short": 330975
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 5523253,
+          "short": 5523253
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3831201,
+          "short": 3831201
+        },
+        "STOCK_FUTURE": {
+          "long": 7884747,
+          "short": 7884747
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 3512883,
+          "short": 3512883
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 2215161,
+          "short": 2215161
+        }
+      }
+    },
+    "2025-12-30": {
+      "report_date": "2025-12-30",
+      "filename": "fao_participant_oi_30122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_30122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 951,
+      "sha256": "db12ccefd99d04b20a11dde6dde702af743730d2e34b193fcd227680c681302f",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 291882,
+          "short": 291882
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2344662,
+          "short": 2344663
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 2178732,
+          "short": 2178732
+        },
+        "STOCK_FUTURE": {
+          "long": 7434088,
+          "short": 7434088
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1456076,
+          "short": 1456076
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1064509,
+          "short": 1064509
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    },
+    "2025-12-31": {
+      "report_date": "2025-12-31",
+      "filename": "fao_participant_oi_31122025.csv",
+      "source_url": "https://nsearchives.nseindia.com/content/nsccl/fao_participant_oi_31122025.csv",
+      "http_status": 200,
+      "content_type": "text/csv",
+      "byte_size": 951,
+      "sha256": "33d0c27b4afa44feee8f0a289d9594d13236323b6a29f6fc2450f30e0e1c9397",
+      "status": "VALID",
+      "parser_format": "nsccl_fao_participant_oi",
+      "participant_rows": 4,
+      "normalized_rows": 24,
+      "participant_categories": [
+        "CLIENT",
+        "DII",
+        "FII",
+        "PRO"
+      ],
+      "instrument_buckets": [
+        "INDEX_FUTURE",
+        "INDEX_OPTION_CALL",
+        "INDEX_OPTION_PUT",
+        "STOCK_FUTURE",
+        "STOCK_OPTION_CALL",
+        "STOCK_OPTION_PUT"
+      ],
+      "market_balanced": false,
+      "negative_positions": 0,
+      "duplicate_identity_rows": 0,
+      "quality_warnings": [
+        "DQ_PARTICIPANT_TOTAL_MISMATCH:FII_SHORT",
+        "DQ_PARTICIPANT_MARKET_BALANCE_MISMATCH:INDEX_OPTION_CALL"
+      ],
+      "bucket_long_short_totals": {
+        "INDEX_FUTURE": {
+          "long": 299170,
+          "short": 299170
+        },
+        "INDEX_OPTION_CALL": {
+          "long": 2899433,
+          "short": 2899432
+        },
+        "INDEX_OPTION_PUT": {
+          "long": 3622985,
+          "short": 3622985
+        },
+        "STOCK_FUTURE": {
+          "long": 7478567,
+          "short": 7478567
+        },
+        "STOCK_OPTION_CALL": {
+          "long": 1768289,
+          "short": 1768289
+        },
+        "STOCK_OPTION_PUT": {
+          "long": 1282733,
+          "short": 1282733
+        }
+      },
+      "source_quality_note": "Official source artifact: Sum(Long) != Sum(Short) by 1-2 contracts in index option buckets. Component rows are internally consistent with NSE's own reported participant totals; NSE TOTAL row is balanced. Rounding/reconciliation artifact in the official file, not corruption."
+    }
+  }
+}

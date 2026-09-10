@@ -173,27 +173,30 @@ class DerivativeParticipantRepository:
     async def get_participant_history(
         self,
         participant_type: str,
-        instrument_bucket: str,
+        instrument_bucket: str | None = None,
         dataset_type: str = "OPEN_INTEREST",
         start_date: date | None = None,
         end_date: date | None = None,
         as_of_date: date | None = None,
     ) -> list[DerivativeParticipantPosition]:
-        """Fetch historical time-series for a specific participant and instrument bucket."""
+        """Fetch historical time-series for a specific participant and optional instrument bucket."""
         as_of = as_of_date or (end_date or date.today())
         stmt = (
             select(DerivativeParticipantPosition)
             .where(DerivativeParticipantPosition.participant_type == participant_type)
-            .where(DerivativeParticipantPosition.instrument_bucket == instrument_bucket)
             .where(DerivativeParticipantPosition.dataset_type == dataset_type)
             .where(DerivativeParticipantPosition.available_at <= as_of)
         )
-
+        if instrument_bucket:
+            stmt = stmt.where(DerivativeParticipantPosition.instrument_bucket == instrument_bucket)
         if start_date:
             stmt = stmt.where(DerivativeParticipantPosition.report_date >= start_date)
         if end_date:
             stmt = stmt.where(DerivativeParticipantPosition.report_date <= end_date)
 
-        stmt = stmt.order_by(DerivativeParticipantPosition.report_date.asc())
+        stmt = stmt.order_by(
+            DerivativeParticipantPosition.report_date.asc(),
+            DerivativeParticipantPosition.instrument_bucket.asc(),
+        )
         res = await self.session.execute(stmt)
         return list(res.scalars().all())

@@ -92,6 +92,7 @@ class HistoricalParticipantAnalyticsService:
                     long_contracts=pos.long_contracts,
                     short_contracts=pos.short_contracts,
                     net_contracts=pos.net_contracts,
+                    report_date=pos.report_date,
                     reported_total_long=pos.reported_total_long,
                     reported_total_short=pos.reported_total_short,
                     long_share_pct=l_share,
@@ -186,13 +187,13 @@ class HistoricalParticipantAnalyticsService:
     async def get_participant_history(
         self,
         participant_type: str,
-        instrument_bucket: str,
+        instrument_bucket: str | None = None,
         dataset_type: str = "OPEN_INTEREST",
         start_date: date | None = None,
         end_date: date | None = None,
         as_of_date: date | None = None,
     ) -> list[ParticipantPositionItem]:
-        """Fetch historical time-series items for a specific participant and instrument bucket."""
+        """Fetch historical time-series items for a specific participant and optional instrument bucket."""
         as_of = as_of_date or (end_date or date.today())
         rows = await self.repo.get_participant_history(
             participant_type=participant_type,
@@ -210,8 +211,28 @@ class HistoricalParticipantAnalyticsService:
                 long_contracts=r.long_contracts,
                 short_contracts=r.short_contracts,
                 net_contracts=r.net_contracts,
+                report_date=r.report_date,
                 reported_total_long=r.reported_total_long,
                 reported_total_short=r.reported_total_short,
             )
             for r in rows
         ]
+
+    async def get_participant_time_series(
+        self,
+        start_date: date,
+        end_date: date,
+        dataset_type: str = "OPEN_INTEREST",
+        participant_type: str = "FII",
+        instrument_bucket: str | None = None,
+        as_of_date: date | None = None,
+    ) -> list[ParticipantPositionItem]:
+        """Fetch participant category time-series positioning history."""
+        return await self.get_participant_history(
+            participant_type=participant_type,
+            instrument_bucket=instrument_bucket,
+            dataset_type=dataset_type,
+            start_date=start_date,
+            end_date=end_date,
+            as_of_date=as_of_date,
+        )
