@@ -132,13 +132,22 @@
     </div>
 </div>
 
-<!-- SECTION 6: Future Research Domains (Unavailable Placeholders) -->
+<!-- SECTION 6: Bulk & Block Deals (Stage G.10) -->
+<div class="row mb-4">
+    <div class="col-12" hx-get="/stocks/{{ symbol }}/deals" hx-trigger="load" hx-swap="outerHTML">
+        <div id="stock-bulk-block-deals-container" class="card shadow-sm border-0">
+            <div class="card-body text-center py-4">
+                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                <span class="text-muted">Loading Bulk &amp; Block Deals...</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SECTION 6b: Future Research Domains (Unavailable Placeholders) -->
 <div class="row g-4 mb-4">
     <div class="col-md-6">
         {{ unavailable.render_unavailable("Shareholding", "bi bi-people", "Promoter details, FII/DII allocations, and pledging trends will appear here.") }}
-    </div>
-    <div class="col-md-6">
-        {{ unavailable.render_unavailable("Bulk & Block Deals", "bi bi-handbag", "Large insider and institutional trade transactions list will appear here.") }}
     </div>
     <div class="col-md-6">
         {{ unavailable.render_unavailable("Peers & Competitors", "bi bi-columns-gap", "Comparative valuation table against industry peers will appear here.") }}

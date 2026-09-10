@@ -524,3 +524,60 @@ async def stock_chart_data(
         stock.id, period=actual_period, include_indicators=include_indicators
     )
     return ChartDataResponse(symbol=symbol.upper(), **data)
+
+
+@router.get("/{symbol}/deals", response_class=HTMLResponse)
+async def stock_bulk_block_deals_partial(
+    request: Request,
+    symbol: str,
+    deal_type: str | None = Query(None),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    as_of_date: date | None = Query(None),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render the Bulk & Block Deals HTMX sub-component for stock detail view."""
+    from app.repositories.bulk_block_deal import BulkBlockDealRepository
+
+    repo = StockDetailRepository(session)
+    stock = await repo.get_stock(symbol)
+    if not stock:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    norm_deal_type = deal_type.strip().upper() if deal_type and deal_type.strip() else None
+
+    deal_repo = BulkBlockDealRepository(session)
+    deals, total_count = await deal_repo.get_deals_for_stock(
+        stock_id=stock.id,
+        symbol=stock.symbol,
+        deal_type=norm_deal_type,
+        as_of_date=as_of_date,
+        is_current_only=True,
+        page=page,
+        page_size=page_size,
+    )
+    summary_data = await deal_repo.get_deal_summary(
+        stock_id=stock.id,
+        symbol=stock.symbol,
+        as_of_date=as_of_date,
+    )
+    pages = (total_count + page_size - 1) // page_size if total_count > 0 else 1
+
+    return HTMLResponse(
+        content=_render(
+            "components/stock_bulk_block_deals.html",
+            {
+                "request": request,
+                "symbol": stock.symbol,
+                "stock": stock,
+                "deals": deals,
+                "total_deals": total_count,
+                "page": page,
+                "page_size": page_size,
+                "pages": pages,
+                "summary": summary_data,
+                "deal_type": norm_deal_type,
+                "as_of_date": as_of_date,
+            },
+        )
+    )

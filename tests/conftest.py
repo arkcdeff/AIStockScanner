@@ -128,7 +128,7 @@ _TABLES_TO_TRUNCATE = (
     "derivative_daily_prices, derivative_lot_size_histories, derivative_contracts, "
     "derivative_participant_positions, fii_derivative_statistics, "
     "financial_statements, corporate_announcements, shareholding_patterns, "
-    "news_entity_links, news_events"
+    "news_entity_links, news_events, bulk_block_deals"
 )
 
 _SCANNER_DEFINITIONS = [

@@ -17,6 +17,7 @@ from app.models.backtest import (
     BacktestStrategy,
     BacktestTrade,
 )
+from app.models.bulk_block_deal import BulkBlockDeal
 from app.models.comparable_company import ComparableCompany
 from app.models.corporate_action import CorporateAction
 from app.models.daily_price import DailyPrice
@@ -128,4 +129,6 @@ __all__ = [
     # Stage 2.6.3 — Relative Valuation
     "Industry",
     "ComparableCompany",
+    # Stage 2 G.10 — Bulk & Block Deals
+    "BulkBlockDeal",
 ]

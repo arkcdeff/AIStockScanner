@@ -1,0 +1,1371 @@
+{
+  "dataset": "NSE Cash Market Bulk Deals and Block Deals",
+  "period": "2025-10-01 to 2025-12-31 (Q4-2025)",
+  "expected_sessions": 62,
+  "acquired_sessions": 62,
+  "acquired_at": "2026-09-10T06:21:42.380812+00:00",
+  "source_mechanism": "Official NSE Portal Historical Deals Endpoint (Blink UI)",
+  "source_endpoint": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals",
+  "source_reference_page": "https://www.nseindia.com/report-detail/display-bulk-and-block-deals",
+  "session_calendar_basis": "data/reference/bhavcopy/200session/manifest.json (G.7 certified NSE trading calendar)",
+  "consolidated_files": {
+    "bulk_deals_q4_2025.csv": {
+      "filename": "bulk_deals_q4_2025.csv",
+      "sha256": "d121c08a603a7b95f544c24a3ce16dccaa3bfac1ac24e892114dec98af63b1c6",
+      "byte_size": 662353,
+      "record_count": 5987,
+      "header": [
+        "Date",
+        "Symbol",
+        "Security Name",
+        "Client Name",
+        "Buy / Sell",
+        "Quantity Traded",
+        "Trade Price / Wght. Avg. Price",
+        "Remarks"
+      ]
+    },
+    "bulk_deals_q4_2025.json": {
+      "filename": "bulk_deals_q4_2025.json",
+      "sha256": "fa28f025fc4ccc602db97cc1c14113e44d355e6d699ce4c8393e64987e37c864",
+      "byte_size": 18059
+    },
+    "block_deals_q4_2025.csv": {
+      "filename": "block_deals_q4_2025.csv",
+      "sha256": "fa82b71a4099413d0216da08a29c5c9bd467340d66c67509dfb9e9780b5e6c3c",
+      "byte_size": 57685,
+      "record_count": 516,
+      "header": [
+        "Date",
+        "Symbol",
+        "Security Name",
+        "Client Name",
+        "Buy / Sell",
+        "Quantity Traded",
+        "Trade Price / Wght. Avg. Price",
+        "Remarks"
+      ]
+    },
+    "block_deals_q4_2025.json": {
+      "filename": "block_deals_q4_2025.json",
+      "sha256": "15b4c4eb2b0fa8d0d4851da1c0443817a580f796d8c143d2a907a46450f95313",
+      "byte_size": 18258
+    }
+  },
+  "summary": {
+    "total_bulk_deals_q4": 5987,
+    "total_block_deals_q4": 516,
+    "sessions_with_bulk_deals": 62,
+    "sessions_with_zero_bulk_deals": 0,
+    "sessions_with_block_deals": 42,
+    "sessions_with_zero_block_deals": 20,
+    "date_coverage_completeness_pct": 100.0,
+    "refetch_hash_verification": "PASS_BITWISE_IDENTICAL",
+    "daily_total_bulk_records": 5987,
+    "daily_total_block_records": 516
+  },
+  "sessions": {
+    "2025-10-01": {
+      "trade_date": "2025-10-01",
+      "bulk": {
+        "filename": "bulk_deals_20251001.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=01-10-2025&to=01-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c5c4a8bd1ce96049aa4cc982965c64ce554c63d2d5134f49a294b8ccf8778c27",
+        "byte_size": 9444,
+        "record_count": 85,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251001.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=01-10-2025&to=01-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "bfc336d4d014378c136382d8a0d34b14cd0464133b881cb0ea463b346ccb95c6",
+        "byte_size": 333,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-10-03": {
+      "trade_date": "2025-10-03",
+      "bulk": {
+        "filename": "bulk_deals_20251003.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=03-10-2025&to=03-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "d3d41e10853b9a67a019d7fa00306004e1a0be8dd7f8b81f83af708a21f51541",
+        "byte_size": 9622,
+        "record_count": 86,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251003.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=03-10-2025&to=03-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "da316f591f9f75a99cf5c521747bef49c4465a1d58b8829424f75de375659256",
+        "byte_size": 337,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-10-06": {
+      "trade_date": "2025-10-06",
+      "bulk": {
+        "filename": "bulk_deals_20251006.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=06-10-2025&to=06-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0c7279ca90a062a1e75907d36eda9646d29e9e5750f3a3734cdd454739be9be7",
+        "byte_size": 11659,
+        "record_count": 104,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251006.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=06-10-2025&to=06-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "d7512897d54eaf6ac6d2c2b009fb56afe7b4588be2b68826cfae407d58cda5dc",
+        "byte_size": 3105,
+        "record_count": 27,
+        "status": "VALID"
+      }
+    },
+    "2025-10-07": {
+      "trade_date": "2025-10-07",
+      "bulk": {
+        "filename": "bulk_deals_20251007.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=07-10-2025&to=07-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "234c61081bc782dc9715bfcbad31c410a71ded35c1872ddeae78a1caeacedbea",
+        "byte_size": 15066,
+        "record_count": 139,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251007.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=07-10-2025&to=07-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "08a341dbb093207baa92c6a9b5709d8db33357351f04f59a55c6b654f48fb887",
+        "byte_size": 4779,
+        "record_count": 42,
+        "status": "VALID"
+      }
+    },
+    "2025-10-08": {
+      "trade_date": "2025-10-08",
+      "bulk": {
+        "filename": "bulk_deals_20251008.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=08-10-2025&to=08-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "48d60bbf0fb692ff93288e22c0003b954860855719f8bfc69a63875f462eb72c",
+        "byte_size": 13970,
+        "record_count": 126,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251008.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=08-10-2025&to=08-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1c6271ba1c73507f16ca1097eea3d4201635b4135d50ba96fce2577edf1cbfd7",
+        "byte_size": 1900,
+        "record_count": 16,
+        "status": "VALID"
+      }
+    },
+    "2025-10-09": {
+      "trade_date": "2025-10-09",
+      "bulk": {
+        "filename": "bulk_deals_20251009.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=09-10-2025&to=09-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "a23596dd44999023a7879141142244307f49db96570efb3b476bd697a3af4e3b",
+        "byte_size": 14211,
+        "record_count": 129,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251009.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=09-10-2025&to=09-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "9d0a32078fbf3977a3d5c0b9328e7d4552adf02b914c6a759e687a7db8809812",
+        "byte_size": 2615,
+        "record_count": 22,
+        "status": "VALID"
+      }
+    },
+    "2025-10-10": {
+      "trade_date": "2025-10-10",
+      "bulk": {
+        "filename": "bulk_deals_20251010.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=10-10-2025&to=10-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "fd88ab965639400d89eeaf67b5a94a33045f687c035ead047eba9d1a7a4b6535",
+        "byte_size": 9027,
+        "record_count": 80,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251010.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=10-10-2025&to=10-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "443eb51446eee51e045f0abbbd6f0423bad0bd0b49c7bb2ba8a51dc199ec3599",
+        "byte_size": 369,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-10-13": {
+      "trade_date": "2025-10-13",
+      "bulk": {
+        "filename": "bulk_deals_20251013.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=13-10-2025&to=13-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1a628745c4d7590b5de741d4d800e249d8bfddf01bde2fd649a1b457d7fd7dba",
+        "byte_size": 8334,
+        "record_count": 75,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251013.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=13-10-2025&to=13-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "434af739b9681b03463d0e46e7638cc82d410c2ac27c313940abe36d65bd0303",
+        "byte_size": 2515,
+        "record_count": 22,
+        "status": "VALID"
+      }
+    },
+    "2025-10-14": {
+      "trade_date": "2025-10-14",
+      "bulk": {
+        "filename": "bulk_deals_20251014.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=14-10-2025&to=14-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0af454f4cf916aa093f6e53a695feec0b5838ecc95cfa20dbd88214f8f501bd3",
+        "byte_size": 7866,
+        "record_count": 71,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251014.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=14-10-2025&to=14-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "7cf1cf70468807ef65959107ad1cd6b874b87742ccd133cb840fee55fd7a3ca9",
+        "byte_size": 3215,
+        "record_count": 28,
+        "status": "VALID"
+      }
+    },
+    "2025-10-15": {
+      "trade_date": "2025-10-15",
+      "bulk": {
+        "filename": "bulk_deals_20251015.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=15-10-2025&to=15-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "2d273a33dfc8420cf0823ba9edbad16354cb1dff87453cff301561e3c1b76170",
+        "byte_size": 8716,
+        "record_count": 78,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251015.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=15-10-2025&to=15-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c7ee0917fc371205ad06d2b49eea58b626584c2cbb2d5b4ac02a807222830260",
+        "byte_size": 1023,
+        "record_count": 8,
+        "status": "VALID"
+      }
+    },
+    "2025-10-16": {
+      "trade_date": "2025-10-16",
+      "bulk": {
+        "filename": "bulk_deals_20251016.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=16-10-2025&to=16-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "744b8358054d1eba8b04e0721a1a8e310624a45afa471154524d5b3722eacb05",
+        "byte_size": 9545,
+        "record_count": 85,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251016.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=16-10-2025&to=16-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "5a17ab308219c2fb2ad9fbc998436a16daa527ee097d2da3723538a61e7ad887",
+        "byte_size": 4860,
+        "record_count": 42,
+        "status": "VALID"
+      }
+    },
+    "2025-10-17": {
+      "trade_date": "2025-10-17",
+      "bulk": {
+        "filename": "bulk_deals_20251017.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=17-10-2025&to=17-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "d13103da8f4e8aa6f8f646675b1407983b1dc46079693161327b92b68ead2ac4",
+        "byte_size": 10590,
+        "record_count": 96,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251017.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=17-10-2025&to=17-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-10-20": {
+      "trade_date": "2025-10-20",
+      "bulk": {
+        "filename": "bulk_deals_20251020.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=20-10-2025&to=20-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6f2f8a0798ca6185778ede812d6a663234815cd48e1469492edbc9efdc9a9c4b",
+        "byte_size": 7880,
+        "record_count": 73,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251020.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=20-10-2025&to=20-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "9159d77e0804a3f1210946cc4acc5a5852247bba32d9e504675bbdc426a1666d",
+        "byte_size": 1195,
+        "record_count": 10,
+        "status": "VALID"
+      }
+    },
+    "2025-10-21": {
+      "trade_date": "2025-10-21",
+      "bulk": {
+        "filename": "bulk_deals_20251021.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=21-10-2025&to=21-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "e8e7a3964dac1d964831e856d6feec486c6257d39fc2fd663bd398f6451d7096",
+        "byte_size": 570,
+        "record_count": 4,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251021.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=21-10-2025&to=21-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-10-23": {
+      "trade_date": "2025-10-23",
+      "bulk": {
+        "filename": "bulk_deals_20251023.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=23-10-2025&to=23-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "3c013ce1c92a7f18f94ae535ccc8461e1e4ed1f02bbab0457255d97996ddde83",
+        "byte_size": 7752,
+        "record_count": 70,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251023.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=23-10-2025&to=23-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-10-24": {
+      "trade_date": "2025-10-24",
+      "bulk": {
+        "filename": "bulk_deals_20251024.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=24-10-2025&to=24-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "9997d85dbb55989dbff6d027cad072797e1c452bd6068e7abb0cb244120fb5b1",
+        "byte_size": 16011,
+        "record_count": 140,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251024.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=24-10-2025&to=24-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1364b025cce42721e6ee7e766b18b6f69b7ce283c13f5920a75d61b832358dfb",
+        "byte_size": 549,
+        "record_count": 4,
+        "status": "VALID"
+      }
+    },
+    "2025-10-27": {
+      "trade_date": "2025-10-27",
+      "bulk": {
+        "filename": "bulk_deals_20251027.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=27-10-2025&to=27-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "983dd1104216c39016ee72822c610bab2336db5841698753578638301aa67b7e",
+        "byte_size": 12199,
+        "record_count": 107,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251027.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=27-10-2025&to=27-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "2448d2f4d8ca39e66ea9212c9a13669e65b83528d1f63e00ca6645d0c7dedee5",
+        "byte_size": 476,
+        "record_count": 3,
+        "status": "VALID"
+      }
+    },
+    "2025-10-28": {
+      "trade_date": "2025-10-28",
+      "bulk": {
+        "filename": "bulk_deals_20251028.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=28-10-2025&to=28-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "7272ba4e1c0fa835f98857ad63468662f81c9b0786241b9a324951698f11630d",
+        "byte_size": 13466,
+        "record_count": 119,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251028.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=28-10-2025&to=28-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "79eed5786205059662069d2f8329e63321bc5f496c87f84030dddb0b2ddf2f85",
+        "byte_size": 1965,
+        "record_count": 16,
+        "status": "VALID"
+      }
+    },
+    "2025-10-29": {
+      "trade_date": "2025-10-29",
+      "bulk": {
+        "filename": "bulk_deals_20251029.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=29-10-2025&to=29-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "9dd0dc7a2be208885f6e8ca40ef105377f554d6f584a5ae9bf8b5d670d927bc3",
+        "byte_size": 8417,
+        "record_count": 76,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251029.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=29-10-2025&to=29-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-10-30": {
+      "trade_date": "2025-10-30",
+      "bulk": {
+        "filename": "bulk_deals_20251030.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=30-10-2025&to=30-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "67bbc8c35e804c1d6927516f820b8cbc21099f68702051c8acb6aab800c9a8fa",
+        "byte_size": 7530,
+        "record_count": 69,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251030.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=30-10-2025&to=30-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "e15ebe4c763361e8110a8d70a4902d0b56ea249fc5618e03324514924dfd4286",
+        "byte_size": 338,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-10-31": {
+      "trade_date": "2025-10-31",
+      "bulk": {
+        "filename": "bulk_deals_20251031.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=31-10-2025&to=31-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "38438220190b474f4c784811921a834f5758ae7a74963a4299589447b7c40043",
+        "byte_size": 6765,
+        "record_count": 61,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251031.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=31-10-2025&to=31-10-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-03": {
+      "trade_date": "2025-11-03",
+      "bulk": {
+        "filename": "bulk_deals_20251103.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=03-11-2025&to=03-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c8368a44d1cd7b2e0a6ad5b9677562470f7ec51130e851949b32d85d5f525707",
+        "byte_size": 8849,
+        "record_count": 77,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251103.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=03-11-2025&to=03-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-04": {
+      "trade_date": "2025-11-04",
+      "bulk": {
+        "filename": "bulk_deals_20251104.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=04-11-2025&to=04-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "49587d23a66a116174a55ee6688a708ef7313d1b2cc1efcc45e2f5f403c43371",
+        "byte_size": 8556,
+        "record_count": 76,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251104.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=04-11-2025&to=04-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c6990632c190fa212eb8a00c5dacc8536e842a562370154c38e8fe1046c6356f",
+        "byte_size": 332,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-11-06": {
+      "trade_date": "2025-11-06",
+      "bulk": {
+        "filename": "bulk_deals_20251106.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=06-11-2025&to=06-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1178da869f56fe918e97da4ecf04103d482ab6d15603381e432a7fb8149e1fb6",
+        "byte_size": 8418,
+        "record_count": 77,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251106.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=06-11-2025&to=06-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "fd7763fc36a06465781e4255374e1655e3f1832eeba8ca05ef83495a622957c8",
+        "byte_size": 1665,
+        "record_count": 15,
+        "status": "VALID"
+      }
+    },
+    "2025-11-07": {
+      "trade_date": "2025-11-07",
+      "bulk": {
+        "filename": "bulk_deals_20251107.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=07-11-2025&to=07-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "705625caa8c7e095e444a355537d61e3c9f1ae71fc05cb77fab344c398b1964b",
+        "byte_size": 9930,
+        "record_count": 89,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251107.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=07-11-2025&to=07-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-10": {
+      "trade_date": "2025-11-10",
+      "bulk": {
+        "filename": "bulk_deals_20251110.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=10-11-2025&to=10-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "7b3ec7a44acaad4aaeb8095781580932498468368cb439e0936a1a721eb3bf16",
+        "byte_size": 5472,
+        "record_count": 50,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251110.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=10-11-2025&to=10-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1ba864968f94213f4f0ed0407b3e870541204b770ab1dc17f5a7ad61762fe605",
+        "byte_size": 864,
+        "record_count": 7,
+        "status": "VALID"
+      }
+    },
+    "2025-11-11": {
+      "trade_date": "2025-11-11",
+      "bulk": {
+        "filename": "bulk_deals_20251111.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=11-11-2025&to=11-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b9694f814669fc03622214663145ede20f29dd443d8c97f6455eae4362908448",
+        "byte_size": 9130,
+        "record_count": 84,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251111.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=11-11-2025&to=11-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-12": {
+      "trade_date": "2025-11-12",
+      "bulk": {
+        "filename": "bulk_deals_20251112.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=12-11-2025&to=12-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "65696bd914189ac7e8954d17d5bb78ef186400f941a60c511a0b462760b0a1e5",
+        "byte_size": 7557,
+        "record_count": 68,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251112.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=12-11-2025&to=12-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "fa17cd7511061cbcc3ec9304855033fc944fc10e06a42bcef43ab9c11f75c0c3",
+        "byte_size": 336,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-11-13": {
+      "trade_date": "2025-11-13",
+      "bulk": {
+        "filename": "bulk_deals_20251113.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=13-11-2025&to=13-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "cd7423ce5a1248f5e10480f47b5a169076be270ff6551151518660f168ab5cfe",
+        "byte_size": 7042,
+        "record_count": 64,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251113.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=13-11-2025&to=13-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "2ddd383ad659dd233187ecc601ea6bb88ced068e94b359afb5c1da8b86da408b",
+        "byte_size": 2235,
+        "record_count": 19,
+        "status": "VALID"
+      }
+    },
+    "2025-11-14": {
+      "trade_date": "2025-11-14",
+      "bulk": {
+        "filename": "bulk_deals_20251114.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=14-11-2025&to=14-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b997660a06861fd1007b537808f37eb921874dec2658e5a32d4b794fe0283459",
+        "byte_size": 6115,
+        "record_count": 57,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251114.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=14-11-2025&to=14-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0639b16d112dcf24d97f03ea957798f0c3e0bf1e9bfeb5f53de5b98abe14e3ba",
+        "byte_size": 1046,
+        "record_count": 9,
+        "status": "VALID"
+      }
+    },
+    "2025-11-17": {
+      "trade_date": "2025-11-17",
+      "bulk": {
+        "filename": "bulk_deals_20251117.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=17-11-2025&to=17-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b39d4e74479d1fc46cfc0073c30ce8a90a724b5a29549311ba5f641b4469db8e",
+        "byte_size": 10522,
+        "record_count": 96,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251117.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=17-11-2025&to=17-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "76aa72098a5ba91ed1bcf91d57a2e4e4b0a7a0f302e6ee13775ae99388706bcb",
+        "byte_size": 354,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-11-18": {
+      "trade_date": "2025-11-18",
+      "bulk": {
+        "filename": "bulk_deals_20251118.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=18-11-2025&to=18-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "37485af5ab544faf5bc85cbdfb8256e30a91403f646567029036604c8aec2297",
+        "byte_size": 7972,
+        "record_count": 74,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251118.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=18-11-2025&to=18-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "45af72debcdcb886690ca81cfe69cc81c0c55803b80c4692d548823b36fc0b09",
+        "byte_size": 10356,
+        "record_count": 82,
+        "status": "VALID"
+      }
+    },
+    "2025-11-19": {
+      "trade_date": "2025-11-19",
+      "bulk": {
+        "filename": "bulk_deals_20251119.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=19-11-2025&to=19-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "4c1de5edbe1bb1a510540bd99220f89e7afe00046671c4dd3ab334f84ac05425",
+        "byte_size": 7463,
+        "record_count": 65,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251119.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=19-11-2025&to=19-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6cacdcd7028c3775065d95fa9404eabc01ec57d21866a75575a9f30d0b31d726",
+        "byte_size": 929,
+        "record_count": 8,
+        "status": "VALID"
+      }
+    },
+    "2025-11-20": {
+      "trade_date": "2025-11-20",
+      "bulk": {
+        "filename": "bulk_deals_20251120.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=20-11-2025&to=20-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "132a47a2b3030590b8a6384d9824184eb4f75de815dd0dc3439269b133e31f2e",
+        "byte_size": 8793,
+        "record_count": 80,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251120.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=20-11-2025&to=20-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-21": {
+      "trade_date": "2025-11-21",
+      "bulk": {
+        "filename": "bulk_deals_20251121.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=21-11-2025&to=21-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "ceed59f792f429f424bcc4ddba4c5aa2cbf119049b5852d6da5c047ca919260a",
+        "byte_size": 10667,
+        "record_count": 96,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251121.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=21-11-2025&to=21-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "280c1dcb7c3bf5704ec62ac8e3fd9c429069b93239609b721b5673a39fac5c82",
+        "byte_size": 1305,
+        "record_count": 11,
+        "status": "VALID"
+      }
+    },
+    "2025-11-24": {
+      "trade_date": "2025-11-24",
+      "bulk": {
+        "filename": "bulk_deals_20251124.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=24-11-2025&to=24-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0306eeabb8a09cc850f8ecdaded8339c49d5b214d88aa7bd69c3acf40f4b0cfa",
+        "byte_size": 12883,
+        "record_count": 115,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251124.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=24-11-2025&to=24-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-11-25": {
+      "trade_date": "2025-11-25",
+      "bulk": {
+        "filename": "bulk_deals_20251125.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=25-11-2025&to=25-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "a005baefaa7dff77e97bf58b05cf622ce2fe7f0365a95c01567f9321c9e3a782",
+        "byte_size": 14933,
+        "record_count": 132,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251125.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=25-11-2025&to=25-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6467df59c8fe670a5765be84c13e9b65bef07d60ceb373d17b0a38449b37ec8d",
+        "byte_size": 352,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-11-26": {
+      "trade_date": "2025-11-26",
+      "bulk": {
+        "filename": "bulk_deals_20251126.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=26-11-2025&to=26-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b0d364ecae3b77150fdd8e3307871b88b2526a66d9f1fbabab34792738998289",
+        "byte_size": 16490,
+        "record_count": 145,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251126.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=26-11-2025&to=26-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "48a9a7f1591ce8793afec924cc9d5c80831825115feab73c837fd20404499581",
+        "byte_size": 424,
+        "record_count": 3,
+        "status": "VALID"
+      }
+    },
+    "2025-11-27": {
+      "trade_date": "2025-11-27",
+      "bulk": {
+        "filename": "bulk_deals_20251127.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=27-11-2025&to=27-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "1ce8a6be3ba9d504aa2a363db26b98c0c87c75cde2c1253e09f5450caad6eb96",
+        "byte_size": 15403,
+        "record_count": 132,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251127.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=27-11-2025&to=27-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b6049de51c45fa75f26c50e2e83c3cc3a091f9dca5f9c69dac396efaec20ea90",
+        "byte_size": 456,
+        "record_count": 3,
+        "status": "VALID"
+      }
+    },
+    "2025-11-28": {
+      "trade_date": "2025-11-28",
+      "bulk": {
+        "filename": "bulk_deals_20251128.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=28-11-2025&to=28-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "5b77f0702862cf69c7dd578138db901667c19e5b2d53ffcd47a1a6d81b3b8140",
+        "byte_size": 12607,
+        "record_count": 109,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251128.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=28-11-2025&to=28-11-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-01": {
+      "trade_date": "2025-12-01",
+      "bulk": {
+        "filename": "bulk_deals_20251201.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=01-12-2025&to=01-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c258bf97599abc0e60f2e7da09440a0fb50c678df543922654c89a95e9173484",
+        "byte_size": 13606,
+        "record_count": 120,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251201.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=01-12-2025&to=01-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "762ff344c931a745064d940deeae2e2fc1fb46b25732fedd4182e5dd5ee301cd",
+        "byte_size": 348,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-12-02": {
+      "trade_date": "2025-12-02",
+      "bulk": {
+        "filename": "bulk_deals_20251202.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=02-12-2025&to=02-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "a9b106e93479e4c222487e1080b817150eaf0a387792014c6c2871f49af0bd8c",
+        "byte_size": 12239,
+        "record_count": 107,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251202.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=02-12-2025&to=02-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-03": {
+      "trade_date": "2025-12-03",
+      "bulk": {
+        "filename": "bulk_deals_20251203.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=03-12-2025&to=03-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c93ba1b55f111080d558961b42e7c18552939564a54289e9c4b4a631e118f233",
+        "byte_size": 11998,
+        "record_count": 108,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251203.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=03-12-2025&to=03-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "946b4ad7eedbf62d4101014065092a353837b7a9c562114bf6386cbdf6248ebc",
+        "byte_size": 1264,
+        "record_count": 11,
+        "status": "VALID"
+      }
+    },
+    "2025-12-04": {
+      "trade_date": "2025-12-04",
+      "bulk": {
+        "filename": "bulk_deals_20251204.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=04-12-2025&to=04-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0874513e7d693a88942f39f0bc55fc4d01fe73f15ef6235cbcb9f7d1b0fbfba7",
+        "byte_size": 10541,
+        "record_count": 93,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251204.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=04-12-2025&to=04-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b372523682532f3940afc6788742f727ad4d2884f4acc157d2e76684b333642b",
+        "byte_size": 349,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-12-05": {
+      "trade_date": "2025-12-05",
+      "bulk": {
+        "filename": "bulk_deals_20251205.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=05-12-2025&to=05-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c4125c604653d17405c5406c4af725e66074d0ff21d063483310ba326645320a",
+        "byte_size": 9150,
+        "record_count": 81,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251205.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=05-12-2025&to=05-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "e8fbee1da054301ffa589e83a2b1e15b5c112bc01c7321b89e2686b98783c08d",
+        "byte_size": 1626,
+        "record_count": 14,
+        "status": "VALID"
+      }
+    },
+    "2025-12-08": {
+      "trade_date": "2025-12-08",
+      "bulk": {
+        "filename": "bulk_deals_20251208.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=08-12-2025&to=08-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "bc743bc80bbb03e94758487194fd2e74242600a70afa7a95f2370a358de6e05d",
+        "byte_size": 7879,
+        "record_count": 71,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251208.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=08-12-2025&to=08-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-09": {
+      "trade_date": "2025-12-09",
+      "bulk": {
+        "filename": "bulk_deals_20251209.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=09-12-2025&to=09-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "db57cd940095fa0c12e77def7ef21e3febb6439afe83589aa1e14ff76da43363",
+        "byte_size": 12481,
+        "record_count": 110,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251209.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=09-12-2025&to=09-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-10": {
+      "trade_date": "2025-12-10",
+      "bulk": {
+        "filename": "bulk_deals_20251210.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=10-12-2025&to=10-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "d5e1d3327c2a4534a0a7266f30d42c0edee5b68e50492000d0fac57288a2331f",
+        "byte_size": 10875,
+        "record_count": 96,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251210.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=10-12-2025&to=10-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "bcdcaee451cbe0f3819ecbde67f08e4cc091986772cb0c4d8ffeb2fab7e70a09",
+        "byte_size": 3004,
+        "record_count": 26,
+        "status": "VALID"
+      }
+    },
+    "2025-12-11": {
+      "trade_date": "2025-12-11",
+      "bulk": {
+        "filename": "bulk_deals_20251211.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=11-12-2025&to=11-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "5ed656713c81a23ce38f963537a2c119153b619de186bb75fc948ad158ff195a",
+        "byte_size": 9029,
+        "record_count": 79,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251211.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=11-12-2025&to=11-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "8404357c2db87e731d6f18b2cf7b0e546ce956da7cdf623855c7f08cdce3fdd4",
+        "byte_size": 513,
+        "record_count": 4,
+        "status": "VALID"
+      }
+    },
+    "2025-12-12": {
+      "trade_date": "2025-12-12",
+      "bulk": {
+        "filename": "bulk_deals_20251212.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=12-12-2025&to=12-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "40d0b22f8fbe40d50881159eff3ec436a219c9b7cd1611d7041b3d48a5da27c3",
+        "byte_size": 12400,
+        "record_count": 111,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251212.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=12-12-2025&to=12-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "fb72eb3fb8a43b5169aedb61906d63aefb1caf7344c1621a8cc62f4b45fe5d2a",
+        "byte_size": 548,
+        "record_count": 4,
+        "status": "VALID"
+      }
+    },
+    "2025-12-15": {
+      "trade_date": "2025-12-15",
+      "bulk": {
+        "filename": "bulk_deals_20251215.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=15-12-2025&to=15-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "c84625d7f1dc43cdb5b3d0703866747a4ab0ebb9e58f983ef7a312e18bd34be1",
+        "byte_size": 11654,
+        "record_count": 102,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251215.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=15-12-2025&to=15-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-16": {
+      "trade_date": "2025-12-16",
+      "bulk": {
+        "filename": "bulk_deals_20251216.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=16-12-2025&to=16-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "f324e02184b7f5b339e47b66e1970953d62059360f6ff573f5387e985c5ef5f1",
+        "byte_size": 11527,
+        "record_count": 104,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251216.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=16-12-2025&to=16-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "92fa1261a06e3b623d395d5bd5e68aa6148181ab336f37cd3099b7b2849b6215",
+        "byte_size": 930,
+        "record_count": 7,
+        "status": "VALID"
+      }
+    },
+    "2025-12-17": {
+      "trade_date": "2025-12-17",
+      "bulk": {
+        "filename": "bulk_deals_20251217.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=17-12-2025&to=17-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "7e5813b93ccfb4af529f1ebed70ec1e698714ce9cbba366175f395e55636bcdb",
+        "byte_size": 20869,
+        "record_count": 187,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251217.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=17-12-2025&to=17-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-18": {
+      "trade_date": "2025-12-18",
+      "bulk": {
+        "filename": "bulk_deals_20251218.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=18-12-2025&to=18-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "ff90ea1b2dabb76dbcfba251645eb5e9808e4a2e812142d57f79140e2fd939ae",
+        "byte_size": 16142,
+        "record_count": 146,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251218.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=18-12-2025&to=18-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-19": {
+      "trade_date": "2025-12-19",
+      "bulk": {
+        "filename": "bulk_deals_20251219.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=19-12-2025&to=19-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "9937ae731d19eca935a6571210066e120b7f3f1cba6e5efaa85e064ea6fdec69",
+        "byte_size": 13765,
+        "record_count": 123,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251219.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=19-12-2025&to=19-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-22": {
+      "trade_date": "2025-12-22",
+      "bulk": {
+        "filename": "bulk_deals_20251222.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=22-12-2025&to=22-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "ca64a020d2377caa3082cd3feaffc32439e4912c069ed003a249cbee38ffc1df",
+        "byte_size": 10994,
+        "record_count": 98,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251222.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=22-12-2025&to=22-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "b9dae03612518bc00c61cab5bb52481b34d77fa4d355b84c0913dd3a6a090e2c",
+        "byte_size": 583,
+        "record_count": 4,
+        "status": "VALID"
+      }
+    },
+    "2025-12-23": {
+      "trade_date": "2025-12-23",
+      "bulk": {
+        "filename": "bulk_deals_20251223.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=23-12-2025&to=23-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "683afb58286826c52fa40512b74a20ff87839c77c3d717b0f860e9a888c639ce",
+        "byte_size": 12849,
+        "record_count": 115,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251223.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=23-12-2025&to=23-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "7ba34cff4edc98a0755da6c1ad0856991c8cd7e3758baa2ff8ca287e6fc18890",
+        "byte_size": 655,
+        "record_count": 5,
+        "status": "VALID"
+      }
+    },
+    "2025-12-24": {
+      "trade_date": "2025-12-24",
+      "bulk": {
+        "filename": "bulk_deals_20251224.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=24-12-2025&to=24-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "e53bd56cc694d94fdf7ea3dbec899a52c78fa667abbbb5c04c03314dc019574a",
+        "byte_size": 11338,
+        "record_count": 101,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251224.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=24-12-2025&to=24-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "0600c9553e1d45582328d5d53e551a4aae49b65c35510d2e21569273f30fae1a",
+        "byte_size": 339,
+        "record_count": 2,
+        "status": "VALID"
+      }
+    },
+    "2025-12-26": {
+      "trade_date": "2025-12-26",
+      "bulk": {
+        "filename": "bulk_deals_20251226.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=26-12-2025&to=26-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "08d672ea0a5e68b500dce5341ebe951f33ebe7b0cd7ac85d1b8c8be26599c931",
+        "byte_size": 9298,
+        "record_count": 82,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251226.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=26-12-2025&to=26-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6996acd3d0005eec1f5dfd44d9322eb33ee629a0ffc9577c30ea6fd7c74a7aef",
+        "byte_size": 559,
+        "record_count": 4,
+        "status": "VALID"
+      }
+    },
+    "2025-12-29": {
+      "trade_date": "2025-12-29",
+      "bulk": {
+        "filename": "bulk_deals_20251229.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=29-12-2025&to=29-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "f1a185cce331e9975332318371ad2b60c3cd47f57b74b9114aeb5168ffc3d332",
+        "byte_size": 11604,
+        "record_count": 105,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251229.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=29-12-2025&to=29-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "dc21a37e081d8318805544178ba7d01d4e5fd9490824c12e37cf9baf8e15ec27",
+        "byte_size": 1946,
+        "record_count": 18,
+        "status": "VALID"
+      }
+    },
+    "2025-12-30": {
+      "trade_date": "2025-12-30",
+      "bulk": {
+        "filename": "bulk_deals_20251230.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=30-12-2025&to=30-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "2a0969339dde3dee6cf0cf95402c2e387eb6a38f1098ec6522b6ae8fb3665ebe",
+        "byte_size": 15446,
+        "record_count": 137,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251230.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=30-12-2025&to=30-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    },
+    "2025-12-31": {
+      "trade_date": "2025-12-31",
+      "bulk": {
+        "filename": "bulk_deals_20251231.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=bulk_deals&from=31-12-2025&to=31-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "128e2a0a47296a016a411187ecb9c20285fcd01df040b97a53925d6954100ccc",
+        "byte_size": 16974,
+        "record_count": 152,
+        "status": "VALID"
+      },
+      "block": {
+        "filename": "block_deals_20251231.csv",
+        "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?optionType=block_deals&from=31-12-2025&to=31-12-2025&csv=true",
+        "http_status": 200,
+        "sha256": "6730d5b7913a2b8beda15ab63a38a79f760683d1fe6961fb250ea2be8d29890c",
+        "byte_size": 127,
+        "record_count": 0,
+        "status": "NO_RECORDS"
+      }
+    }
+  }
+}

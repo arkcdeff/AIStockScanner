@@ -7,6 +7,11 @@ from app.auth.authorization import require_permission
 from app.core.config import settings
 from app.db.session import get_db_session
 from app.repositories.market_data import MarketDataRepository
+from app.schemas.bulk_block_deal import (
+    BulkBlockDealPage,
+    BulkBlockDealRead,
+    BulkBlockDealSummary,
+)
 from app.schemas.market_data import (
     BackfillRequest,
     CoverageRow,
@@ -1274,3 +1279,164 @@ async def get_coverage_certification(
     service = HistoricalCoverageCertificationService(session)
     res = await service.certify_coverage()
     return res.model_dump()
+
+
+# ============================================================
+# Stage G.10: Cash Market Bulk Deals & Block Deals Endpoints
+# ============================================================
+
+@router.get(
+    "/deals",
+    response_model=BulkBlockDealPage,
+    status_code=status.HTTP_200_OK,
+    summary="Get paginated Cash Market Bulk & Block Deals",
+)
+async def get_bulk_block_deals(
+    trade_date_from: date | None = Query(None, description="Start date of trade date range"),
+    trade_date_to: date | None = Query(None, description="End date of trade date range"),
+    deal_type: str | None = Query(None, description="Filter by deal type: BULK or BLOCK"),
+    buy_sell: str | None = Query(None, description="Filter by transaction side: BUY or SELL"),
+    symbol: str | None = Query(None, description="Filter by stock symbol"),
+    stock_id: int | None = Query(None, description="Filter by stock ID"),
+    client: str | None = Query(None, description="Filter by client name (case-insensitive partial match)"),
+    as_of_date: date | None = Query(None, description="Point-in-time evaluation date (available_at <= as_of_date)"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(50, ge=1, le=200, description="Items per page (max 200)"),
+    session: AsyncSession = Depends(get_db_session),
+) -> BulkBlockDealPage:
+    """Return paginated Bulk and Block deal disclosures with strict PIT safety and summary metrics."""
+    if trade_date_from and trade_date_to:
+        if trade_date_from > trade_date_to:
+            raise HTTPException(
+                status_code=422,
+                detail="trade_date_from cannot be after trade_date_to.",
+            )
+        if (trade_date_to - trade_date_from).days > 92:
+            raise HTTPException(
+                status_code=422,
+                detail="Requested date window cannot exceed 92 days.",
+            )
+
+    from app.repositories.bulk_block_deal import BulkBlockDealRepository
+
+    repo = BulkBlockDealRepository(session)
+    deals, total_count = await repo.get_deals(
+        trade_date_from=trade_date_from,
+        trade_date_to=trade_date_to,
+        deal_type=deal_type,
+        buy_sell=buy_sell,
+        symbol=symbol,
+        stock_id=stock_id,
+        client_name=client,
+        as_of_date=as_of_date,
+        is_current_only=True,
+        page=page,
+        page_size=page_size,
+    )
+
+    summary_data = await repo.get_deal_summary(
+        stock_id=stock_id,
+        symbol=symbol,
+        trade_date_from=trade_date_from,
+        trade_date_to=trade_date_to,
+        as_of_date=as_of_date,
+    )
+
+    pages = (total_count + page_size - 1) // page_size if total_count > 0 else 1
+    return BulkBlockDealPage(
+        items=[BulkBlockDealRead.model_validate(d) for d in deals],
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        pages=pages,
+        summary=BulkBlockDealSummary(
+            total_deals=summary_data["total_deals"],
+            total_value=summary_data["total_value"],
+            buy_deals=summary_data["buy_deals"],
+            buy_value=summary_data["buy_value"],
+            sell_deals=summary_data["sell_deals"],
+            sell_value=summary_data["sell_value"],
+            bulk_deals=summary_data["bulk_deals"],
+            block_deals=summary_data["block_deals"],
+        ),
+    )
+
+
+@router.get(
+    "/stocks/{symbol}/deals",
+    response_model=BulkBlockDealPage,
+    status_code=status.HTTP_200_OK,
+    summary="Get Bulk & Block Deals for a specific stock",
+)
+async def get_stock_bulk_block_deals(
+    symbol: str,
+    start_date: date | None = Query(None, description="Start date of trade date range"),
+    end_date: date | None = Query(None, description="End date of trade date range"),
+    deal_type: str | None = Query(None, description="Filter by deal type: BULK or BLOCK"),
+    as_of_date: date | None = Query(None, description="Point-in-time evaluation date"),
+    page: int = Query(1, ge=1, description="Page number"),
+    page_size: int = Query(50, ge=1, le=200, description="Items per page"),
+    session: AsyncSession = Depends(get_db_session),
+) -> BulkBlockDealPage:
+    """Return paginated Bulk and Block deal disclosures for a specific stock."""
+    from sqlalchemy import select
+
+    from app.models.stock import Stock
+    from app.repositories.bulk_block_deal import BulkBlockDealRepository
+
+    sym_upper = symbol.strip().upper()
+    stock_res = await session.execute(
+        select(Stock).where(Stock.symbol == sym_upper, Stock.exchange == "NSE")
+    )
+    stock = stock_res.scalar_one_or_none()
+    if not stock:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Stock symbol '{sym_upper}' not found.",
+        )
+
+    if start_date and end_date and start_date > end_date:
+        raise HTTPException(
+            status_code=422,
+            detail="start_date cannot be after end_date.",
+        )
+
+    repo = BulkBlockDealRepository(session)
+    deals, total_count = await repo.get_deals_for_stock(
+        stock_id=stock.id,
+        symbol=stock.symbol,
+        start_date=start_date,
+        end_date=end_date,
+        deal_type=deal_type,
+        as_of_date=as_of_date,
+        is_current_only=True,
+        page=page,
+        page_size=page_size,
+    )
+
+    summary_data = await repo.get_deal_summary(
+        stock_id=stock.id,
+        symbol=stock.symbol,
+        trade_date_from=start_date,
+        trade_date_to=end_date,
+        as_of_date=as_of_date,
+    )
+
+    pages = (total_count + page_size - 1) // page_size if total_count > 0 else 1
+    return BulkBlockDealPage(
+        items=[BulkBlockDealRead.model_validate(d) for d in deals],
+        total=total_count,
+        page=page,
+        page_size=page_size,
+        pages=pages,
+        summary=BulkBlockDealSummary(
+            total_deals=summary_data["total_deals"],
+            total_value=summary_data["total_value"],
+            buy_deals=summary_data["buy_deals"],
+            buy_value=summary_data["buy_value"],
+            sell_deals=summary_data["sell_deals"],
+            sell_value=summary_data["sell_value"],
+            bulk_deals=summary_data["bulk_deals"],
+            block_deals=summary_data["block_deals"],
+        ),
+    )
