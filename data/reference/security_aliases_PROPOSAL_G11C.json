@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "document": "G.11-C Phase 2 — SecurityAlias RESEARCH-ONLY mapping proposal",
+    "status": "PROPOSAL — NOT INGESTED. Do not create security_aliases rows without explicit authorization in a later implementation task.",
+    "created": "2026-09-11",
+    "basis": {
+      "db_universe_size": 3660,
+      "security_aliases_current": 0,
+      "official_symbol_exposure": [
+        "F&O bhavcopy TckrSymb (BhavCopy_NSE_FO_0_0_0_*), Oct 2025 - Sep 2026 acquired window",
+        "Bulk/Block deals SYMBOL (166 sessions Jan-Aug 2026, 458 files)",
+        "No fuzzy matching used; exact uppercased symbol equality only"
+      ]
+    },
+    "method": "Exact-set comparison: official source symbols vs stocks.symbol universe. No fuzzy/prefix matching. No synthetic Stock rows proposed."
+  },
+  "A_true_rename_candidates": [
+    {
+      "alias_symbol": "TATAMOTORS",
+      "canonical_symbol": "TMPV",
+      "type": "RENAME (demerger-related)",
+      "evidence": {
+        "f_o_bhavcopy": "TATAMOTORS last appears 2025-10-23 (15 sessions, 2025-10-01..2025-10-23); TMPV first appears 2025-10-24 and continues through 2026-09-10",
+        "deals": "TATAMOTORS appears in bulk/block deals within acquired window; absent from stocks.symbol universe",
+        "db": "TMPV present in stocks (is_active=true); TATAMOTORS absent"
+      },
+      "confidence": "HIGH (adjacent-session symbol transition in official F&O segment files)",
+      "proposed_action": "Insert security_aliases(alias_symbol='TATAMOTORS', canonical='TMPV') in implementation phase — NOT in G.11-C Phase 2"
+    }
+  ],
+  "B_official_symbols_absent_from_db_universe": {
+    "note": "These are NOT alias candidates. They are official symbols with acquired records but no stocks row. Implementation phase must decide: create Stock rows (preferred) or record as out-of-universe. Listed for completeness.",
+    "rights_entitlements_suffix_RE": ["3IINFO-RE", "ADANI-RE", "BAIDFIN-RE", "COOLCAP-RE", "DELPH-RE", "HCC-RE1", "IEML-RE", "KRISHFL-RE", "PATELEG-RE", "ROCK-RE", "UTKAR-RE"],
+    "partly_paid_suffix_PP": ["FUSIONPP", "GVPTECHPP", "INFIBPP", "KRISHPP", "LLOYDPP", "PRABHAPP", "ROCKPP", "SILGOPP", "SSFLPP", "TILPP"],
+    "reit_invit": ["EMBASSY", "MINDSPACE", "IRBINVIT", "NDRINVIT", "TVSINVIT", "SEITINVIT", "CAPINVIT", "CUBEINVIT", "BIRET", "NHIT", "INDIGRID", "NXT-INFRA", "ANZEN"],
+    "other_unmapped": ["AKZOINDIA", "AMBEY", "AMJUMBO", "ARISINFRA", "ASLIND", "INFIBEAM", "RIIT", "TATAMOTORS"],
+    "count_total": 42,
+    "source": "scratch/_g11c_alias_deals.json (deals-not-DB, 1694 distinct deal symbols scanned)"
+  },
+  "C_db_universe_symbols_with_variant_suffixes_already_distinct": {
+    "note": "DB already stores 73 dash-variant symbols (e.g. 5PAISA-RE, ABIN-RE1, BOSCH-HCIL, HCL-INSYS) as distinct stocks rows. No action proposed.",
+    "count": 73
+  },
+  "D_research_required": [
+    {
+      "symbol": "LTIM",
+      "observation": "LTIMindtree: present in official F&O segment 2025-10-01..2026-02-26 (101 sessions) but ABSENT from stocks universe entirely (as are MINDTREE/LTI). F&O coverage ends 2026-02-26 within acquired window.",
+      "proposed_action": "Create Stock row for LTIM in implementation phase; investigate F&O segment exit after 2026-02-26 against official NSE F&O exclusion notices before any alias mapping."
+    }
+  ],
+  "E_indices_not_stocks": ["NIFTY", "BANKNIFTY", "FINNIFTY", "MIDCPNIFTY", "NIFTYFPI"],
+  "summary": {
+    "true_alias_candidates": 1,
+    "universe_gap_symbols": 42,
+    "index_symbols_excluded": 5,
+    "research_required": 1
+  }
+}

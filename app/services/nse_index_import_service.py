@@ -7,10 +7,13 @@ MarketIndexPrice records without creating duplicate index/date rows.
 """
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 from pathlib import Path
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -216,3 +219,152 @@ class NSEIndexImportService:
             batch_result.rejected_total += file_res.rejected_count
 
         return batch_result
+
+    async def import_vix_chunk(
+        self,
+        file_path: str | Path,
+        *,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Import a single official NSE India VIX historical JSON chunk into MarketIndexPrice."""
+        p = Path(file_path)
+        if not p.exists():
+            raise FileNotFoundError(f"VIX chunk file not found: {p}")
+
+        raw_data = json.loads(p.read_text(encoding="utf-8"))
+        rows = raw_data.get("data", [])
+
+        idx_cache = await self._ensure_index_cache()
+        vix_id = idx_cache.get("INDIA_VIX")
+        if not vix_id:
+            raise RuntimeError("MarketIndex with code 'INDIA_VIX' not found in database.")
+
+        stats = {
+            "file": p.name,
+            "total_rows": len(rows),
+            "inserted": 0,
+            "updated": 0,
+            "unchanged": 0,
+            "errors": [],
+        }
+
+        if not rows:
+            return stats
+
+        # Fetch existing VIX prices
+        trade_dates = []
+        parsed_rows = []
+        for r in rows:
+            try:
+                # EOD_TIMESTAMP format: "DD-Mon-YYYY" e.g. "01-JAN-2026"
+                ts_str = r.get("EOD_TIMESTAMP", "").strip()
+                t_date = datetime.strptime(ts_str, "%d-%b-%Y").date()
+                o = Decimal(str(r["EOD_OPEN_INDEX_VAL"]))
+                h = Decimal(str(r["EOD_HIGH_INDEX_VAL"]))
+                lo = Decimal(str(r["EOD_LOW_INDEX_VAL"]))
+                c = Decimal(str(r["EOD_CLOSE_INDEX_VAL"]))
+                pc = Decimal(str(r["EOD_PREV_CLOSE"])) if r.get("EOD_PREV_CLOSE") is not None else None
+                chg = Decimal(str(r["VIX_PTS_CHG"])) if r.get("VIX_PTS_CHG") is not None else None
+                pct = Decimal(str(r["VIX_PERC_CHG"])) if r.get("VIX_PERC_CHG") is not None else None
+                trade_dates.append(t_date)
+                parsed_rows.append((t_date, o, h, lo, c, pc, chg, pct))
+            except Exception as exc:
+                stats["errors"].append(f"Failed parsing row {r}: {exc}")
+
+        stmt = select(MarketIndexPrice).where(
+            MarketIndexPrice.market_index_id == vix_id,
+            MarketIndexPrice.trade_date.in_(trade_dates),
+        )
+        existing_res = await self.session.execute(stmt)
+        existing_by_date = {mip.trade_date: mip for mip in existing_res.scalars().all()}
+
+        records_to_insert: list[MarketIndexPrice] = []
+
+        for t_date, o, h, lo, c, pc, chg, pct in parsed_rows:
+            existing = existing_by_date.get(t_date)
+            if existing is not None:
+                has_changes = (
+                    existing.open != o
+                    or existing.high != h
+                    or existing.low != lo
+                    or existing.close != c
+                    or (pc is not None and existing.previous_close != pc)
+                    or (chg is not None and existing.change != chg)
+                    or (pct is not None and existing.change_percent != pct)
+                )
+                if has_changes:
+                    if not dry_run:
+                        existing.open = o
+                        existing.high = h
+                        existing.low = lo
+                        existing.close = c
+                        existing.previous_close = pc
+                        existing.change = chg
+                        existing.change_percent = pct
+                        existing.source_name = "NSE_HISTORICAL_VIX"
+                        existing.source_reference = p.name
+                        existing.freshness_status = "recent"
+                    stats["updated"] += 1
+                else:
+                    stats["unchanged"] += 1
+            else:
+                if not dry_run:
+                    new_mip = MarketIndexPrice(
+                        market_index_id=vix_id,
+                        trade_date=t_date,
+                        open=o,
+                        high=h,
+                        low=lo,
+                        close=c,
+                        previous_close=pc,
+                        change=chg,
+                        change_percent=pct,
+                        volume=None,
+                        observed_at=t_date,
+                        fetched_at=t_date,
+                        source_name="NSE_HISTORICAL_VIX",
+                        source_reference=p.name,
+                        freshness_status="recent",
+                    )
+                    records_to_insert.append(new_mip)
+                stats["inserted"] += 1
+
+        if not dry_run and records_to_insert:
+            self.session.add_all(records_to_insert)
+
+        if not dry_run:
+            await self.session.commit()
+
+        return stats
+
+    async def import_vix_directory(
+        self,
+        dir_path: str | Path,
+        *,
+        dry_run: bool = False,
+    ) -> dict[str, Any]:
+        """Batch import all official NSE India VIX JSON chunks in directory."""
+        d = Path(dir_path)
+        if not d.is_dir():
+            raise NotADirectoryError(f"Directory not found: {d}")
+
+        files = sorted(d.glob("nse_vix_history_*.json"))
+        aggregate = {
+            "files_processed": 0,
+            "total_rows": 0,
+            "inserted": 0,
+            "updated": 0,
+            "unchanged": 0,
+            "file_results": [],
+        }
+
+        for f in files:
+            res = await self.import_vix_chunk(f, dry_run=dry_run)
+            aggregate["files_processed"] += 1
+            aggregate["total_rows"] += res["total_rows"]
+            aggregate["inserted"] += res["inserted"]
+            aggregate["updated"] += res["updated"]
+            aggregate["unchanged"] += res["unchanged"]
+            aggregate["file_results"].append(res)
+
+        return aggregate

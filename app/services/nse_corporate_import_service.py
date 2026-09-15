@@ -204,16 +204,22 @@ class NseCorporateImportService:
         # Batch upsert with ON CONFLICT DO NOTHING
         batch_size = 500
         for i in range(0, len(actions_to_insert), batch_size):
-            batch = actions_to_insert[i : i + batch_size]
-            for row in batch:
-                stmt = insert(CorporateAction).values(**row).on_conflict_do_nothing(
+            chunk = actions_to_insert[i : i + batch_size]
+            seen: set[str] = set()
+            unique_chunk: list[dict[str, Any]] = []
+            for r in chunk:
+                h = r.get("idempotency_hash")
+                if h and h not in seen:
+                    seen.add(h)
+                    unique_chunk.append(r)
+            if unique_chunk:
+                stmt = insert(CorporateAction).values(unique_chunk).on_conflict_do_nothing(
                     index_elements=["idempotency_hash"]
                 )
                 res = await self.session.execute(stmt)
-                if res.rowcount > 0:
-                    stats["inserted"] += 1
-                else:
-                    stats["unchanged"] += 1
+                ins = res.rowcount if res.rowcount >= 0 else 0
+                stats["inserted"] += ins
+                stats["unchanged"] += (len(chunk) - ins)
 
         await self.session.commit()
         return stats
@@ -332,20 +338,156 @@ class NseCorporateImportService:
         self, batch: list[dict[str, Any]]
     ) -> tuple[int, int]:
         """Execute atomic batch upsert for announcements."""
-        inserted = 0
-        unchanged = 0
-        for row in batch:
-            stmt = (
-                insert(CorporateAnnouncement)
-                .values(**row)
-                .on_conflict_do_nothing(index_elements=["idempotency_hash"])
-            )
-            res = await self.session.execute(stmt)
-            if res.rowcount > 0:
-                inserted += 1
-            else:
-                unchanged += 1
+        if not batch:
+            return 0, 0
+
+        seen: set[str] = set()
+        unique_batch: list[dict[str, Any]] = []
+        for r in batch:
+            h = r.get("idempotency_hash")
+            if h and h not in seen:
+                seen.add(h)
+                unique_batch.append(r)
+
+        if not unique_batch:
+            return 0, len(batch)
+
+        stmt = (
+            insert(CorporateAnnouncement)
+            .values(unique_batch)
+            .on_conflict_do_nothing(index_elements=["idempotency_hash"])
+        )
+        res = await self.session.execute(stmt)
+        inserted = res.rowcount if res.rowcount >= 0 else 0
+        unchanged = len(batch) - inserted
         return inserted, unchanged
+
+    async def import_event_calendar(
+        self, file_path: Path | None = None, batch_size: int = 1000
+    ) -> dict[str, Any]:
+        """Ingest official corporate event calendar records into CorporateAnnouncement table."""
+        path = file_path or DEFAULT_CALENDAR_FILE
+        if not path.exists():
+            raise FileNotFoundError(f"Event calendar file not found: {path}")
+
+        await self._init_stock_maps()
+
+        raw_records = _read_json_file(path)
+
+        stats = {
+            "file": str(path),
+            "processed": len(raw_records),
+            "matched": 0,
+            "unmatched": 0,
+            "inserted": 0,
+            "unchanged": 0,
+        }
+
+        announcements_batch: list[dict[str, Any]] = []
+
+        for item in raw_records:
+            sym = item.get("symbol")
+            stock_id = self.resolve_stock_id(None, sym)
+            if not stock_id:
+                stats["unmatched"] += 1
+                continue
+
+            stats["matched"] += 1
+
+            ann_d = parse_nse_date(item.get("date"))
+            if not ann_d:
+                continue
+
+            purpose = str(item.get("purpose") or "Board Meeting").strip()
+            desc = str(item.get("bm_desc") or purpose).strip()
+            category = CorporateAnnouncementParser.normalize_category(desc)
+            if category == "OTHER":
+                if "RESULT" in purpose.upper():
+                    category = "FINANCIAL_RESULTS"
+                elif "DIVIDEND" in purpose.upper():
+                    category = "DIVIDEND"
+                else:
+                    category = "BOARD_MEETING"
+
+            title = f"Board Meeting: {purpose} [{sym}]"[:255]
+            summary = desc
+
+            ann = CorporateAnnouncement(
+                stock_id=stock_id,
+                category=category,
+                announcement_date=ann_d,
+                available_at=ann_d,
+                title=title,
+            )
+            fp = ann.compute_fingerprint()
+
+            announcements_batch.append({
+                "stock_id": stock_id,
+                "category": category,
+                "announcement_date": ann_d,
+                "available_at": ann_d,
+                "title": title,
+                "summary": summary,
+                "corporate_action_id": None,
+                "source_name": "NSE_EVENT_CALENDAR",
+                "source_reference": path.name,
+                "idempotency_hash": fp,
+            })
+
+            if len(announcements_batch) >= batch_size:
+                inserted, unchanged = await self._execute_announcement_batch(announcements_batch)
+                stats["inserted"] += inserted
+                stats["unchanged"] += unchanged
+                announcements_batch.clear()
+
+        if announcements_batch:
+            inserted, unchanged = await self._execute_announcement_batch(announcements_batch)
+            stats["inserted"] += inserted
+            stats["unchanged"] += unchanged
+            announcements_batch.clear()
+
+        await self.session.commit()
+        return stats
+
+    async def import_corporate_directory(
+        self, dir_path: Path | str = Path("data/reference/corporate")
+    ) -> dict[str, Any]:
+        """Ingest all corporate actions, announcements, and calendar files in directory."""
+        d = Path(dir_path)
+        if not d.is_dir():
+            raise NotADirectoryError(f"Corporate directory not found: {d}")
+
+        action_files = sorted(d.glob("nse_corporate_actions_*.json"))
+        announcement_files = sorted(d.glob("nse_corporate_announcements_*.json"))
+        calendar_files = sorted(d.glob("nse_event_calendar_*.json"))
+
+        total_actions = {"files": len(action_files), "processed": 0, "inserted": 0, "unchanged": 0}
+        total_announcements = {"files": len(announcement_files), "processed": 0, "inserted": 0, "unchanged": 0}
+        total_calendar = {"files": len(calendar_files), "processed": 0, "inserted": 0, "unchanged": 0}
+
+        for f in action_files:
+            st = await self.import_corporate_actions(f)
+            total_actions["processed"] += st["processed"]
+            total_actions["inserted"] += st["inserted"]
+            total_actions["unchanged"] += st["unchanged"]
+
+        for f in announcement_files:
+            st = await self.import_corporate_announcements(f)
+            total_announcements["processed"] += st["processed"]
+            total_announcements["inserted"] += st["inserted"]
+            total_announcements["unchanged"] += st["unchanged"]
+
+        for f in calendar_files:
+            st = await self.import_event_calendar(f)
+            total_calendar["processed"] += st["processed"]
+            total_calendar["inserted"] += st["inserted"]
+            total_calendar["unchanged"] += st["unchanged"]
+
+        return {
+            "actions": total_actions,
+            "announcements": total_announcements,
+            "calendar": total_calendar,
+        }
 
     async def import_all(self) -> dict[str, Any]:
         """Execute full corporate actions and announcements ingestion pipeline."""

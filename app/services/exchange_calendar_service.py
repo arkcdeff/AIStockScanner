@@ -17,6 +17,8 @@ from collections.abc import Iterable
 from datetime import date, timedelta
 
 # Official & standard NSE Cash Market Trading Holidays (2023 - 2026)
+from app.data.exchange_constants import OFFICIAL_EXCEPTION_SESSIONS
+
 DEFAULT_NSE_HOLIDAYS: set[date] = {
     # 2023
     date(2023, 1, 26),   # Republic Day
@@ -93,8 +95,10 @@ class ExchangeCalendarService:
     def __init__(self, custom_holidays: Iterable[date] | None = None) -> None:
         self.holidays: set[date] = set(custom_holidays) if custom_holidays is not None else set(DEFAULT_NSE_HOLIDAYS)
 
-    def is_exchange_trading_day(self, d: date) -> bool:
-        """Check if date d is an official exchange trading session (non-weekend, non-holiday)."""
+    def is_exchange_trading_day(self, d: date, allow_exceptions: bool = True) -> bool:
+        """Check if date d is an official exchange trading session (non-weekend, non-holiday, or official exception)."""
+        if allow_exceptions and d in OFFICIAL_EXCEPTION_SESSIONS:
+            return True
         if d.weekday() >= 5:  # 5=Saturday, 6=Sunday
             return False
         if d in self.holidays:

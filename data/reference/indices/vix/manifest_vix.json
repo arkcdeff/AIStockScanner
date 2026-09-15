@@ -1,0 +1,87 @@
+{
+ "_meta": {
+  "dataset": "INDIA_VIX_EOD (NSE official historicalOR/vixhistory)",
+  "window": "Q4-2025 + Jan-May 2026",
+  "source_url_family": "https://www.nseindia.com/api/historicalOR/vixhistory?from=DD-MM-YYYY&to=DD-MM-YYYY",
+  "format": "JSON; EOD_INDEX_NAME=INDIA VIX; fields EOD_OPEN/HIGH/LOW/CLOSE/PREV_CLOSE, VIX_PTS_CHG, VIX_PERC_CHG",
+  "acquired": "2026-09-11 G.11-C Phase 2",
+  "note": "Static IndiaVIX_*.csv archive retired (404); historicalOR API is the official archival channel.",
+  "sessions_in_source": null,
+  "calendar_sessions_in_window": 160
+ },
+ "chunks": {
+  "2025-10-01..2025-12-31": {
+   "from": "2025-10-01",
+   "to": "2025-12-31",
+   "filename": "nse_vix_history_20251001_20251231.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-10-2025&to=31-12-2025",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 17610,
+   "sha256": "8b96bc28eb359faf1cb9e63e1d34e7b2443cfb359619c79b77a75d99850ecc28",
+   "row_count": 62,
+   "source_status": "VALID"
+  },
+  "2026-01-01..2026-01-31": {
+   "from": "2026-01-01",
+   "to": "2026-01-31",
+   "filename": "nse_vix_history_20260101_20260131.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-01-2026&to=31-01-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 5668,
+   "sha256": "838adc19909487e35de95362a34067baf6b68cca26255a1a90d0ec5f40714153",
+   "row_count": 20,
+   "source_status": "VALID"
+  },
+  "2026-02-01..2026-02-28": {
+   "from": "2026-02-01",
+   "to": "2026-02-28",
+   "filename": "nse_vix_history_20260201_20260228.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-02-2026&to=28-02-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 5994,
+   "sha256": "763c052979ae714120da6ed802a64c1861275cbc618892f51fddd83690c987d5",
+   "row_count": 21,
+   "source_status": "VALID"
+  },
+  "2026-03-01..2026-03-31": {
+   "from": "2026-03-01",
+   "to": "2026-03-31",
+   "filename": "nse_vix_history_20260301_20260331.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-03-2026&to=31-03-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 5426,
+   "sha256": "4c361eaa87efcda1983bc14d2240fb96a8268bc46f6e885f84219c937d61c766",
+   "row_count": 19,
+   "source_status": "VALID",
+   "note": "Re-fetched 2026-09-11; 19 rows = full official March coverage (incl. 2026-03-20)."
+  },
+  "2026-04-01..2026-04-30": {
+   "from": "2026-04-01",
+   "to": "2026-04-30",
+   "filename": "nse_vix_history_20260401_20260430.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-04-2026&to=30-04-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 5693,
+   "sha256": "2b8862247b39541395bcb727b0473c2afde1854e4d81795207df1896194ba353",
+   "row_count": 20,
+   "source_status": "VALID"
+  },
+  "2026-05-01..2026-05-31": {
+   "from": "2026-05-01",
+   "to": "2026-05-31",
+   "filename": "nse_vix_history_20260501_20260531.json",
+   "source_url": "https://www.nseindia.com/api/historicalOR/vixhistory?from=01-05-2026&to=31-05-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "byte_size": 5416,
+   "sha256": "252cbb6c99f6c1cd3d100d1eec9d7681beb3f0bf366c3f0a0d4024ad74e7fce9",
+   "row_count": 19,
+   "source_status": "VALID"
+  }
+ }
+}

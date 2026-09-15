@@ -1,0 +1,146 @@
+{
+ "bulk_deals_1-016-.csv": {
+  "deal_type": "BULK",
+  "month": "1-01-6-",
+  "filename": "bulk_deals_1-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--1-01&to=20-6--1-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_2-016-.csv": {
+  "deal_type": "BULK",
+  "month": "2-01-6-",
+  "filename": "bulk_deals_2-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--2-01&to=20-6--2-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_3-016-.csv": {
+  "deal_type": "BULK",
+  "month": "3-01-6-",
+  "filename": "bulk_deals_3-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--3-01&to=20-6--3-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_4-016-.csv": {
+  "deal_type": "BULK",
+  "month": "4-01-6-",
+  "filename": "bulk_deals_4-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--4-01&to=20-6--4-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_5-016-.csv": {
+  "deal_type": "BULK",
+  "month": "5-01-6-",
+  "filename": "bulk_deals_5-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--5-01&to=20-6--5-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_6-016-.csv": {
+  "deal_type": "BULK",
+  "month": "6-01-6-",
+  "filename": "bulk_deals_6-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--6-01&to=20-6--6-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_7-016-.csv": {
+  "deal_type": "BULK",
+  "month": "7-01-6-",
+  "filename": "bulk_deals_7-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--7-01&to=20-6--7-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "bulk_deals_8-016-.csv": {
+  "deal_type": "BULK",
+  "month": "8-01-6-",
+  "filename": "bulk_deals_8-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--8-01&to=20-6--8-01&optionType=bulk_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_1-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "1-01-6-",
+  "filename": "block_deals_1-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--1-01&to=20-6--1-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_2-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "2-01-6-",
+  "filename": "block_deals_2-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--2-01&to=20-6--2-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_3-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "3-01-6-",
+  "filename": "block_deals_3-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--3-01&to=20-6--3-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_4-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "4-01-6-",
+  "filename": "block_deals_4-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--4-01&to=20-6--4-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_5-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "5-01-6-",
+  "filename": "block_deals_5-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--5-01&to=20-6--5-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_6-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "6-01-6-",
+  "filename": "block_deals_6-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--6-01&to=20-6--6-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_7-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "7-01-6-",
+  "filename": "block_deals_7-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--7-01&to=20-6--7-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ },
+ "block_deals_8-016-.csv": {
+  "deal_type": "BLOCK",
+  "month": "8-01-6-",
+  "filename": "block_deals_8-016-.csv",
+  "source_url": "https://www.nseindia.com/api/historicalOR/bulk-block-short-deals?from=20-6--8-01&to=20-6--8-01&optionType=block_deals&csv=true",
+  "http_status": 500,
+  "source_status": "MISSING_OR_EMPTY",
+  "body_head": "Error"
+ }
+}

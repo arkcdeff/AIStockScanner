@@ -29,28 +29,31 @@ class DerivativeDailyPriceRepository:
         # Extract dict representations for insert values
         values_list = []
         for p in prices:
-            values_list.append(
-                {
-                    "contract_id": p.contract_id,
-                    "trade_date": p.trade_date,
-                    "open": p.open,
-                    "high": p.high,
-                    "low": p.low,
-                    "close": p.close,
-                    "last_price": p.last_price,
-                    "settlement_price": p.settlement_price,
-                    "previous_close": p.previous_close,
-                    "volume_contracts": p.volume_contracts,
-                    "turnover": p.turnover,
-                    "open_interest": p.open_interest,
-                    "change_in_open_interest": p.change_in_open_interest,
-                    "underlying_value": p.underlying_value,
-                    "available_at": p.available_at,
-                    "source_name": p.source_name,
-                    "source_reference": p.source_reference,
-                    "fetched_at": p.fetched_at,
-                }
-            )
+            if isinstance(p, dict):
+                values_list.append(p)
+            else:
+                values_list.append(
+                    {
+                        "contract_id": p.contract_id,
+                        "trade_date": p.trade_date,
+                        "open": p.open,
+                        "high": p.high,
+                        "low": p.low,
+                        "close": p.close,
+                        "last_price": p.last_price,
+                        "settlement_price": p.settlement_price,
+                        "previous_close": p.previous_close,
+                        "volume_contracts": p.volume_contracts,
+                        "turnover": p.turnover,
+                        "open_interest": p.open_interest,
+                        "change_in_open_interest": p.change_in_open_interest,
+                        "underlying_value": p.underlying_value,
+                        "available_at": p.available_at,
+                        "source_name": p.source_name,
+                        "source_reference": p.source_reference,
+                        "fetched_at": p.fetched_at,
+                    }
+                )
 
         # Batch size of 1000 for efficiency
         batch_size = 1000

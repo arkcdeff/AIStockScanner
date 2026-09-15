@@ -441,18 +441,23 @@ def _bhavcopy_bytes(trade_date: date) -> bytes:
 
 @pytest.mark.asyncio
 async def test_pipeline_runs_alert_stage() -> None:
+    await seed_stock(symbol="RELIANCE")
+    trade_date = date.today()
+    if trade_date.weekday() >= 5:
+        trade_date = trade_date - timedelta(days=(trade_date.weekday() - 4))
+    bhav_name = f"cm{trade_date.strftime('%d%b%Y').upper()}bhav.csv"
+
     service = await _service()
     try:
         await service.create_rule(
             {"name": "Any Score", "rule_type": "overall_score", "operator": ">", "value": 0}
         )
+        pipeline = EODPipelineService()
+        run = await pipeline.run_from_file(
+            bhavcopy=_bhavcopy_bytes(trade_date), bhavcopy_name=bhav_name
+        )
+        assert run.status == "completed"
+        assert run.alerts_triggered >= 1
+        assert await _count_events() >= 1
     finally:
         await _cleanup(service)
-
-    pipeline = EODPipelineService()
-    run = await pipeline.run_from_file(
-        bhavcopy=_bhavcopy_bytes(date.today()), bhavcopy_name="eod.csv"
-    )
-    assert run.status == "completed"
-    assert run.alerts_triggered >= 1
-    assert await _count_events() >= 1

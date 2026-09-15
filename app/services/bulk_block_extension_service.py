@@ -422,14 +422,22 @@ class BulkBlockExtensionService:
             status="SUCCESS",
         )
 
-    async def ingest_all_q4_2025(
+    async def ingest_manifest(
         self,
+        manifest_path: Path | str | None = None,
         skip_if_present: bool = False,
         verify_only: bool = False,
     ) -> DealBatchReport:
-        """Ingest or verify all Q4-2025 Bulk and Block Deal sessions from manifest."""
-        manifest = self.load_manifest()
-        sessions = manifest.get("sessions", {})
+        """Ingest or verify all Bulk and Block Deal sessions from a manifest."""
+        m_path = Path(manifest_path or self.manifest_path)
+        if not m_path.exists():
+            raise FileNotFoundError(f"Manifest not found at {m_path}")
+        manifest = json.loads(m_path.read_text(encoding="utf-8"))
+
+        if "sessions" in manifest:
+            sessions = manifest["sessions"]
+        else:
+            sessions = {k: v for k, v in manifest.items() if k != "_meta"}
 
         report = DealBatchReport(total_sessions=len(sessions))
         all_unresolved_symbols: set[str] = set()
@@ -442,7 +450,7 @@ class BulkBlockExtensionService:
             bulk_meta = session_meta.get("bulk", {})
             bulk_filename = bulk_meta.get("filename")
             bulk_sha = bulk_meta.get("sha256")
-            bulk_count = bulk_meta.get("record_count", 0)
+            bulk_count = bulk_meta.get("record_count") if "record_count" in bulk_meta else bulk_meta.get("row_count", 0)
 
             if verify_only:
                 # File verification only
@@ -513,7 +521,7 @@ class BulkBlockExtensionService:
             block_meta = session_meta.get("block", {})
             block_filename = block_meta.get("filename")
             block_sha = block_meta.get("sha256")
-            block_count = block_meta.get("record_count", 0)
+            block_count = block_meta.get("record_count") if "record_count" in block_meta else block_meta.get("row_count", 0)
 
             if block_filename:
                 if verify_only:
@@ -567,3 +575,16 @@ class BulkBlockExtensionService:
 
         report.unresolved_symbols = sorted(all_unresolved_symbols)
         return report
+
+    async def ingest_all_q4_2025(
+        self,
+        skip_if_present: bool = False,
+        verify_only: bool = False,
+    ) -> DealBatchReport:
+        """Ingest or verify all Q4-2025 Bulk and Block Deal sessions from default manifest."""
+        return await self.ingest_manifest(
+            manifest_path=self.manifest_path,
+            skip_if_present=skip_if_present,
+            verify_only=verify_only,
+        )
+

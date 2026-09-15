@@ -10,6 +10,12 @@ data is imported or queried in 19.1C.
 """
 from __future__ import annotations
 
+from datetime import date
+
+#: Official exceptional exchange sessions (e.g. Sunday Budget-Day session 2026-02-01).
+#: These are real exchange sessions that occurred on weekends and must not be rejected by normal weekend filters.
+OFFICIAL_EXCEPTION_SESSIONS: frozenset[date] = frozenset({date(2026, 2, 1)})
+
 # ---------------------------------------------------------------------------
 # Exchanges
 # ---------------------------------------------------------------------------

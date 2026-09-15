@@ -36,7 +36,6 @@ import logging
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from pathlib import Path
-from typing import Any
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -339,15 +338,27 @@ class NseParticipantHistoricalExtensionService:
 
         manifest_raw = await asyncio.to_thread(m_path.read_text, encoding="utf-8")
         manifest_data = json.loads(manifest_raw)
-
-        files_map: dict[str, Any] = manifest_data.get("files", {})
+        if "files" in manifest_data:
+            files_map = manifest_data["files"]
+        else:
+            files_map = {k: v for k, v in manifest_data.items() if k != "_meta"}
         sorted_dates = sorted(files_map.keys())
 
         report = ParticipantBatchReport(total_sessions=len(sorted_dates))
 
         for d_str in sorted_dates:
             entry = files_map[d_str]
-            rep_d = date.fromisoformat(entry["report_date"])
+            if entry.get("source_status") == "SOURCE_UNAVAILABLE":
+                res = ParticipantSessionResult(
+                    report_date=date.fromisoformat(d_str),
+                    filename=entry.get("filename", f"fao_participant_oi_{d_str}.csv"),
+                    status="SOURCE_UNAVAILABLE",
+                )
+                report.session_results.append(res)
+                report.skipped_sessions += 1
+                continue
+
+            rep_d = date.fromisoformat(entry.get("report_date", d_str))
             filename = entry["filename"]
             sha256 = entry.get("sha256")
 

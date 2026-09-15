@@ -1,0 +1,178 @@
+{
+ "_meta": {
+  "dataset": "NSE Corporate Actions + Announcements + Event Calendar",
+  "window": "2026-01-01 to 2026-05-31 (monthly chunks)",
+  "acquired": "2026-09-11 G.11-C Phase 2",
+  "note": "Announcements JSON retains official sebi/publish timestamps (smTimestamp) \u2014 PIT preserved. Acquired promptly due to rolling archive attrition risk."
+ },
+ "01-01": {
+  "from_date": "01-01-2026",
+  "to_date": "31-01-2026",
+  "corporate_actions": {
+   "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-01-2026&to_date=31-01-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_actions_01012026_31012026.json",
+   "byte_size": 18935,
+   "sha256": "925b0092b8ba40ec97c9f6f9e80c5eb8601ae973160ca77767c74226b40c67cb",
+   "row_count": 62,
+   "source_status": "VALID"
+  },
+  "corporate_announcements": {
+   "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-01-2026&to_date=31-01-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_announcements_01012026_31012026.json",
+   "byte_size": 9040387,
+   "sha256": "371bb7c51b9b1e2f0c335e16351feb7b5606266da68dc8ee0cdd3562d74fcdcd",
+   "row_count": 12701,
+   "source_status": "VALID"
+  },
+  "event_calendar": {
+   "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-01-2026&to_date=31-01-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_event_calendar_01012026_31012026.json",
+   "byte_size": 197969,
+   "sha256": "18b1ebc042297565603c2db045adf801393436ae3762c6d1d6929a1d7f611c6c",
+   "row_count": 789,
+   "source_status": "VALID"
+  }
+ },
+ "01-02": {
+  "from_date": "01-02-2026",
+  "to_date": "28-02-2026",
+  "corporate_actions": {
+   "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-02-2026&to_date=28-02-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_actions_01022026_28022026.json",
+   "byte_size": 63833,
+   "sha256": "7cde5544ac78d39f698280af2dafe8acfa8762da95aebebb59dc639f58202541",
+   "row_count": 203,
+   "source_status": "VALID"
+  },
+  "corporate_announcements": {
+   "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-02-2026&to_date=28-02-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_announcements_01022026_28022026.json",
+   "byte_size": 11435297,
+   "sha256": "5f54a6b1bde6dc5e4d1207e14343309e8675b0d6f64fe0a17b6b6879c3485acf",
+   "row_count": 16375,
+   "source_status": "VALID"
+  },
+  "event_calendar": {
+   "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-02-2026&to_date=28-02-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_event_calendar_01022026_28022026.json",
+   "byte_size": 444884,
+   "sha256": "546e8acc52723e0e900ff05ffda7324dbdf75fce5459418404440cba7dbd276b",
+   "row_count": 1751,
+   "source_status": "VALID"
+  }
+ },
+ "01-03": {
+  "from_date": "01-03-2026",
+  "to_date": "31-03-2026",
+  "corporate_actions": {
+   "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-03-2026&to_date=31-03-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_actions_01032026_31032026.json",
+   "byte_size": 16213,
+   "sha256": "d1bdf0ada7f737162635b16ff92eed6e73d4348eb8cdf8d165511bb501ceb3dd",
+   "row_count": 54,
+   "source_status": "VALID"
+  },
+  "corporate_announcements": {
+   "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-03-2026&to_date=31-03-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_announcements_01032026_31032026.json",
+   "byte_size": 7840480,
+   "sha256": "0a62c93d420065e84c1bd0de047172a69b1d27b6141ad00a7836f2d418ad5a85",
+   "row_count": 11042,
+   "source_status": "VALID"
+  },
+  "event_calendar": {
+   "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-03-2026&to_date=31-03-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_event_calendar_01032026_31032026.json",
+   "byte_size": 39163,
+   "sha256": "54a8b030745acd30bed45af3df733aab815d114e4b57b66dca211fc8bb838b84",
+   "row_count": 168,
+   "source_status": "VALID"
+  }
+ },
+ "01-04": {
+  "from_date": "01-04-2026",
+  "to_date": "30-04-2026",
+  "corporate_actions": {
+   "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-04-2026&to_date=30-04-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_actions_01042026_30042026.json",
+   "byte_size": 11138,
+   "sha256": "80cc4ba55093694575681134465fd499887cc78e51309f57f5039c0bf7c20eab",
+   "row_count": 37,
+   "source_status": "VALID"
+  },
+  "corporate_announcements": {
+   "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-04-2026&to_date=30-04-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_announcements_01042026_30042026.json",
+   "byte_size": 9052846,
+   "sha256": "950392ca8c452fc2796f2b025e00482c613c09d0f416e74073dd63c63d76f2c1",
+   "row_count": 12507,
+   "source_status": "VALID"
+  },
+  "event_calendar": {
+   "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-04-2026&to_date=30-04-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_event_calendar_01042026_30042026.json",
+   "byte_size": 116922,
+   "sha256": "544cc41d50583bff4ad69885fe891c93abbffefc0a471c2f5e9c342c52e1b866",
+   "row_count": 422,
+   "source_status": "VALID"
+  }
+ },
+ "01-05": {
+  "from_date": "01-05-2026",
+  "to_date": "31-05-2026",
+  "corporate_actions": {
+   "source_url": "https://www.nseindia.com/api/corporates-corporateActions?index=equities&from_date=01-05-2026&to_date=31-05-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_actions_01052026_31052026.json",
+   "byte_size": 34962,
+   "sha256": "753afc8744e5b51ea7d4ba12fc8c6128bdae1689a4cc77ed3376ade23988ac7a",
+   "row_count": 110,
+   "source_status": "VALID"
+  },
+  "corporate_announcements": {
+   "source_url": "https://www.nseindia.com/api/corporate-announcements?index=equities&from_date=01-05-2026&to_date=31-05-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_corporate_announcements_01052026_31052026.json",
+   "byte_size": 14466092,
+   "sha256": "8399fb911d11b33120c1da37e2160302cabedca4af0cc67fe4983d2674114a18",
+   "row_count": 20729,
+   "source_status": "VALID"
+  },
+  "event_calendar": {
+   "source_url": "https://www.nseindia.com/api/event-calendar?index=equities&from_date=01-05-2026&to_date=31-05-2026",
+   "http_status": 200,
+   "content_type": "application/json; charset=utf-8",
+   "filename": "nse_event_calendar_01052026_31052026.json",
+   "byte_size": 593661,
+   "sha256": "64844d7414159110f30be776080e5537bad3b00218ce3aa1c98ecfdfe47a88d2",
+   "row_count": 2230,
+   "source_status": "VALID"
+  }
+ }
+}

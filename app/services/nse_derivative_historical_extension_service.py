@@ -16,6 +16,7 @@ Key Policies & Invariants:
 """
 from __future__ import annotations
 
+import hashlib
 import io
 import json
 import logging
@@ -36,10 +37,11 @@ from app.data.derivative_bhavcopy_parser import (
     DerivativeBhavcopyParser,
     ParsedDerivativeDailyPrice,
 )
-from app.data.exchange_constants import EXCHANGE_NSE
+from app.data.exchange_constants import EXCHANGE_NSE, OFFICIAL_EXCEPTION_SESSIONS
 from app.models.derivative_contract import DerivativeContract
 from app.models.derivative_daily_price import DerivativeDailyPrice
 from app.models.market_index import MarketIndex
+from app.models.security_alias import SecurityAlias
 from app.models.stock import Stock
 from app.repositories.derivative_daily_price import DerivativeDailyPriceRepository
 
@@ -91,6 +93,36 @@ class DerivativeExtensionBatchReport:
     session_results: list[DerivativeSessionResult] = field(default_factory=list)
 
 
+def _compute_contract_fingerprint(
+    exchange: str,
+    stock_id: int | None,
+    index_id: int | None,
+    instrument_type: str,
+    expiry_date: date,
+    strike_price: Decimal | None,
+    option_type: str | None,
+) -> str:
+    def _fmt(val: Any) -> str:
+        if val is None:
+            return "NULL"
+        if isinstance(val, Decimal):
+            return str(val.normalize())
+        if isinstance(val, date):
+            return val.isoformat()
+        return str(val)
+
+    parts = [
+        _fmt(exchange),
+        _fmt(stock_id),
+        _fmt(index_id),
+        _fmt(instrument_type),
+        _fmt(expiry_date),
+        _fmt(strike_price),
+        _fmt(option_type),
+    ]
+    return hashlib.sha256("|".join(parts).encode("utf-8")).hexdigest()
+
+
 class NseDerivativeHistoricalExtensionService:
     """Service to ingest historical NSE F&O bhavcopies for Q4-2025 extension."""
 
@@ -98,18 +130,21 @@ class NseDerivativeHistoricalExtensionService:
         self,
         session: AsyncSession,
         cache_dir: Path | str | None = None,
+        max_date: date | None = None,
     ) -> None:
         self.session = session
         self.cache_dir = Path(cache_dir or "data/reference/derivatives/raw")
+        self.max_date = max_date or date(2025, 12, 31)
         self.parser = DerivativeBhavcopyParser()
         self.price_repo = DerivativeDailyPriceRepository(session)
         self._stocks_by_symbol: dict[str, Stock] = {}
         self._indices_by_code: dict[str, MarketIndex] = {}
         self._contract_id_cache: dict[str, int] = {}
+        self._aliases_cache: list[tuple[str, int, date, date | None]] = []
         self._cache_loaded = False
 
     async def ensure_caches(self) -> None:
-        """Preload stocks, market indices, and existing derivative contract fingerprints."""
+        """Preload stocks, market indices, security aliases, and existing derivative contract fingerprints."""
         if self._cache_loaded:
             return
 
@@ -135,20 +170,31 @@ class NseDerivativeHistoricalExtensionService:
             if fprint:
                 self._contract_id_cache[fprint] = cid
 
+        # 4. Security Aliases
+        alias_res = await self.session.execute(
+            select(SecurityAlias.symbol, SecurityAlias.stock_id, SecurityAlias.valid_from, SecurityAlias.valid_to)
+            .where(SecurityAlias.exchange == EXCHANGE_NSE)
+        )
+        self._aliases_cache = [
+            (row[0].strip().upper(), row[1], row[2], row[3])
+            for row in alias_res.all()
+        ]
+
         self._cache_loaded = True
         logger.info(
-            "Derivative extension caches loaded: %d stocks, %d indices, %d contracts",
+            "Derivative extension caches loaded: %d stocks, %d indices, %d contracts, %d aliases",
             len(self._stocks_by_symbol),
             len(self._indices_by_code),
             len(self._contract_id_cache),
+            len(self._aliases_cache),
         )
 
     def validate_session_date(self, trade_date: date) -> str | None:
-        """Enforce strict exchange calendar rules (no weekends, Q4-2025 window)."""
-        if trade_date.weekday() >= 5:
+        """Enforce exchange calendar rules (no weekends except official exceptions, authorized window)."""
+        if trade_date.weekday() >= 5 and trade_date not in OFFICIAL_EXCEPTION_SESSIONS:
             return f"Weekend trade date rejected: {trade_date} ({trade_date.strftime('%A')})"
-        if trade_date < date(2025, 10, 1) or trade_date > date(2025, 12, 31):
-            return f"Trade date {trade_date} outside authorized Q4-2025 window (2025-10-01 to 2025-12-31)"
+        if trade_date < date(2025, 10, 1) or trade_date > self.max_date:
+            return f"Trade date {trade_date} outside authorized window (2025-10-01 to {self.max_date.isoformat()})"
         return None
 
     def obtain_bhavcopy_payload(
@@ -217,6 +263,7 @@ class NseDerivativeHistoricalExtensionService:
         self,
         symbol: str,
         instrument_type: str,
+        trade_date: date | None = None,
     ) -> tuple[str, int] | None:
         """Resolve underlying symbol to ('INDEX' | 'STOCK', primary_key_id)."""
         sym_clean = symbol.strip().upper()
@@ -235,6 +282,13 @@ class NseDerivativeHistoricalExtensionService:
         # 2. Check stock by symbol
         if sym_clean in self._stocks_by_symbol:
             return ("STOCK", self._stocks_by_symbol[sym_clean].id)
+
+        # 3. Check security alias valid as of trade_date
+        if trade_date and self._aliases_cache:
+            for alias_sym, stock_id, v_from, v_to in self._aliases_cache:
+                if alias_sym == sym_clean and v_from <= trade_date:
+                    if v_to is None or v_to >= trade_date:
+                        return ("STOCK", stock_id)
 
         return None
 
@@ -328,7 +382,7 @@ class NseDerivativeHistoricalExtensionService:
         parsed_record_meta: list[tuple[ParsedDerivativeDailyPrice, str, int, str]] = []
 
         for rec in all_records:
-            u_info = self.resolve_underlying_entity(rec.underlying_symbol, rec.instrument_type)
+            u_info = self.resolve_underlying_entity(rec.underlying_symbol, rec.instrument_type, trade_date=trade_date)
             if not u_info:
                 res.unresolved_count += 1
                 continue
@@ -338,20 +392,15 @@ class NseDerivativeHistoricalExtensionService:
             index_id = u_id if u_type == "INDEX" else None
 
             # Build canonical contract fingerprint
-            c_temp = DerivativeContract(
-                exchange=EXCHANGE_NSE,
-                segment="NFO",
-                instrument_type=rec.instrument_type,
-                underlying_stock_id=stock_id,
-                underlying_index_id=index_id,
-                trading_symbol=rec.raw_row.get("FinInstrmNm") or rec.underlying_symbol,
-                expiry_date=rec.expiry_date,
-                strike_price=rec.strike_price,
-                option_type=rec.option_type,
-                lot_size=1,
-                available_at=trade_date,
+            fprint = _compute_contract_fingerprint(
+                EXCHANGE_NSE,
+                stock_id,
+                index_id,
+                rec.instrument_type,
+                rec.expiry_date,
+                rec.strike_price,
+                rec.option_type,
             )
-            fprint = c_temp.compute_fingerprint()
             parsed_record_meta.append((rec, fprint, u_id, u_type))
 
             # If not already seen or known in DB, schedule insertion
@@ -428,33 +477,34 @@ class NseDerivativeHistoricalExtensionService:
                         self._contract_id_cache[h] = cid
 
             # 2. Build Daily Price Records
-            prices_to_upsert: list[DerivativeDailyPrice] = []
+            prices_to_upsert: list[dict[str, Any]] = []
+            now_utc = datetime.now(UTC)
             for rec, fprint, _, _ in parsed_record_meta:
                 cid = self._contract_id_cache.get(fprint)
                 if not cid or cid <= 0:
                     continue
 
                 prices_to_upsert.append(
-                    DerivativeDailyPrice(
-                        contract_id=cid,
-                        trade_date=trade_date,
-                        open=rec.open,
-                        high=rec.high,
-                        low=rec.low,
-                        close=rec.close,
-                        last_price=rec.last_price,
-                        settlement_price=rec.settlement_price,
-                        previous_close=rec.previous_close,
-                        volume_contracts=rec.volume_contracts,
-                        turnover=rec.turnover,
-                        open_interest=rec.open_interest,
-                        change_in_open_interest=rec.change_in_open_interest,
-                        underlying_value=rec.underlying_value,
-                        available_at=trade_date,  # Strict PIT cutoff
-                        source_name="FO_UDIFF_BHAVCOPY",
-                        source_reference=fname,
-                        fetched_at=datetime.now(UTC),
-                    )
+                    {
+                        "contract_id": cid,
+                        "trade_date": trade_date,
+                        "open": rec.open,
+                        "high": rec.high,
+                        "low": rec.low,
+                        "close": rec.close,
+                        "last_price": rec.last_price,
+                        "settlement_price": rec.settlement_price,
+                        "previous_close": rec.previous_close,
+                        "volume_contracts": rec.volume_contracts,
+                        "turnover": rec.turnover,
+                        "open_interest": rec.open_interest,
+                        "change_in_open_interest": rec.change_in_open_interest,
+                        "underlying_value": rec.underlying_value,
+                        "available_at": trade_date,  # Strict PIT cutoff
+                        "source_name": "FO_UDIFF_BHAVCOPY",
+                        "source_reference": fname,
+                        "fetched_at": now_utc,
+                    }
                 )
 
             if prices_to_upsert:
@@ -479,6 +529,8 @@ class NseDerivativeHistoricalExtensionService:
         manifest_path: Path | str | None = None,
         skip_existing: bool = False,
         commit: bool = True,
+        date_from: date | None = None,
+        date_to: date | None = None,
     ) -> DerivativeExtensionBatchReport:
         """Ingest all sessions defined in manifest."""
         m_path = Path(manifest_path or "data/reference/derivatives/manifest_q4_2025.json")
@@ -486,12 +538,16 @@ class NseDerivativeHistoricalExtensionService:
             raise FileNotFoundError(f"Derivative manifest not found at {m_path}")
 
         manifest = json.loads(m_path.read_text(encoding="utf-8"))
-        dates = sorted(manifest.keys())
+        dates = sorted(k for k in manifest.keys() if k != "_meta")
 
         report = DerivativeExtensionBatchReport()
         for d_str in dates:
-            entry = manifest[d_str]
             t_date = datetime.strptime(d_str, "%Y-%m-%d").date()
+            if date_from and t_date < date_from:
+                continue
+            if date_to and t_date > date_to:
+                continue
+            entry = manifest[d_str]
             res = await self.import_session(
                 trade_date=t_date,
                 filename=entry.get("filename"),
