@@ -139,3 +139,36 @@ class ExchangeCalendarService:
     def count_expected_exchange_sessions(self, start_date: date, end_date: date) -> int:
         """Count expected exchange trading sessions between start_date and end_date inclusive."""
         return len(self.expected_exchange_sessions_between(start_date, end_date))
+
+    def previous_exchange_session(self, current_date: date) -> date:
+        """Return the immediately preceding valid exchange trading session strictly before current_date."""
+        cur = current_date - timedelta(days=1)
+        while not self.is_exchange_trading_day(cur):
+            cur -= timedelta(days=1)
+        return cur
+
+    def nth_exchange_session_before(self, current_date: date, n: int) -> date:
+        """Return the nth valid exchange trading session strictly before current_date."""
+        if n <= 0:
+            return current_date
+        cur = current_date
+        count = 0
+        while count < n:
+            cur -= timedelta(days=1)
+            if self.is_exchange_trading_day(cur):
+                count += 1
+        return cur
+
+
+_default_calendar = ExchangeCalendarService()
+
+
+def previous_exchange_session(current_date: date) -> date:
+    """Convenience module function for previous exchange session."""
+    return _default_calendar.previous_exchange_session(current_date)
+
+
+def nth_exchange_session_before(current_date: date, n: int) -> date:
+    """Convenience module function for nth exchange session before current_date."""
+    return _default_calendar.nth_exchange_session_before(current_date, n)
+

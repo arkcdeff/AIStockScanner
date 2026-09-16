@@ -80,6 +80,7 @@ def create_app() -> FastAPI:
         docs_url="/docs",
         redoc_url="/redoc",
         openapi_url="/openapi.json",
+        swagger_ui_parameters={"withCredentials": True},
     )
     app.add_middleware(RequestContextMiddleware)
     app.include_router(api_router, prefix=settings.api_v1_prefix)

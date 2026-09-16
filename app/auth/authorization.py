@@ -149,34 +149,44 @@ async def _deny_access(
 
 
 async def resolve_authenticated_user(
-    credentials: HTTPAuthorizationCredentials | None, session: AsyncSession
+    credentials: HTTPAuthorizationCredentials | None,
+    session: AsyncSession,
+    request: Request | None = None,
 ) -> AuthenticatedUser:
-    """Resolve the Bearer user or raise 401, auditing access_denied on failure."""
-    if credentials is None or credentials.scheme.lower() != "bearer":
-        await record_authorization_event(
-            session, action="access_denied", user_id=None, entity_type="api"
-        )
-        raise unauthorized_exception()
-    try:
-        return await get_current_authenticated_user(credentials, session)
-    except HTTPException as exc:
-        if exc.status_code == status.HTTP_401_UNAUTHORIZED:
-            await record_authorization_event(
-                session, action="access_denied", user_id=None, entity_type="api"
-            )
-        raise
+    """Resolve the Bearer user or browser session user or raise 401, auditing access_denied on failure."""
+    if credentials is not None and credentials.scheme.lower() == "bearer":
+        try:
+            return await get_current_authenticated_user(credentials, session)
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_401_UNAUTHORIZED:
+                await record_authorization_event(
+                    session, action="access_denied", user_id=None, entity_type="api"
+                )
+            raise
+
+    # Fallback to authenticated browser session cookie if present
+    if request is not None:
+        browser_user = await get_browser_user(request, session)
+        if browser_user is not None:
+            return browser_user
+
+    await record_authorization_event(
+        session, action="access_denied", user_id=None, entity_type="api"
+    )
+    raise unauthorized_exception()
 
 
 def require_authenticated() -> Callable[..., Awaitable[AuthenticatedUser]]:
-    """FastAPI dependency requiring a valid Bearer token."""
+    """FastAPI dependency requiring a valid Bearer token or authenticated browser session."""
 
     async def dependency(
+        request: Request,
         credentials: Annotated[
             HTTPAuthorizationCredentials | None, Depends(bearer_scheme)
         ],
         session: DB_SESSION,
     ) -> AuthenticatedUser:
-        return await resolve_authenticated_user(credentials, session)
+        return await resolve_authenticated_user(credentials, session, request=request)
 
     return dependency
 

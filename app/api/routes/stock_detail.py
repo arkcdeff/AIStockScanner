@@ -581,3 +581,26 @@ async def stock_bulk_block_deals_partial(
             },
         )
     )
+
+
+@router.get("/{symbol}/what-changed")
+async def stock_detail_what_changed(
+    symbol: str,
+    evaluation_date: date | None = Query(default=None, description="Evaluation date (defaults to latest available)"),
+    comparison_window: int = Query(default=1, ge=1, le=20, description="Comparison window in trading sessions (default 1)"),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return deterministic What Changed analysis for a stock."""
+    from app.services.what_changed_service import WhatChangedService
+
+    service = WhatChangedService(session)
+    try:
+        result = await service.detect_changes(
+            symbol=symbol,
+            evaluation_date=evaluation_date,
+            comparison_window=comparison_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return result.model_dump(mode="json")

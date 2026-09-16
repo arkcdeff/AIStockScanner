@@ -18,26 +18,15 @@ Verifies:
 """
 from __future__ import annotations
 
-from datetime import UTC, date, datetime
-from decimal import Decimal
 import json
+from datetime import date
 from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
-from sqlalchemy import func, select
 
 from app.data.coverage_state import CoverageState, evaluate_institutional_coverage
 from app.db.session import get_session_factory
-from app.models.bulk_block_deal import BulkBlockDeal
-from app.models.corporate_action import CorporateAction
-from app.models.daily_price import DailyPrice
-from app.models.derivative_contract import DerivativeContract
-from app.models.derivative_daily_price import DerivativeDailyPrice
-from app.models.fundamental_corporate import CorporateAnnouncement
-from app.models.institutional_flow import InstitutionalFlow
-from app.models.market_index_price import MarketIndexPrice
-from app.models.stock import Stock
 from app.services.nse_institutional_import_service import NseInstitutionalImportService
 
 
