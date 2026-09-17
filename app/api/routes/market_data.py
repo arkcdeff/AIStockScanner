@@ -815,6 +815,29 @@ async def stock_what_changed(
     return result.model_dump(mode="json")
 
 
+@router.get("/stocks/{symbol}/what-changed/synthesis")
+async def stock_what_changed_synthesis(
+    symbol: str,
+    evaluation_date: date | None = Query(default=None, description="Evaluation date (defaults to latest available)"),
+    comparison_window: int = Query(default=1, ge=1, le=20, description="Comparison window in trading sessions (default 1)"),
+    session: AsyncSession = Depends(get_db_session),
+) -> dict:
+    """Return deterministic What Changed cross-domain synthesis for a stock."""
+    from app.services.what_changed_synthesis_service import WhatChangedSynthesisService
+
+    service = WhatChangedSynthesisService(session)
+    try:
+        result = await service.synthesize(
+            symbol=symbol,
+            evaluation_date=evaluation_date,
+            comparison_window=comparison_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return result.model_dump(mode="json")
+
+
 @router.get("/opportunities")
 async def rank_opportunities(
     profile: str = Query(default="BREAKOUT"),

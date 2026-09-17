@@ -2,18 +2,24 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
-from sqlalchemy import desc, select
+from sqlalchemy import desc, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.bulk_block_deal import BulkBlockDeal
 from app.models.corporate_action import CorporateAction
 from app.models.daily_price import DailyPrice
+from app.models.derivative_contract import DerivativeContract
+from app.models.derivative_daily_price import DerivativeDailyPrice
 from app.models.fundamental_corporate import CorporateAnnouncement
 from app.models.indicator_result import IndicatorResult
 from app.models.institutional_flow import InstitutionalFlow
+from app.models.market_index import MarketIndex
+from app.models.market_index_price import MarketIndexPrice
 from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
+from app.models.sector import Sector
 from app.models.stock import Stock
 
 
@@ -153,3 +159,107 @@ class WhatChangedRepository:
         )
         res = await self.session.execute(stmt)
         return list(res.scalars().all())
+
+    async def get_derivatives_oi_summary(
+        self,
+        stock_id: int,
+        trade_date: date,
+        pit_cutoff: date,
+    ) -> dict[str, Any] | None:
+        """Fetch aggregated futures & options open interest summary for stock on trade_date <= pit_cutoff."""
+        stmt = (
+            select(
+                func.sum(DerivativeDailyPrice.open_interest).label("total_oi"),
+                func.sum(DerivativeDailyPrice.change_in_open_interest).label("change_in_oi"),
+                func.sum(DerivativeDailyPrice.volume_contracts).label("total_volume"),
+                DerivativeContract.instrument_type,
+            )
+            .join(DerivativeContract, DerivativeDailyPrice.contract_id == DerivativeContract.id)
+            .where(
+                DerivativeContract.underlying_stock_id == stock_id,
+                DerivativeDailyPrice.trade_date == trade_date,
+                DerivativeDailyPrice.available_at <= pit_cutoff,
+            )
+            .group_by(DerivativeContract.instrument_type)
+        )
+        res = await self.session.execute(stmt)
+        rows = res.all()
+        if not rows:
+            return None
+
+        total_oi = 0
+        total_vol = 0
+        futures_oi = 0
+        options_oi = 0
+        futures_oi_change = 0
+
+        for row in rows:
+            oi = int(row.total_oi or 0)
+            vol = int(row.total_volume or 0)
+            chg = int(row.change_in_oi or 0)
+            total_oi += oi
+            total_vol += vol
+            if row.instrument_type == "FUTURE":
+                futures_oi += oi
+                futures_oi_change += chg
+            elif row.instrument_type == "OPTION":
+                options_oi += oi
+
+        return {
+            "trade_date": trade_date,
+            "total_oi": total_oi,
+            "total_vol": total_vol,
+            "futures_oi": futures_oi,
+            "futures_oi_change": futures_oi_change,
+            "options_oi": options_oi,
+        }
+
+    async def get_sector_benchmark_price(
+        self,
+        stock_id: int,
+        trade_date: date,
+    ) -> dict[str, Any] | None:
+        """Fetch sector index or benchmark price on trade_date if available."""
+        stock = await self.session.get(Stock, stock_id)
+        if not stock or not stock.sector_id:
+            return None
+
+        sector = await self.session.get(Sector, stock.sector_id)
+        if not sector:
+            return None
+
+        sector_mapping = {
+            "Financial Services": "NIFTY_BANK",
+            "Information Technology": "NIFTY_IT",
+            "Automobile": "NIFTY_AUTO",
+            "Fast Moving Consumer Goods": "NIFTY_FMCG",
+            "Metals & Mining": "NIFTY_METAL",
+            "Healthcare": "NIFTY_HEALTHCARE",
+            "Pharmaceuticals": "NIFTY_PHARMA",
+            "Real Estate": "NIFTY_REALTY",
+            "Energy": "NIFTY_ENERGY",
+            "Oil Gas & Consumable Fuels": "NIFTY_OIL_GAS",
+        }
+        idx_code = sector_mapping.get(sector.name, "NIFTY_50")
+
+        stmt = (
+            select(MarketIndexPrice, MarketIndex)
+            .join(MarketIndex, MarketIndexPrice.market_index_id == MarketIndex.id)
+            .where(
+                MarketIndex.code == idx_code,
+                MarketIndexPrice.trade_date == trade_date,
+            )
+        )
+        res = await self.session.execute(stmt)
+        row = res.first()
+        if not row:
+            return None
+        price, idx = row
+        return {
+            "index_code": idx.code,
+            "index_name": idx.name,
+            "trade_date": price.trade_date,
+            "close": float(price.close),
+            "change_pct": float(price.change_percent) if price.change_percent is not None else None,
+        }
+

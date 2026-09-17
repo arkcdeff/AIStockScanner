@@ -8,8 +8,10 @@ from app.db.session import get_db_session
 from app.repositories.stock import StockRepository
 from app.schemas.stock import StockCreate, StockRead
 from app.schemas.what_changed import WhatChangedResult
+from app.schemas.what_changed_synthesis import CrossDomainSynthesisResult
 from app.services.stock import StockService
 from app.services.what_changed_service import WhatChangedService
+from app.services.what_changed_synthesis_service import WhatChangedSynthesisService
 
 router = APIRouter(
     prefix="/stocks",
@@ -61,3 +63,22 @@ async def get_what_changed(
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get("/{symbol}/what-changed/synthesis", response_model=CrossDomainSynthesisResult)
+async def get_what_changed_synthesis(
+    symbol: str,
+    evaluation_date: date | None = Query(default=None, description="Evaluation date (defaults to latest available)"),
+    comparison_window: int = Query(default=1, ge=1, le=20, description="Comparison window in trading sessions (default 1)"),
+    session: AsyncSession = Depends(get_db_session),
+) -> CrossDomainSynthesisResult:
+    service = WhatChangedSynthesisService(session)
+    try:
+        return await service.synthesize(
+            symbol=symbol,
+            evaluation_date=evaluation_date,
+            comparison_window=comparison_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
