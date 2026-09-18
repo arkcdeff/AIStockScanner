@@ -8,8 +8,12 @@ from app.db.session import get_db_session
 from app.repositories.stock import StockRepository
 from app.schemas.stock import StockCreate, StockRead
 from app.schemas.what_changed import WhatChangedResult
+from app.schemas.what_changed_interpretation import StockIntelligenceInterpretation
 from app.schemas.what_changed_synthesis import CrossDomainSynthesisResult
 from app.services.stock import StockService
+from app.services.what_changed_interpretation_service import (
+    WhatChangedInterpretationService,
+)
 from app.services.what_changed_service import WhatChangedService
 from app.services.what_changed_synthesis_service import WhatChangedSynthesisService
 
@@ -75,6 +79,32 @@ async def get_what_changed_synthesis(
     service = WhatChangedSynthesisService(session)
     try:
         return await service.synthesize(
+            symbol=symbol,
+            evaluation_date=evaluation_date,
+            comparison_window=comparison_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{symbol}/what-changed/interpretation",
+    response_model=StockIntelligenceInterpretation,
+)
+async def get_what_changed_interpretation(
+    symbol: str,
+    evaluation_date: date | None = Query(default=None, description="Evaluation date (defaults to latest available)"),
+    comparison_window: int = Query(default=1, ge=1, le=20, description="Comparison window in trading sessions (default 1)"),
+    session: AsyncSession = Depends(get_db_session),
+) -> StockIntelligenceInterpretation:
+    """Return the deterministic G.11-D-3 stock intelligence interpretation.
+
+    Evidence → Interpretation → Narrative. The result is deterministic
+    evidence interpretation — never a trading recommendation.
+    """
+    service = WhatChangedInterpretationService(session)
+    try:
+        return await service.interpret(
             symbol=symbol,
             evaluation_date=evaluation_date,
             comparison_window=comparison_window,
