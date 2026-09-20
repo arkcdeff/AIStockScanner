@@ -215,6 +215,18 @@ async def stock_detail_page(
     except Exception:
         stock_intelligence = None
 
+    # G.11-D-5 Stock Decision Context Fusion — PIT-safe
+    from app.services.stock_decision_context_service import StockDecisionContextFusionService
+    decision_context = None
+    try:
+        decision_context = await StockDecisionContextFusionService(session).get_decision_context(
+            symbol=overview["stock"].symbol,
+            evaluation_date=_eval_d,
+            as_of_date=_eval_d,
+        )
+    except Exception:
+        decision_context = None
+
     html = _render(
         "stock_detail.html",
         {
@@ -241,6 +253,7 @@ async def stock_detail_page(
             "news_policy": news_policy,
             "corporate_events": corporate_events,
             "stock_intelligence": stock_intelligence,
+            "decision_context": decision_context,
             "evaluation_date": _eval_d,
         },
     )
@@ -274,6 +287,91 @@ async def stock_intelligence_partial(
                 "symbol": symbol,
                 "stock": overview["stock"],
                 "stock_intelligence": stock_intelligence,
+            },
+        )
+    )
+
+
+@router.get("/{symbol}/decision-context", response_class=HTMLResponse)
+async def stock_decision_context_partial(
+    request: Request,
+    symbol: str,
+    as_of_date: date | None = None,
+    comparison_window: int = 1,
+    include_ai: bool = False,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render the G.11-D-5 Stock Decision Context & Research Dossier HTML partial."""
+    from app.services.stock_decision_context_service import StockDecisionContextFusionService
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    _eval_d = overview["latest_price"].trade_date if overview.get("latest_price") else date.today()
+    fusion_svc = StockDecisionContextFusionService(session)
+    decision_context = None
+    try:
+        decision_context = await fusion_svc.get_decision_context(
+            symbol=symbol,
+            evaluation_date=_eval_d,
+            as_of_date=as_of_date or _eval_d,
+            comparison_window=comparison_window,
+            include_ai=include_ai,
+        )
+    except Exception:
+        decision_context = None
+
+    return HTMLResponse(
+        content=_render(
+            "components/stock_decision_dossier.html",
+            {
+                "request": request,
+                "symbol": symbol,
+                "stock": overview["stock"],
+                "decision_context": decision_context,
+            },
+        )
+    )
+
+
+@router.get("/{symbol}/evidence-modal", response_class=HTMLResponse)
+async def stock_evidence_modal_partial(
+    request: Request,
+    symbol: str,
+    as_of_date: date | None = None,
+    comparison_window: int = 1,
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render the G.11-D-5 Evidence Drill-Down modal dialog partial for screener integration."""
+    from app.services.stock_decision_context_service import StockDecisionContextFusionService
+    service = StockDetailService(session)
+    overview = await service.get_overview(symbol)
+    if overview is None:
+        raise HTTPException(status_code=404, detail="Stock not found")
+
+    _eval_d = overview["latest_price"].trade_date if overview.get("latest_price") else date.today()
+    fusion_svc = StockDecisionContextFusionService(session)
+    decision_context = None
+    try:
+        decision_context = await fusion_svc.get_decision_context(
+            symbol=symbol,
+            evaluation_date=_eval_d,
+            as_of_date=as_of_date or _eval_d,
+            comparison_window=comparison_window,
+            include_ai=False,
+        )
+    except Exception:
+        decision_context = None
+
+    return HTMLResponse(
+        content=_render(
+            "components/evidence_drill_down_modal.html",
+            {
+                "request": request,
+                "symbol": symbol,
+                "stock": overview["stock"],
+                "context": decision_context,
             },
         )
     )

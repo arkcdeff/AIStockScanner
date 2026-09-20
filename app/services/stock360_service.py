@@ -64,15 +64,18 @@ class Stock360Service:
         stmt_fo = (
             select(DerivativeContract.id)
             .where(DerivativeContract.underlying_stock_id == stock.id)
-            .limit(1)
         )
+        if as_of is not None:
+            stmt_fo = stmt_fo.where(DerivativeContract.available_at <= as_of)
+        stmt_fo = stmt_fo.limit(1)
         is_fno = (await self.session.execute(stmt_fo)).scalar_one_or_none() is not None
 
         # 3. Technicals & Volume/Delivery summary
-        tech, vol_del = await self._calculate_technicals_and_volume(stock.id, eval_d)
+        tech, vol_del = await self._calculate_technicals_and_volume(stock.id, eval_d, as_of)
 
         # 4. Relative Strength
-        rs_metrics = await self.rs_service.calculate_relative_strength(stock.id, eval_d)
+        effective_cutoff = min(eval_d, as_of) if as_of is not None else eval_d
+        rs_metrics = await self.rs_service.calculate_relative_strength(stock.id, effective_cutoff)
 
         # 5. Fundamentals & Valuation (19.1E)
         fund_snap = None
@@ -86,7 +89,11 @@ class Stock360Service:
             fund_snap = None
 
         # 6. News & Government Policy (19.1F)
-        eval_dt = datetime.combine(eval_d, datetime.min.time(), tzinfo=UTC)
+        # PIT: news availability must be clamped to the effective cutoff
+        # (min of evaluation_date and as_of_date) so that historical replay
+        # with as_of_date < evaluation_date cannot observe news events that
+        # became available after as_of_date. Mirrors the technicals/RS cutoff.
+        eval_dt = datetime.combine(effective_cutoff, datetime.min.time(), tzinfo=UTC)
         news_snap = None
         try:
             news_snap = await self.news_service.get_company_news_policy_snapshot(
@@ -145,13 +152,14 @@ class Stock360Service:
         )
 
     async def _calculate_technicals_and_volume(
-        self, stock_id: int, eval_d: date
+        self, stock_id: int, eval_d: date, as_of: date | None = None
     ) -> tuple[TechnicalSummaryRead | None, VolumeDeliverySummaryRead | None]:
         """Fetch price history and calculate core technical & volume metrics."""
+        cutoff = min(eval_d, as_of) if as_of is not None else eval_d
         stmt = (
             select(DailyPrice)
             .where(DailyPrice.stock_id == stock_id)
-            .where(DailyPrice.trade_date <= eval_d)
+            .where(DailyPrice.trade_date <= cutoff)
             .where(extract("dow", DailyPrice.trade_date).notin_([0, 6]))
             .order_by(DailyPrice.trade_date.desc())
             .limit(250)
@@ -174,11 +182,11 @@ class Stock360Service:
         pct_from_h52 = round(((close - h52) / h52) * 100.0, 2) if h52 > 0 else 0.0
         pct_from_l52 = round(((close - l52) / l52) * 100.0, 2) if l52 > 0 else 0.0
 
-        # Check authoritative IndicatorResult as-of eval_d
+        # Check authoritative IndicatorResult as-of cutoff
         stmt_ind = (
             select(IndicatorResult)
             .where(IndicatorResult.stock_id == stock_id)
-            .where(IndicatorResult.trade_date <= eval_d)
+            .where(IndicatorResult.trade_date <= cutoff)
             .where(extract("dow", IndicatorResult.trade_date).notin_([0, 6]))
             .order_by(IndicatorResult.trade_date.desc())
             .limit(1)

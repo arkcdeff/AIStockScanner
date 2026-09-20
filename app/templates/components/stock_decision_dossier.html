@@ -1,0 +1,367 @@
+{# Stock Decision Context Dossier Component — G.11-D-5 #}
+<div class="card mb-4 border-0 shadow-sm" id="stock-decision-dossier">
+    <div class="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h5 class="mb-0 fw-bold text-dark">
+                <i class="bi bi-cpu-fill me-2 text-primary"></i>Decision Context &amp; Research Dossier
+            </h5>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle" style="font-size:0.75rem;">G.11-D-5 Fusion</span>
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle" style="font-size:0.75rem;">PIT Safe</span>
+            <span class="badge bg-light text-dark border" style="font-size:0.75rem;">Deterministic</span>
+        </div>
+        {% if decision_context %}
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <small class="text-muted">
+                Eval: <strong class="text-dark">{{ decision_context.evaluation_date }}</strong>
+                {% if decision_context.comparison_date %}
+                | Comp: <strong class="text-dark">{{ decision_context.comparison_date }}</strong> ({{ decision_context.comparison_window }}d)
+                {% endif %}
+            </small>
+            {% set state = decision_context.overall_state.value if decision_context.overall_state.value is defined else decision_context.overall_state %}
+            {% if state == 'BULLISH_EVIDENCE_SUPPORTED' %}
+                <span class="badge bg-success px-2 py-1"><i class="bi bi-arrow-up-circle me-1"></i>BULLISH SUPPORTED</span>
+            {% elif state == 'BEARISH_EVIDENCE_SUPPORTED' %}
+                <span class="badge bg-danger px-2 py-1"><i class="bi bi-arrow-down-circle me-1"></i>BEARISH SUPPORTED</span>
+            {% elif state == 'CONTRADICTORY_EVIDENCE_HIGH_RISK' %}
+                <span class="badge bg-warning text-dark px-2 py-1"><i class="bi bi-exclamation-triangle-fill me-1"></i>HIGH RISK CONTRADICTION</span>
+            {% elif state == 'MUTED_OR_NO_MEANINGFUL_CHANGE' %}
+                <span class="badge bg-secondary px-2 py-1"><i class="bi bi-dash-circle me-1"></i>MUTED / NO CHANGE</span>
+            {% elif state == 'INSUFFICIENT_DATA_FOR_INTERPRETATION' %}
+                <span class="badge bg-dark px-2 py-1"><i class="bi bi-hourglass-split me-1"></i>INSUFFICIENT DATA</span>
+            {% else %}
+                <span class="badge bg-secondary px-2 py-1">{{ state }}</span>
+            {% endif %}
+
+            {% set bias = decision_context.directional_bias.value if decision_context.directional_bias.value is defined else decision_context.directional_bias %}
+            {% if bias == 'BULLISH' %}
+                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-1">BIAS: BULLISH</span>
+            {% elif bias == 'BEARISH' %}
+                <span class="badge bg-danger-subtle text-danger border border-danger-subtle px-2 py-1">BIAS: BEARISH</span>
+            {% elif bias == 'CONFLICTED' %}
+                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2 py-1">BIAS: CONFLICTED</span>
+            {% else %}
+                <span class="badge bg-light text-secondary border px-2 py-1">BIAS: {{ bias }}</span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="card-body">
+        {% if not decision_context %}
+        <div class="text-center py-4 text-muted">
+            <i class="bi bi-info-circle fs-3 d-block mb-2 text-secondary"></i>
+            <h6>Research Dossier Context Unavailable</h6>
+            <p class="mb-0 small">Insufficient historical data to construct cross-domain fusion context.</p>
+        </div>
+        {% else %}
+
+        <!-- Active Vetoes Alert -->
+        {% if decision_context.active_vetoes %}
+        <div class="alert alert-danger d-flex align-items-center gap-2 mb-3 py-2 px-3 border-danger shadow-sm">
+            <i class="bi bi-shield-slash-fill fs-5 text-danger flex-shrink-0"></i>
+            <div>
+                <strong>Active Veto Warnings:</strong>
+                {% for veto in decision_context.active_vetoes %}
+                    <span class="badge bg-danger text-white me-1">{{ veto }}</span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Convergence & Completeness Banner -->
+        <div class="p-3 mb-3 rounded bg-light border">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <div>
+                    <span class="fw-semibold text-dark me-2">Multi-Domain Directional Convergence:</span>
+                    {% if decision_context.convergence_ratio is not none %}
+                    <strong class="text-primary fs-6">{{ (decision_context.convergence_ratio * 100)|round|int }}%</strong>
+                    {% else %}
+                    <span class="text-muted">N/A</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex gap-3 text-muted small flex-wrap">
+                    <span>Supporting Domains: <strong class="text-success">{{ decision_context.supporting_domains|join(', ') if decision_context.supporting_domains else 'None' }}</strong></span>
+                    {% if decision_context.conflicting_domains %}
+                    <span>Conflicting Domains: <strong class="text-danger">{{ decision_context.conflicting_domains|join(', ') }}</strong></span>
+                    {% endif %}
+                    <span>Completeness: <strong class="text-dark">{{ decision_context.data_completeness_pct }}%</strong></span>
+                </div>
+            </div>
+            <div class="progress" style="height: 6px;">
+                {% set conv_pct = (decision_context.convergence_ratio * 100)|round|int if decision_context.convergence_ratio is not none else 0 %}
+                <div class="progress-bar {% if conv_pct >= 70 %}bg-success{% elif conv_pct >= 40 %}bg-info{% else %}bg-warning{% endif %}"
+                     role="progressbar"
+                     style="width: {{ conv_pct }}%;"
+                     aria-valuenow="{{ conv_pct }}"
+                     aria-valuemin="0"
+                     aria-valuemax="100">
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy & Opportunity Profile Alignments -->
+        <div class="mb-4">
+            <h6 class="fw-bold text-dark mb-3">
+                <i class="bi bi-crosshair2 me-1 text-primary"></i>Strategic Opportunity Profiles Alignment
+            </h6>
+            <div class="row g-3">
+                {% for pa in decision_context.profile_alignments %}
+                {% set align_state = pa.alignment_state.value if pa.alignment_state.value is defined else pa.alignment_state %}
+                <div class="col-md-4 col-sm-6">
+                    <div class="border rounded p-3 h-100 bg-white shadow-sm position-relative">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ pa.profile|replace('_', ' ') }}</span>
+                            {% if align_state == 'ALIGNED' %}
+                                <span class="badge bg-success-subtle text-success border border-success-subtle">ALIGNED</span>
+                            {% elif align_state == 'PARTIALLY_ALIGNED' %}
+                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">PARTIAL</span>
+                            {% elif align_state == 'BLOCKED' %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle">BLOCKED</span>
+                            {% elif align_state == 'INSUFFICIENT_DATA' %}
+                                <span class="badge bg-dark-subtle text-dark border">NO DATA</span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border">N/A</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex justify-content-between align-items-baseline mb-1">
+                            <small class="text-muted">Canonical Score:</small>
+                            <span class="fw-bold text-dark">{{ pa.canonical_score }}/100</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-baseline mb-2">
+                            <small class="text-muted">Classification:</small>
+                            <span class="badge bg-light text-secondary border" style="font-size: 0.75rem;">{{ pa.canonical_classification }}</span>
+                        </div>
+                        <p class="text-muted small mb-0" style="font-size: 0.78rem;">{{ pa.alignment_summary }}</p>
+                        {% if pa.veto_reasons %}
+                        <div class="mt-2 pt-2 border-top">
+                            <small class="text-danger fw-semibold" style="font-size: 0.72rem;">
+                                <i class="bi bi-x-circle me-1"></i>Veto: {{ pa.veto_reasons|join(', ') }}
+                            </small>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- 2-Column Evidence Grid -->
+        <div class="row g-3 mb-4">
+            <!-- Supporting & Primary Evidence -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-success mb-0 fw-bold">
+                            <i class="bi bi-check-circle-fill me-1"></i>Primary &amp; Supporting Evidence ({{ (decision_context.primary_evidence|length) + (decision_context.supporting_evidence|length) }})
+                        </h6>
+                    </div>
+                    {% set all_supporting = (decision_context.primary_evidence or []) + (decision_context.supporting_evidence or []) %}
+                    {% if all_supporting %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for item in all_supporting %}
+                        <li class="mb-2 pb-2 border-bottom last-border-0">
+                            <div class="d-flex justify-content-between align-items-start gap-1">
+                                <span class="fw-semibold text-dark">{{ item.description }}</span>
+                                <span class="badge bg-light text-secondary border flex-shrink-0" style="font-size: 0.7rem;">{{ item.domain }}</span>
+                            </div>
+                            {% if item.relationship_type %}
+                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                Relationship: <span class="text-dark">{{ item.relationship_type }}</span>
+                                {% if item.strength %}({{ item.strength }}){% endif %}
+                            </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small py-3 text-center">
+                        <em>No active directional supporting evidence detected for this session.</em>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Conflicting Evidence & Risk Factors -->
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="text-danger mb-0 fw-bold">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>Conflicting Evidence &amp; Divergences ({{ decision_context.conflicting_evidence|length }})
+                        </h6>
+                    </div>
+                    {% if decision_context.conflicting_evidence %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for item in decision_context.conflicting_evidence %}
+                        <li class="mb-2 pb-2 border-bottom last-border-0">
+                            <div class="d-flex justify-content-between align-items-start gap-1">
+                                <span class="fw-semibold text-dark">{{ item.description }}</span>
+                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle flex-shrink-0" style="font-size: 0.7rem;">{{ item.domain }}</span>
+                            </div>
+                            {% if item.relationship_type %}
+                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                Conflict Type: <span class="text-danger">{{ item.relationship_type }}</span>
+                                {% if item.strength %}({{ item.strength }}){% endif %}
+                            </div>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small py-3 text-center">
+                        <span class="text-success"><i class="bi bi-shield-check me-1"></i>No conflicting cross-domain signals observed.</span>
+                    </div>
+                    {% endif %}
+
+                    {% if decision_context.quality_warnings %}
+                    <div class="mt-3 pt-2 border-top">
+                        <h6 class="text-warning-emphasis mb-2 fw-bold" style="font-size: 0.8rem;">
+                            <i class="bi bi-info-circle-fill me-1"></i>Quality Warnings
+                        </h6>
+                        <ul class="list-unstyled mb-0 small text-muted">
+                            {% for qw in decision_context.quality_warnings %}
+                            <li class="mb-1" style="font-size: 0.75rem;"><i class="bi bi-dot text-warning"></i>{{ qw }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pattern Lifecycle & Context Domains -->
+        {% if decision_context.pattern_lifecycle_records or decision_context.context_evidence %}
+        <div class="mb-4">
+            <h6 class="fw-bold text-dark mb-2">
+                <i class="bi bi-clock-history me-1 text-primary"></i>Pattern Evolution &amp; Contextual Developments
+            </h6>
+            <div class="border rounded p-3 bg-white shadow-sm">
+                {% if decision_context.lifecycle_summary %}
+                <div class="p-2 mb-3 rounded bg-light border small text-dark">
+                    <strong>Lifecycle Trajectory:</strong> {{ decision_context.lifecycle_summary }}
+                </div>
+                {% endif %}
+
+                {% if decision_context.pattern_lifecycle_records %}
+                <div class="d-flex flex-wrap gap-2 mb-3">
+                    {% for rec in decision_context.pattern_lifecycle_records %}
+                    <div class="badge bg-light text-dark border p-2 text-start">
+                        <span class="fw-bold text-primary">{{ rec.pattern_type }}</span>:
+                        <span class="badge bg-secondary-subtle text-secondary ms-1">{{ rec.current_state }}</span>
+                        {% if rec.previous_state and rec.previous_state != rec.current_state %}
+                        <span class="text-muted ms-1" style="font-size: 0.7rem;">(was {{ rec.previous_state }})</span>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                {% if decision_context.context_evidence %}
+                <div class="mt-2">
+                    <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.72rem;">Institutional / Deal / Corporate Context:</small>
+                    <ul class="list-unstyled mb-0 small">
+                        {% for ce in decision_context.context_evidence %}
+                        <li class="mb-1 text-muted" style="font-size: 0.78rem;">
+                            <span class="badge bg-light text-secondary border me-1">{{ ce.domain }}</span>
+                            {{ ce.description }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Watch Items & Transparency Limitations -->
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white shadow-sm">
+                    <h6 class="text-primary mb-2 fw-bold" style="font-size: 0.85rem;">
+                        <i class="bi bi-eye me-1"></i>Required Confirmations &amp; Watch Items ({{ decision_context.watch_items|length }})
+                    </h6>
+                    {% if decision_context.watch_items %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for wi in decision_context.watch_items %}
+                        <li class="mb-1 text-muted" style="font-size: 0.78rem;">
+                            <strong class="text-dark">{{ wi.code|replace('_', ' ') }}:</strong> {{ wi.description }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small"><em>All primary domain confirmations are present.</em></div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="border rounded p-3 h-100 bg-white shadow-sm">
+                    <h6 class="text-secondary mb-2 fw-bold" style="font-size: 0.85rem;">
+                        <i class="bi bi-info-circle me-1"></i>Data Coverage &amp; Methodological Limitations ({{ decision_context.limitations|length }})
+                    </h6>
+                    {% if decision_context.limitations %}
+                    <ul class="list-unstyled mb-0 small">
+                        {% for lim in decision_context.limitations %}
+                        <li class="mb-1 text-muted" style="font-size: 0.78rem;">
+                            <strong class="text-dark">{{ lim.code|replace('_', ' ') }}:</strong> {{ lim.description }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <div class="text-muted small"><em>Full 10-dimensional coverage available.</em></div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- AI / Fallback Narrative Accordion -->
+        <div class="accordion" id="decisionContextNarrativeAccordion">
+            <div class="accordion-item border rounded shadow-sm">
+                <h2 class="accordion-header" id="headingNarrative">
+                    <button class="accordion-button collapsed bg-white py-2" type="button" data-bs-toggle="collapse" data-bs-target="#collapseNarrative" aria-expanded="false" aria-controls="collapseNarrative">
+                        <div class="d-flex align-items-center gap-2 flex-wrap">
+                            <i class="bi bi-chat-left-text text-primary"></i>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">Intelligence Narrative Summary</span>
+                            {% if decision_context.narrative %}
+                                <span class="badge bg-info-subtle text-info border border-info-subtle" style="font-size: 0.7rem;">{{ decision_context.narrative.generation_method }}</span>
+                            {% else %}
+                                <span class="badge bg-light text-secondary border" style="font-size: 0.7rem;">Deterministic Synthesis</span>
+                            {% endif %}
+                        </div>
+                    </button>
+                </h2>
+                <div id="collapseNarrative" class="accordion-collapse collapse" aria-labelledby="headingNarrative" data-bs-parent="#decisionContextNarrativeAccordion">
+                    <div class="accordion-body bg-light p-3 small">
+                        {% if decision_context.narrative %}
+                            <div class="mb-2">{{ decision_context.narrative.narrative_text }}</div>
+                            {% if decision_context.narrative.key_drivers %}
+                            <div class="mt-2">
+                                <strong>Key Drivers:</strong>
+                                <ul class="mb-1">
+                                    {% for kd in decision_context.narrative.key_drivers %}
+                                    <li>{{ kd }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                            {% if decision_context.narrative.risk_considerations %}
+                            <div class="mt-2">
+                                <strong class="text-danger">Risk Considerations:</strong>
+                                <ul class="mb-1 text-danger">
+                                    {% for rc in decision_context.narrative.risk_considerations %}
+                                    <li>{{ rc }}</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            {% endif %}
+                        {% elif decision_context.fallback_narrative %}
+                            <p class="mb-0 text-dark">{{ decision_context.fallback_narrative }}</p>
+                        {% else %}
+                            <p class="mb-0 text-muted">No additional narrative compiled for this session.</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% endif %}
+    </div>
+</div>

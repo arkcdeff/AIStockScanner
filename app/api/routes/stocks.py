@@ -7,6 +7,7 @@ from app.auth.authorization import require_permission
 from app.db.session import get_db_session, get_session_factory
 from app.repositories.stock import StockRepository
 from app.schemas.stock import StockCreate, StockRead
+from app.schemas.stock_decision_context import StockDecisionContextRead
 from app.schemas.what_changed import WhatChangedResult
 from app.schemas.what_changed_interpretation import StockIntelligenceInterpretation
 from app.schemas.what_changed_screening import ScreeningRequest, ScreeningResponse
@@ -235,6 +236,40 @@ async def get_what_changed_interpretation(
             symbol=symbol,
             evaluation_date=evaluation_date,
             comparison_window=comparison_window,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+
+
+@router.get(
+    "/{symbol}/decision-context",
+    response_model=StockDecisionContextRead,
+)
+async def get_stock_decision_context(
+    symbol: str,
+    evaluation_date: date | None = Query(default=None, description="PIT evaluation date (defaults to latest available)"),
+    as_of_date: date | None = Query(default=None, description="PIT observation cutoff date (defaults to evaluation date)"),
+    comparison_window: int = Query(default=1, ge=1, le=30, description="Comparison window in trading sessions (default 1)"),
+    include_ai: bool = Query(default=False, description="Whether to request optional AI narrative"),
+    session: AsyncSession = Depends(get_db_session),
+) -> StockDecisionContextRead:
+    """Return the deterministic G.11-D-5 Stock 360 & Decision Context Fusion research dossier.
+
+    Combines:
+      - Certified G.11-D-3 What-Changed Interpretation (and D-2/D-1 evidence)
+      - Stock 360° PIT-safe 10-dimensional research snapshot
+      - Canonical Opportunity Profiles alignment & veto compilation
+    """
+    from app.services.stock_decision_context_service import StockDecisionContextFusionService
+
+    service = StockDecisionContextFusionService(session)
+    try:
+        return await service.get_decision_context(
+            symbol=symbol,
+            evaluation_date=evaluation_date,
+            as_of_date=as_of_date,
+            comparison_window=comparison_window,
+            include_ai=include_ai,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

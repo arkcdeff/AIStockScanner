@@ -24,6 +24,7 @@
                         <th>Supporting Domains</th>
                         <th>Conflicting</th>
                         <th>PIT Safe</th>
+                        <th class="text-end">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -87,10 +88,19 @@
                                 <span class="text-muted">—</span>
                             {% endif %}
                         </td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-primary"
+                                    hx-get="/stocks/{{ row.symbol }}/evidence-modal"
+                                    hx-target="#evidenceModalContainer"
+                                    hx-swap="innerHTML"
+                                    title="Drill-down into evidence dossier">
+                                <i class="bi bi-search me-1"></i>Inspect
+                            </button>
+                        </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="text-center text-muted py-4">No matching symbols found for active criteria.</td>
+                        <td colspan="9" class="text-center text-muted py-4">No matching symbols found for active criteria.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

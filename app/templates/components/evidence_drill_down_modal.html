@@ -1,0 +1,178 @@
+{# Evidence Drill-Down Modal Partial — G.11-D-5 #}
+<div class="modal fade show" id="evidenceDrillDownModal" tabindex="-1" style="display: block; background-color: rgba(15, 23, 42, 0.55);" aria-modal="true" role="dialog">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0">
+            <div class="modal-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 class="modal-title fw-bold mb-0 text-dark">
+                        <i class="bi bi-search text-primary me-2"></i>Evidence Drill-Down: <span class="text-primary">{{ context.symbol if context else symbol }}</span>
+                    </h5>
+                    {% if context %}
+                    {% set state = context.overall_state.value if context.overall_state.value is defined else context.overall_state %}
+                    {% if state == 'BULLISH_EVIDENCE_SUPPORTED' %}
+                        <span class="badge bg-success-subtle text-success border border-success-subtle">BULLISH</span>
+                    {% elif state == 'BEARISH_EVIDENCE_SUPPORTED' %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">BEARISH</span>
+                    {% elif state == 'CONTRADICTORY_EVIDENCE_HIGH_RISK' %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">HIGH RISK</span>
+                    {% else %}
+                        <span class="badge bg-secondary-subtle text-secondary border">{{ state }}</span>
+                    {% endif %}
+                    <span class="badge bg-light text-dark border">Bias: {{ context.directional_bias }}</span>
+                    {% endif %}
+                </div>
+                <button type="button" class="btn-close" aria-label="Close" onclick="document.getElementById('evidenceModalContainer').innerHTML = '';"></button>
+            </div>
+
+            <div class="modal-body p-4 bg-light">
+                {% if not context %}
+                <div class="text-center py-4 text-muted">
+                    <i class="bi bi-info-circle fs-3 d-block mb-2 text-secondary"></i>
+                    <h6>Evidence Unavailable</h6>
+                    <p class="mb-0 small">Insufficient observation data to produce evidence drill-down for this symbol.</p>
+                </div>
+                {% else %}
+
+                <!-- Active Vetoes if any -->
+                {% if context.active_vetoes %}
+                <div class="alert alert-danger py-2 px-3 mb-3 border-danger shadow-sm small">
+                    <strong><i class="bi bi-shield-x me-1"></i>Active Vetoes:</strong>
+                    {% for veto in context.active_vetoes %}
+                    <span class="badge bg-danger text-white me-1">{{ veto }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+
+                <!-- Convergence summary -->
+                <div class="bg-white p-3 rounded border mb-3 shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center mb-2 small flex-wrap gap-2">
+                        <span class="fw-semibold text-dark">Directional Convergence:</span>
+                        <div class="text-muted">
+                            Supporting: <strong class="text-success">{{ context.supporting_domains|join(', ') if context.supporting_domains else 'None' }}</strong>
+                            {% if context.conflicting_domains %}
+                            | Conflicting: <strong class="text-danger">{{ context.conflicting_domains|join(', ') }}</strong>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="progress" style="height: 6px;">
+                        {% set conv_pct = (context.convergence_ratio * 100)|round|int if context.convergence_ratio is not none else 0 %}
+                        <div class="progress-bar {% if conv_pct >= 70 %}bg-success{% elif conv_pct >= 40 %}bg-info{% else %}bg-warning{% endif %}"
+                             role="progressbar"
+                             style="width: {{ conv_pct }}%;"
+                             aria-valuenow="{{ conv_pct }}"
+                             aria-valuemin="0"
+                             aria-valuemax="100">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Opportunity Profile Alignment Badges -->
+                <div class="bg-white p-3 rounded border mb-3 shadow-sm">
+                    <h6 class="fw-bold text-dark mb-2 small text-uppercase">
+                        <i class="bi bi-crosshair2 text-primary me-1"></i>Strategic Profile Alignments
+                    </h6>
+                    <div class="row g-2">
+                        {% for pa in context.profile_alignments %}
+                        {% set align_state = pa.alignment_state.value if pa.alignment_state.value is defined else pa.alignment_state %}
+                        <div class="col-sm-6">
+                            <div class="p-2 border rounded bg-light small h-100">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold text-dark">{{ pa.profile|replace('_', ' ') }}</span>
+                                    {% if align_state == 'ALIGNED' %}
+                                        <span class="badge bg-success-subtle text-success border border-success-subtle">ALIGNED</span>
+                                    {% elif align_state == 'PARTIALLY_ALIGNED' %}
+                                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">PARTIAL</span>
+                                    {% elif align_state == 'BLOCKED' %}
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle">BLOCKED</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary-subtle text-secondary border">{{ align_state }}</span>
+                                    {% endif %}
+                                </div>
+                                <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
+                                    <span>Score: <strong class="text-dark">{{ pa.canonical_score }}/100</strong></span>
+                                    <span>{{ pa.canonical_classification }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 2-Column Evidence Drill-Down -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <div class="bg-white p-3 rounded border h-100 shadow-sm">
+                            <h6 class="text-success fw-bold small text-uppercase mb-2">
+                                <i class="bi bi-check-circle-fill me-1"></i>Supporting Evidence
+                            </h6>
+                            {% set all_supporting = (context.primary_evidence or []) + (context.supporting_evidence or []) %}
+                            {% if all_supporting %}
+                            <ul class="list-unstyled mb-0 small">
+                                {% for item in all_supporting %}
+                                <li class="mb-2 pb-1 border-bottom last-border-0" style="font-size: 0.78rem;">
+                                    <div class="d-flex justify-content-between align-items-start gap-1">
+                                        <span class="text-dark fw-semibold">{{ item.description }}</span>
+                                        <span class="badge bg-light text-secondary border" style="font-size: 0.68rem;">{{ item.domain }}</span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <div class="text-muted small py-2"><em>No directional supporting evidence.</em></div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="col-md-6">
+                        <div class="bg-white p-3 rounded border h-100 shadow-sm">
+                            <h6 class="text-danger fw-bold small text-uppercase mb-2">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i>Conflicting Signals &amp; Risks
+                            </h6>
+                            {% if context.conflicting_evidence %}
+                            <ul class="list-unstyled mb-0 small">
+                                {% for item in context.conflicting_evidence %}
+                                <li class="mb-2 pb-1 border-bottom last-border-0" style="font-size: 0.78rem;">
+                                    <div class="d-flex justify-content-between align-items-start gap-1">
+                                        <span class="text-dark fw-semibold">{{ item.description }}</span>
+                                        <span class="badge bg-danger-subtle text-danger border border-danger-subtle" style="font-size: 0.68rem;">{{ item.domain }}</span>
+                                    </div>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                            {% else %}
+                            <div class="text-success small py-2"><i class="bi bi-check2-all me-1"></i>No conflicting signals observed.</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Watch Items -->
+                {% if context.watch_items %}
+                <div class="bg-white p-3 rounded border shadow-sm small">
+                    <h6 class="text-primary fw-bold small text-uppercase mb-1">
+                        <i class="bi bi-eye me-1"></i>Confirmation Watch Items
+                    </h6>
+                    <ul class="list-unstyled mb-0">
+                        {% for wi in context.watch_items %}
+                        <li class="text-muted mb-1" style="font-size: 0.76rem;">
+                            <strong class="text-dark">{{ wi.code|replace('_', ' ') }}:</strong> {{ wi.description }}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
+                {% endif %}
+            </div>
+
+            <div class="modal-footer bg-white border-top py-2 d-flex justify-content-between">
+                <a href="/stocks/{{ context.symbol if context else symbol }}" class="btn btn-sm btn-primary">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>Open Full Stock 360° Research Dossier
+                </a>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('evidenceModalContainer').innerHTML = '';">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
