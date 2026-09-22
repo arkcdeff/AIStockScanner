@@ -12,7 +12,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.authorization import require_permission
-from app.db.session import get_db_session
+from app.db.session import get_db_session, get_session_factory
 from app.repositories.market_index_price import MarketIndexPriceRepository
 from app.repositories.market_intelligence_snapshot import (
     MarketIntelligenceSnapshotRepository,
@@ -39,6 +39,10 @@ from app.schemas.market_intelligence_api import (
     SectorIntelligenceResponse,
     SectorItem,
 )
+from app.schemas.sector_evidence import (
+    SectorEvidenceBreadthRequest,
+    SectorEvidenceBreadthResponse,
+)
 from app.services.ai_market_explanation import AIMarketExplanationService
 from app.services.composite_market_intelligence import CompositeMarketIntelligence
 from app.services.external_market_factor_intelligence import (
@@ -50,6 +54,9 @@ from app.services.index_price_action import IndexPriceAction
 from app.services.institutional_intelligence import InstitutionalIntelligence
 from app.services.macro_intelligence import MacroIntelligence
 from app.services.market_breadth import MarketBreadth
+from app.services.sector_evidence_aggregator_service import (
+    SectorEvidenceAggregatorService,
+)
 from app.services.sector_intelligence import SectorIntelligence
 
 router = APIRouter(
@@ -469,6 +476,52 @@ async def sectors(
         confidence_score=result.get("confidence_score", 0.0),
         freshness=result.get("freshness", "missing"),
     )
+
+
+# ---------------------------------------------------------------------------
+# Sector Evidence Breadth — G.11-D-6
+# ---------------------------------------------------------------------------
+
+
+@router.get(
+    "/sectors/evidence-breadth",
+    response_model=SectorEvidenceBreadthResponse,
+    dependencies=[Depends(require_permission("market_intelligence.read"))],
+)
+async def sector_evidence_breadth(
+    sectors: str | None = Query(
+        default=None,
+        description="Comma-separated sector codes or ALL_SECTORS",
+    ),
+    evaluation_date: date | None = Query(default=None),
+    as_of_date: date | None = Query(default=None),
+    comparison_window: int = Query(default=1, ge=1, le=30),
+    min_data_coverage_pct: float = Query(default=50.0, ge=0.0, le=100.0),
+    session: AsyncSession = Depends(get_db_session),
+) -> SectorEvidenceBreadthResponse:
+    """GET sector breadth & market evidence consensus aggregation."""
+    sector_list: list[str]
+    if not sectors or sectors.strip() == "" or sectors.strip().upper() == "ALL_SECTORS":
+        sector_list = ["ALL_SECTORS"]
+    else:
+        sector_list = [s.strip().upper() for s in sectors.split(",") if s.strip()]
+
+    breadth_req = SectorEvidenceBreadthRequest(
+        sectors=sector_list,
+        evaluation_date=evaluation_date,
+        as_of_date=as_of_date,
+        comparison_window=comparison_window,
+        min_data_coverage_pct=min_data_coverage_pct,
+    )
+
+    aggregator = SectorEvidenceAggregatorService(
+        session=session,
+        session_factory=get_session_factory(),
+    )
+    try:
+        return await aggregator.get_sector_evidence_breadth(breadth_req)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
 
 
 # ---------------------------------------------------------------------------

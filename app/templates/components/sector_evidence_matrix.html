@@ -1,0 +1,268 @@
+<!-- Market-Wide Aggregate Ribbons -->
+<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Sectors Bullish</div>
+                    <div class="fs-4 fw-bold text-success">{{ "%.1f"|format(response.sectors_bullish_pct) }}%</div>
+                </div>
+                <div class="rounded-circle bg-success-subtle p-3 text-success">
+                    <i class="bi bi-arrow-up-right fs-4"></i>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">Net breadth &gt; 0.0%</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Sectors Bearish</div>
+                    <div class="fs-4 fw-bold text-danger">{{ "%.1f"|format(response.sectors_bearish_pct) }}%</div>
+                </div>
+                <div class="rounded-circle bg-danger-subtle p-3 text-danger">
+                    <i class="bi bi-arrow-down-right fs-4"></i>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">Net breadth &lt; 0.0%</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Mean Convergence</div>
+                    <div class="fs-4 fw-bold text-primary">
+                        {% if response.market_mean_convergence_ratio is not none %}
+                            {{ "%.2f"|format(response.market_mean_convergence_ratio) }}
+                        {% else %}
+                            --
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="rounded-circle bg-primary-subtle p-3 text-primary">
+                    <i class="bi bi-bullseye fs-4"></i>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">Across confirmed sectors</div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-lg-3">
+        <div class="card border-0 shadow-sm p-3">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="text-muted small fw-semibold text-uppercase">Data Quality</div>
+                    <div class="fs-4 fw-bold text-secondary">
+                        {{ response.confirmed_sectors_count }} / {{ response.total_sectors_evaluated }}
+                    </div>
+                </div>
+                <div class="rounded-circle bg-secondary-subtle p-3 text-secondary">
+                    <i class="bi bi-shield-check fs-4"></i>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">Confirmed sector universes</div>
+        </div>
+    </div>
+</div>
+
+<!-- Sector Breadth Heatmap -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0 fw-bold">
+            <i class="bi bi-grid-3x3 me-2 text-primary"></i>Sector Net Breadth Heatmap
+        </h2>
+        <span class="small text-muted">Sorted by Net Directional Breadth DESC</span>
+    </div>
+    <div class="card-body">
+        <div class="row g-2">
+            {% for s in response.sectors %}
+                {% set nb = s.net_directional_breadth_pct %}
+                {% if nb >= 30.0 %}
+                    {% set card_class = "border-success bg-success-subtle text-success-emphasis" %}
+                    {% set badge_class = "bg-success text-white" %}
+                {% elif nb >= 10.0 %}
+                    {% set card_class = "border-info bg-info-subtle text-info-emphasis" %}
+                    {% set badge_class = "bg-info text-dark" %}
+                {% elif nb > -10.0 %}
+                    {% set card_class = "border-secondary-subtle bg-light text-secondary" %}
+                    {% set badge_class = "bg-secondary text-white" %}
+                {% elif nb > -30.0 %}
+                    {% set card_class = "border-warning bg-warning-subtle text-warning-emphasis" %}
+                    {% set badge_class = "bg-warning text-dark" %}
+                {% else %}
+                    {% set card_class = "border-danger bg-danger-subtle text-danger-emphasis" %}
+                    {% set badge_class = "bg-danger text-white" %}
+                {% endif %}
+                <div class="col-6 col-md-4 col-lg-3 col-xl-2">
+                    <div class="card h-100 p-2 {{ card_class }} border">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <span class="fw-bold small text-truncate" title="{{ s.sector_name }}">{{ s.sector_name }}</span>
+                            <span class="badge {{ badge_class }} ms-1">
+                                {% if nb > 0 %}+{% endif %}{{ "%.1f"|format(nb) }}%
+                            </span>
+                        </div>
+                        <div class="small mt-2 d-flex justify-content-between text-muted" style="font-size: 0.75rem;">
+                            <span><i class="bi bi-arrow-up text-success"></i> {{ "%.0f"|format(s.bullish_pct) }}%</span>
+                            <span><i class="bi bi-arrow-down text-danger"></i> {{ "%.0f"|format(s.bearish_pct) }}%</span>
+                            <span>N={{ s.analytical_valid_constituents }}</span>
+                        </div>
+                        {% if s.contradictions %}
+                            <div class="mt-1">
+                                <span class="badge bg-danger-subtle text-danger border border-danger small" style="font-size: 0.65rem;" title="{{ s.contradictions|length }} contradiction(s) flagged">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ s.contradictions|length }} Flag
+                                </span>
+                            </div>
+                        {% endif %}
+                        {% if s.coverage_status != "CONFIRMED" %}
+                            <div class="mt-1">
+                                <span class="badge bg-secondary small" style="font-size: 0.65rem;">
+                                    {{ s.coverage_status }}
+                                </span>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Detailed Breadth Matrix Table -->
+<div class="card border-0 shadow-sm mb-4">
+    <div class="card-header bg-white border-bottom py-3 d-flex justify-content-between align-items-center">
+        <h2 class="h6 mb-0 fw-bold">
+            <i class="bi bi-table me-2 text-primary"></i>Sector Evidence Consensus Matrix
+        </h2>
+        <span class="small text-muted">{{ response.sectors|length }} Universes Evaluated</span>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover table-striped align-middle mb-0" style="font-size: 0.875rem;">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">Sector Universe</th>
+                    <th scope="col" class="text-center">Constituents<br><span class="text-muted fw-normal" style="font-size: 0.7rem;">Tot/Eval/Val</span></th>
+                    <th scope="col" class="text-center">Net Breadth</th>
+                    <th scope="col" class="text-center">Bullish %</th>
+                    <th scope="col" class="text-center">Bearish %</th>
+                    <th scope="col" class="text-center">Mixed %</th>
+                    <th scope="col" class="text-center">Neutral %</th>
+                    <th scope="col" class="text-center">Insuff. %</th>
+                    <th scope="col" class="text-center">Mean Conv.</th>
+                    <th scope="col" class="text-center">Delivery %</th>
+                    <th scope="col" class="text-center">Deriv. Active %</th>
+                    <th scope="col" class="text-center">Contradictions / Status</th>
+                    <th scope="col" class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for s in response.sectors %}
+                <tr>
+                    <td>
+                        <div class="fw-bold">{{ s.sector_name }}</div>
+                        <div class="text-muted small">{{ s.sector_code }} <span class="badge bg-light text-muted border">{{ s.category }}</span></div>
+                    </td>
+                    <td class="text-center">
+                        <span class="fw-semibold">{{ s.total_eligible_constituents }}</span> /
+                        <span class="text-muted">{{ s.evaluated_constituents }}</span> /
+                        <span class="text-primary">{{ s.analytical_valid_constituents }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% set nb = s.net_directional_breadth_pct %}
+                        {% if nb >= 20.0 %}
+                            <span class="badge bg-success-subtle text-success border border-success fw-bold px-2 py-1">
+                                +{{ "%.1f"|format(nb) }}%
+                            </span>
+                        {% elif nb > 0.0 %}
+                            <span class="badge bg-info-subtle text-info-emphasis border border-info fw-bold px-2 py-1">
+                                +{{ "%.1f"|format(nb) }}%
+                            </span>
+                        {% elif nb == 0.0 %}
+                            <span class="badge bg-light text-secondary border fw-bold px-2 py-1">
+                                0.0%
+                            </span>
+                        {% elif nb > -20.0 %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis border border-warning fw-bold px-2 py-1">
+                                {{ "%.1f"|format(nb) }}%
+                            </span>
+                        {% else %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger fw-bold px-2 py-1">
+                                {{ "%.1f"|format(nb) }}%
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center text-success fw-semibold">{{ "%.1f"|format(s.bullish_pct) }}%</td>
+                    <td class="text-center text-danger fw-semibold">{{ "%.1f"|format(s.bearish_pct) }}%</td>
+                    <td class="text-center text-warning-emphasis">{{ "%.1f"|format(s.mixed_pct) }}%</td>
+                    <td class="text-center text-muted">{{ "%.1f"|format(s.neutral_pct) }}%</td>
+                    <td class="text-center text-muted">{{ "%.1f"|format(s.insufficient_evidence_pct) }}%</td>
+                    <td class="text-center">
+                        {% if s.mean_convergence_ratio is not none %}
+                            <span class="badge bg-light text-dark border">{{ "%.2f"|format(s.mean_convergence_ratio) }}</span>
+                        {% else %}
+                            <span class="text-muted">--</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if s.delivery_breakout_pct >= 30.0 %}
+                            <span class="badge bg-success-subtle text-success">{{ "%.1f"|format(s.delivery_breakout_pct) }}%</span>
+                        {% else %}
+                            <span>{{ "%.1f"|format(s.delivery_breakout_pct) }}%</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if s.derivatives_valid_count > 0 %}
+                            <span>{{ "%.1f"|format(s.derivatives_active_pct) }}%</span>
+                            <div class="text-muted" style="font-size: 0.7rem;">({{ s.derivatives_active_count }}/{{ s.derivatives_valid_count }})</div>
+                        {% else %}
+                            <span class="text-muted">N/A</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if s.contradictions %}
+                            {% for c in s.contradictions %}
+                                <span class="badge bg-danger text-white mb-1 d-block text-truncate" style="max-width: 150px;" title="{{ c.description }}">
+                                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ c.flag }}
+                                </span>
+                            {% endfor %}
+                        {% endif %}
+                        {% if s.coverage_status == "CONFIRMED" and not s.contradictions %}
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle me-1"></i>CONFIRMED</span>
+                        {% elif s.coverage_status != "CONFIRMED" %}
+                            <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-info-circle me-1"></i>{{ s.coverage_status }}</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="/stocks/screening/what-changed" class="btn btn-sm btn-outline-secondary text-nowrap" title="Screen constituents in G.11-D-4 Screener">
+                            <i class="bi bi-search me-1"></i>Screen
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quality Warnings & Contradiction Notes Callout -->
+{% set all_warnings = [] %}
+{% for s in response.sectors %}
+    {% for w in s.quality_warnings %}
+        {% set _ = all_warnings.append(s.sector_name ~ ": " ~ w) %}
+    {% endfor %}
+{% endfor %}
+{% if all_warnings %}
+<div class="card border-0 bg-light shadow-sm mb-4">
+    <div class="card-body py-3">
+        <h3 class="h6 fw-bold text-muted mb-2"><i class="bi bi-info-circle me-1"></i>Data Quality & Coverage Diagnostics</h3>
+        <ul class="mb-0 small text-muted ps-3">
+            {% for w in all_warnings[:5] %}
+                <li>{{ w }}</li>
+            {% endfor %}
+            {% if all_warnings|length > 5 %}
+                <li><em>...and {{ all_warnings|length - 5 }} more diagnostic notices.</em></li>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+{% endif %}

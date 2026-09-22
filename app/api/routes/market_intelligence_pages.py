@@ -8,7 +8,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -22,9 +22,13 @@ from app.api.browser_auth import (
 from app.auth import csrf
 from app.auth.authorization import require_browser_permission, user_has_permission
 from app.core.config import settings
-from app.db.session import get_db_session
+from app.db.session import get_db_session, get_session_factory
+from app.market_intelligence.sector_universe import SECTOR_INDEX_CODES
 from app.repositories.market_intelligence_snapshot import (
     MarketIntelligenceSnapshotRepository,
+)
+from app.schemas.sector_evidence import (
+    SectorEvidenceBreadthRequest,
 )
 from app.services.ai_market_explanation import AIMarketExplanationService
 from app.services.composite_market_intelligence import CompositeMarketIntelligence
@@ -38,6 +42,9 @@ from app.services.institutional_intelligence import InstitutionalIntelligence
 from app.services.macro_intelligence import MacroIntelligence
 from app.services.market_breadth import MarketBreadth
 from app.services.news_policy_service import NewsPolicyService
+from app.services.sector_evidence_aggregator_service import (
+    SectorEvidenceAggregatorService,
+)
 from app.services.sector_intelligence import SectorIntelligence
 
 router = APIRouter(
@@ -426,3 +433,98 @@ async def refresh_dashboard(
     context = await _build_dashboard_context(request, session, user=user)
     context["flash"] = {"level": "success", "message": "Market intelligence refreshed."}
     return _page(request, "market_intelligence.html", context)
+
+
+# ---------------------------------------------------------------------------
+# G.11-D-6 Sector Evidence Breadth Page & HTMX Partials
+# ---------------------------------------------------------------------------
+
+
+def _parse_opt_date(val: str | date | None) -> date | None:
+    if val is None or isinstance(val, date):
+        return val
+    text = val.strip()
+    if not text:
+        return None
+    return date.fromisoformat(text)
+
+
+@router.get("/sectors/evidence-breadth", response_class=HTMLResponse)
+async def sector_evidence_breadth_page(
+    request: Request,
+    sectors: str | None = Query(default=None),
+    evaluation_date: str | None = Query(default=None),
+    as_of_date: str | None = Query(default=None),
+    comparison_window: int = Query(default=1, ge=1, le=30),
+    min_data_coverage_pct: float = Query(default=50.0, ge=0.0, le=100.0),
+    session: AsyncSession = Depends(get_db_session),
+) -> HTMLResponse:
+    """Render the Sector Evidence Breadth dashboard or HTMX matrix partial."""
+    user = await _browser_user(request, session)
+
+    parsed_eval_date = _parse_opt_date(evaluation_date)
+    parsed_as_of_date = _parse_opt_date(as_of_date)
+
+    sector_list: list[str]
+    if not sectors or sectors.strip() == "" or sectors.strip().upper() == "ALL_SECTORS":
+        sector_list = ["ALL_SECTORS"]
+    else:
+        sector_list = [s.strip().upper() for s in sectors.split(",") if s.strip()]
+
+    breadth_req = SectorEvidenceBreadthRequest(
+        sectors=sector_list,
+        evaluation_date=parsed_eval_date,
+        as_of_date=parsed_as_of_date,
+        comparison_window=comparison_window,
+        min_data_coverage_pct=min_data_coverage_pct,
+    )
+
+    aggregator = SectorEvidenceAggregatorService(
+        session=session,
+        session_factory=get_session_factory(),
+    )
+    error_flash = None
+    try:
+        breadth_response = await aggregator.get_sector_evidence_breadth(breadth_req)
+    except ValueError as e:
+        error_flash = str(e)
+        breadth_req = SectorEvidenceBreadthRequest(
+            sectors=["ALL_SECTORS"],
+            evaluation_date=evaluation_date,
+            as_of_date=as_of_date,
+            comparison_window=comparison_window,
+            min_data_coverage_pct=min_data_coverage_pct,
+        )
+        breadth_response = await aggregator.get_sector_evidence_breadth(breadth_req)
+
+    context = {
+        "request": request,
+        "user": user,
+        "response": breadth_response,
+        "csrf_token": _existing_csrf_token(request),
+        "current_sectors": sectors or "ALL_SECTORS",
+        "evaluation_date": (
+            breadth_response.evaluation_date.isoformat()
+            if breadth_response.evaluation_date
+            else ""
+        ),
+        "as_of_date": (
+            breadth_response.as_of_date.isoformat()
+            if breadth_response.as_of_date
+            else ""
+        ),
+        "comparison_window": breadth_response.comparison_window,
+        "min_data_coverage_pct": min_data_coverage_pct,
+        "all_sector_codes": list(SECTOR_INDEX_CODES),
+        "error_flash": error_flash,
+    }
+
+    is_htmx = (
+        request.headers.get("hx-request") == "true"
+        or request.headers.get("HX-Request") == "true"
+        or request.query_params.get("partial") == "true"
+    )
+    if is_htmx:
+        return _partial(request, "components/sector_evidence_matrix.html", context)
+
+    return _page(request, "sector_evidence_breadth.html", context)

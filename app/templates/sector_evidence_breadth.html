@@ -1,0 +1,76 @@
+{% extends "layouts/shell.html" %}
+{% block title %}Sector Evidence Breadth - AI Stock Scanner{% endblock %}
+{% block page_title %}Sector Evidence Breadth{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <div class="workspace-eyebrow text-muted text-uppercase fw-semibold small">Market Intelligence (G.11-D-6)</div>
+        <h1 class="workspace-title h2 mb-1">Sector Breadth & Market Evidence Consensus</h1>
+        <p class="workspace-subtitle text-muted mb-0">Cross-domain evidence aggregation across supported NSE sector and thematic universes.</p>
+    </div>
+</div>
+
+{% if error_flash %}
+<div class="alert alert-warning alert-dismissible fade show mb-4" role="alert">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i>{{ error_flash }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+{% endif %}
+
+<!-- Filters Card -->
+<div class="card mb-4 border-0 shadow-sm">
+    <div class="card-body">
+        <form id="sector-breadth-filter-form" method="get" action="/market-intelligence/sectors/evidence-breadth"
+              hx-get="/market-intelligence/sectors/evidence-breadth"
+              hx-target="#sector-matrix-container"
+              hx-indicator="#loading-indicator"
+              class="row g-3 align-items-end">
+            <input type="hidden" name="partial" value="true">
+            <div class="col-md-3">
+                <label for="sectors-select" class="form-label small fw-bold text-muted">Sector Universe</label>
+                <select id="sectors-select" name="sectors" class="form-select form-select-sm">
+                    <option value="ALL_SECTORS" {% if current_sectors == "ALL_SECTORS" %}selected{% endif %}>All 17 Sectors (Macro Matrix)</option>
+                    {% for code in all_sector_codes %}
+                    <option value="{{ code }}" {% if current_sectors == code %}selected{% endif %}>{{ code }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="eval-date" class="form-label small fw-bold text-muted">Evaluation Date (T)</label>
+                <input type="date" id="eval-date" name="evaluation_date" value="{{ evaluation_date }}" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label for="as-of-date" class="form-label small fw-bold text-muted">As Of (PIT Cutoff)</label>
+                <input type="date" id="as-of-date" name="as_of_date" value="{{ as_of_date }}" class="form-control form-control-sm" placeholder="Live if empty">
+            </div>
+            <div class="col-md-2">
+                <label for="comp-window" class="form-label small fw-bold text-muted">Window (Sessions)</label>
+                <input type="number" id="comp-window" name="comparison_window" value="{{ comparison_window }}" min="1" max="30" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-2">
+                <label for="min-coverage" class="form-label small fw-bold text-muted">Min Coverage %</label>
+                <input type="number" id="min-coverage" name="min_data_coverage_pct" value="{{ min_data_coverage_pct }}" min="0" max="100" step="5" class="form-control form-control-sm">
+            </div>
+            <div class="col-md-1 d-flex">
+                <button type="submit" class="btn btn-sm btn-primary w-100">
+                    <i class="bi bi-filter me-1"></i>Scan
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Indicator -->
+<div id="loading-indicator" class="htmx-indicator text-center my-4 py-4" style="display:none;">
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Calculating sector evidence breadth...</span>
+    </div>
+    <div class="small text-muted mt-2">Evaluating sector constituents under bounded concurrency...</div>
+</div>
+
+<!-- Results Container -->
+<div id="sector-matrix-container">
+    {% include "components/sector_evidence_matrix.html" %}
+</div>
+{% endblock %}

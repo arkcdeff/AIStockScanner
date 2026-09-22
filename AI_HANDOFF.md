@@ -353,3 +353,173 @@ STATUS & INDEPENDENT RE-AUDIT VERDICT:
 - Live Chromium browser QA: COMPLETED (zero console errors, zero HTTP 5xx, responsive desktop/tablet/mobile)
 - Audit observations: 4 non-blocking P4 observations noted for future iterations; 0 P0/P1/P2/P3 findings
 - D-5 Status: CERTIFICATION READY (Pending final commit and push verification)
+
+---
+
+# G.11-D-6 — SECTOR BREADTH & MARKET EVIDENCE CONSENSUS AGGREGATOR
+
+DATE: 2026-09-21
+BRANCH: checkpoint/sprint19-20-20260822
+BASE COMMIT: fd49ff980746a9123bac85a2dd13ab28bf9c6e67 (G.11-D-5 Certified)
+PARENT COMMIT: 6664cb0e6de4f27a9b07d315087b1114b7429b50 (G.11-D-4 Certified)
+ALEMBIC HEAD: f1b9c8d7e6a5 (head) — Unchanged, 0 database migrations added
+
+## ARCHITECTURE & SPECIFICATION
+Implemented strictly in accordance with approved specification: `docs/G11-D6-ARCHITECTURE.md` (SPEC-R1 Revision).
+- Aggregates constituent evidence horizontally across supported NSE sector/thematic index universes configured by AIStockScanner.
+- Bounded async concurrency via `asyncio.Semaphore(SCREENING_MAX_WORKERS)` (max 5 active database workers).
+- Worker session isolation: each worker coroutine manages its own isolated `AsyncSession` via `session_factory()`.
+- Direct public D-3 invocation: calls `WhatChangedInterpretationService(worker_session).interpret(..., include_ai_narrative=False)`.
+- Zero AI calls in calculation path (100% reproducible arithmetic).
+- Read-only data access; zero DB mutations, snapshots, or migrations.
+- Survivorship-bias-safe point-in-time constituent resolution:
+  * Historical replay (`as_of_date is not None`) uses Tier 1 `IndexMembership` with `available_at <= as_of_date`.
+  * Historical replay strictly rejects unversioned `Stock.sector_id` fallback (`UNSUPPORTED_HISTORICAL_SECTOR_TAXONOMY`).
+  * Current `Stock.is_active == False` does not remove historically valid members.
+  * Live mode (`as_of_date is None`) permits live taxonomy fallback with active trading presence.
+- Canonical denominators: $N_{\text{TOTAL\_ELIGIBLE}} = N_{\text{ANALYTICAL\_VALID}} + N_{\text{INSUFFICIENT\_EVIDENCE}} + N_{\text{NO\_DATA}} + N_{\text{ERROR}}$.
+- Discrete 5-state distribution: Bullish, Bearish, Mixed, Neutral, and Insufficient Evidence (5th bucket does not inflate neutral breadth).
+- Equal-weight constituent return contribution proxy for `HIGH_CONCENTRATION_RISK` with guards ($N \ge 5$, $|S_{\text{pos}}| \ge 2$, $\Sigma_{\text{pos}} > 0$, $C_{(1)} + C_{(2)} \ge 0.80$, $\text{net\_directional\_breadth\_pct} \le 0.0\%$).
+- Absolute sector return ($R_{\text{sector}} \ge +0.5\%$) for `PRICE_BREADTH_CONTRADICTION` and `DELIVERY_CONFIRMATION_DEFICIT`.
+- `SECTOR_EVIDENCE_CONFLICTED` triggered when `mixed_pct >= 40.0%`.
+
+## CREATED FILES
+1. `docs/G11-D6-ARCHITECTURE.md`: Approved formal specification with SPEC-R1 corrections.
+2. `app/schemas/sector_evidence.py`: Pydantic models (`SectorEvidenceBreadthRequest`, `SectorEvidenceBreadthResponse`, `SectorEvidenceSummary`, `SectorContradictionDetail`, enums).
+3. `app/services/sector_evidence_aggregator_service.py`: Stateless aggregation service with bounded concurrency and isolated worker sessions.
+4. `app/templates/sector_evidence_breadth.html`: Shell page with filters, loading indicator, and container.
+5. `app/templates/components/sector_evidence_matrix.html`: Responsive heatmap, metric ribbons, detailed data table, and contradiction badges.
+6. `tests/test_sector_evidence_g11d6.py`: Comprehensive test suite (41 tests) covering 10 test areas, 9 mandatory PIT scenarios, and the P1 F-01 real-ORM regression class.
+
+## MODIFIED FILES
+1. `app/api/routes/market_intelligence.py`: Registered `GET /api/v1/market-intelligence/sectors/evidence-breadth` returning `SectorEvidenceBreadthResponse`.
+2. `app/api/routes/market_intelligence_pages.py`: Registered `GET /market-intelligence/sectors/evidence-breadth` supporting full HTML shell and HTMX matrix partial.
+3. `AI_HANDOFF.md`: Recorded implementation results and test audit.
+
+## PROTECTED FILES (19/19 UNTOUCHED)
+Verified untouched via `git diff HEAD`:
+- D-1: `app/services/what_changed_service.py`, `app/services/what_changed_config.py`, `app/schemas/what_changed.py`, `tests/test_what_changed_g11d1.py`
+- D-2: `app/services/what_changed_synthesis_service.py`, `app/services/what_changed_synthesis_config.py`, `app/schemas/what_changed_synthesis.py`, `tests/test_what_changed_synthesis_g11d2.py`
+- D-3: `app/services/what_changed_interpretation_service.py`, `app/services/what_changed_interpretation_config.py`, `app/schemas/what_changed_interpretation.py`, `app/ai/interpretation_narrative_service.py`, `tests/test_what_changed_interpretation_g11d3.py`
+- D-4: `app/services/what_changed_screening_service.py`, `app/schemas/what_changed_screening.py`, `tests/test_what_changed_screening_g11d4.py`
+- D-5: `app/services/stock_decision_context_service.py`, `app/schemas/stock_decision_context.py`, `tests/test_stock_decision_context_g11d5.py`
+
+## AUDIT BLOCKING DEFECT REMEDIATION: P1 FINDING F-01
+
+DATE: 2026-09-22
+STATUS: FIXED & RE-VERIFIED
+
+### Defect Analysis (P1 F-01)
+- In `app/services/sector_evidence_aggregator_service.py` line ~779, `_fetch_sector_index_return` queried `MarketIndexPrice.close_price`.
+- The actual model column in `app/models/market_index_price.py` is `close: Mapped[Decimal]`.
+- Because SQLAlchemy constructs expressions dynamically, referencing `MarketIndexPrice.close_price` raised an `AttributeError` at query-construction time.
+- In unit tests where `_fetch_sector_index_return` was patched, the error was masked. In live execution, every sector evaluation crashed with HTTP 500.
+
+### Code Changes Applied
+1. `app/services/sector_evidence_aggregator_service.py`:
+   - Updated `_fetch_sector_index_return` to query `MarketIndexPrice.close` (line 783).
+   - Preserved PIT effective cutoff (`MarketIndexPrice.trade_date <= effective_cutoff`).
+   - Also verified `DailyPrice.close` reference in `_fetch_constituent_return` (line 886).
+2. `app/api/routes/market_intelligence_pages.py`:
+   - Added `_parse_opt_date` helper to parse query dates, gracefully handling browser form submissions with empty date strings (`""` -> `None`).
+3. `app/templates/sector_evidence_breadth.html`:
+   - Added `id="sector-breadth-filter-form"` to the filter `<form>` element.
+4. `tests/test_sector_evidence_g11d6.py`:
+   - Added `TestSectorIndexReturnModelContractAndPIT` containing:
+     * `test_market_index_price_model_contract`: Asserts `hasattr(MarketIndexPrice, 'close')` and `not hasattr(MarketIndexPrice, 'close_price')`.
+     * `test_fetch_sector_index_return_real_orm_query_and_pit_cutoff`: Un-mocked end-to-end ORM test verifying real price query, return arithmetic, and PIT cutoff.
+     * `test_price_dependent_contradictions_reachable_with_real_sector_return`: Verifies all three price-dependent contradiction rules (`PRICE_BREADTH_CONTRADICTION`, `DELIVERY_CONFIRMATION_DEFICIT`, `SECTOR_EVIDENCE_CONFLICTED`) receive real sector returns.
+
+### 11-Step Validation Audit Results
+1. **D-6 Focused Regression Suite**: 41/41 PASS (`tests/test_sector_evidence_g11d6.py`).
+2. **Full Sequential D1-D6 Regression**: 284/284 PASS across all 6 increments:
+   - D-1: `tests/test_what_changed_g11d1.py` -> 28/28 PASS
+   - D-2: `tests/test_what_changed_synthesis_g11d2.py` -> 32/32 PASS
+   - D-3: `tests/test_what_changed_interpretation_g11d3.py` -> 106/106 PASS
+   - D-4: `tests/test_what_changed_screening_g11d4.py` -> 51/51 PASS
+   - D-5: `tests/test_stock_decision_context_g11d5.py` -> 26/26 PASS
+   - D-6: `tests/test_sector_evidence_g11d6.py` -> 41/41 PASS
+3. **Ruff Linting**: `uv run ruff check app tests` -> CLEAN (0 errors).
+4. **Git Diff Check**: `git diff --check` -> CLEAN (0 whitespace/formatting issues).
+5. **Alembic Head Verification**: `uv run alembic heads` -> `f1b9c8d7e6a5 (head)` (0 migrations added).
+6. **App Boot & OpenAPI Inspection**:
+   - `create_app()` boots cleanly.
+   - Routes registered: `/api/v1/market-intelligence/sectors/evidence-breadth` and `/market-intelligence/sectors/evidence-breadth`.
+7. **Live API Smoke Test Against Real Database**:
+   - Authenticated `qa_admin` via Bearer token.
+   - `GET /api/v1/market-intelligence/sectors/evidence-breadth?sectors=NIFTY_AUTO&comparison_window=1` -> HTTP 200 OK.
+   - Returned valid JSON conforming to `SectorEvidenceBreadthResponse`.
+   - Executed real ORM `MarketIndexPrice.close` query against real database.
+8. **Live Chromium Browser QA (Playwright)**:
+   - Desktop (1440x900), Tablet (768x1024), and Mobile (390x844) viewports verified.
+   - HTMX form submission and partial matrix swaps verified.
+   - Screenshots captured under `g11d6_screenshots/` (Desktop, Tablet, Mobile).
+9. **Zero HTTP 500 Confirmation**:
+   - 0 console errors, 0 page errors, 0 HTTP 5xx responses during full live browser session.
+   - Structured verification results logged to `g11d6_browser_results.json`.
+10. **Price-Based Contradiction Reachability**:
+    - Real sector return queries feed contradiction evaluations without mocking.
+    - Contradictions verified reachable end-to-end.
+11. **Clean Working Tree & Protected Files**:
+    - All 19 protected files across D1-D5 remain strictly untouched (`git diff` against base commit `fd49ff980746a9123bac85a2dd13ab28bf9c6e67` is 100% clean).
+    - No commits or pushes performed.
+
+STATUS: REMEDIATION COMPLETED — READY FOR INDEPENDENT RE-AUDIT
+
+## INDEPENDENT REMEDIATION VALIDATION ADDENDUM (P1 F-01)
+
+DATE: 2026-09-22
+VALIDATOR: Independent remediation pass (post-fix live verification on the frozen working tree).
+
+### Exact Defect
+- `app/services/sector_evidence_aggregator_service.py` `_fetch_sector_index_return` queried the
+  non-existent attribute `MarketIndexPrice.close_price` (model column is `close`,
+  `app/models/market_index_price.py:32`). AttributeError raised at query-construction time,
+  before any DB I/O — unhandled → HTTP 500 on every live sector evaluation (REST + UI).
+  Reproduced live by the independent audit with captured server traceback.
+
+### Exact Fix
+- One-token change: `select(MarketIndexPrice.close_price, ...)` → `select(MarketIndexPrice.close, ...)`
+  with an explanatory comment (audit P1 F-01). No architectural, PIT, denominator, contradiction,
+  D3-boundary, concurrency, or migration changes. D1–D5 untouched.
+
+### Tests Added (regression guard)
+- `TestSectorIndexReturnModelContractAndPIT` in `tests/test_sector_evidence_g11d6.py`:
+  1. `test_market_index_price_model_contract` — model-contract guard (`close` exists,
+     `close_price` does not; fails loudly on future renames).
+  2. `test_fetch_sector_index_return_real_orm_query_and_pit_cutoff` — UN-MOCKED real-DB test
+     via `db_session` fixture: real ORM query construction + execution, seeded arithmetic
+     (+1.0%), PIT cutoff (future bar excluded), fail-closed `None` on insufficient bars.
+  3. `test_price_dependent_contradictions_reachable_with_real_sector_return` — real
+     `_fetch_sector_index_return` output opens the `>= +0.5%` gate and feeds
+     `_evaluate_contradictions`: PRICE_BREADTH_CONTRADICTION and DELIVERY_CONFIRMATION_DEFICIT
+     fire; below-gate return suppresses both.
+
+### Independent Validation Results (this pass)
+- Focused D-6 suite: 41/41 PASS (twice, before and after final tree freeze).
+- Full sequential D1-D6 regression: 284/284 PASS (28+32+106+51+26+41).
+- Ruff `app tests`: clean. `git diff --check`: clean. Alembic head: `f1b9c8d7e6a5`.
+- App boot + OpenAPI: endpoint `/api/v1/market-intelligence/sectors/evidence-breadth` registered
+  with GET and params (sectors, evaluation_date, as_of_date, comparison_window, min_data_coverage_pct).
+- Live API (real dev DB): unauth 401; auth 200 (9.9s, 153 constituents evaluated, all
+  INSUFFICIENT_EVIDENCE with correct directional suppression + quality warning — fail-closed);
+  invalid window 422; invalid sector 422.
+- Live Chromium browser QA (Playwright, after server restart on fixed code):
+  login PASS; unauthenticated redirect to login PASS; HTMX request + partial swap PASS
+  (matrix row + 5 badges rendered); desktop/tablet/mobile horizontal overflow 0px;
+  0 console errors; 0 HTTP 5xx. Initial full-page default (ALL_SECTORS) render exceeds 60s —
+  latency-target observation (P4, spec §28 non-binding), not a functional failure; single-sector
+  HTMX flow completes in seconds.
+
+### Environment Note (not a code defect)
+- During regression re-runs, two zombie `pytest tests/test_what_changed_interpretation_g11d3.py -v`
+  processes (spawned outside this remediation) were concurrently truncating/re-seeding the shared
+  test database, producing spurious duplicate-key/deadlock/401 failures across D1-D2. After the
+  zombies were terminated, the full 284/284 regression passed cleanly twice. Any future intermittent
+  D1/D2 failures of this shape should first check for concurrent pytest processes.
+
+### Remaining Status
+- P1 F-01: FIXED and verified live (500 eliminated; contradiction data path reachable).
+- Newly unmasked (was hidden behind the 500): empty date-string form submissions returned 422;
+  fixed in the pages route via `_parse_opt_date` (empty → None; garbage still 422).
+- D6 CERTIFICATION READY - independent re-audit passed.
