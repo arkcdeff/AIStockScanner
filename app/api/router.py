@@ -16,6 +16,7 @@ from app.api.routes import (
     pipeline,
     portfolio,
     scanners,
+    signal_trajectories,
     stocks,
     watchlists,
 )
@@ -30,6 +31,7 @@ api_router.include_router(stocks.router)
 api_router.include_router(market_data.router)
 api_router.include_router(indicators.router)
 api_router.include_router(scanners.router)
+api_router.include_router(signal_trajectories.router)
 api_router.include_router(pipeline.router)
 api_router.include_router(analytics.router)
 api_router.include_router(ai.router)
