@@ -13,6 +13,7 @@ from app.api.routes import (
     market_data,
     market_intelligence,
     notifications,
+    options,
     pipeline,
     portfolio,
     scanners,
@@ -41,6 +42,7 @@ api_router.include_router(alerts.router)
 api_router.include_router(notifications.router)
 api_router.include_router(backtests.router)
 api_router.include_router(market_intelligence.router)
+api_router.include_router(options.router)
 
 dashboard_router = APIRouter()
 dashboard_router.include_router(dashboard.router)

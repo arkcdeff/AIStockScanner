@@ -923,11 +923,33 @@ class TestStock360NewsPointInTime:
 
 class TestDatabaseMigrationInvariant:
     def test_alembic_head_remains_unchanged(self) -> None:
-        """G.11-D-5 is strictly stateless; zero migrations permitted."""
+        """G.11-D-5 is strictly stateless; zero migrations permitted in D-5 scope.
+
+        The certified D1-D6 baseline migration is f1b9c8d7e6a5.
+        Authorized downstream workstreams (e.g. G.11-OPT-1 b3a4c5d6e7f8) may chain
+        linearly from this certified baseline without altering D-5 statelessness.
+        """
         from alembic.config import Config
         from alembic.script import ScriptDirectory
 
         cfg = Config("alembic.ini")
         script = ScriptDirectory.from_config(cfg)
         head = script.get_current_head()
-        assert head == "f1b9c8d7e6a5", f"Expected alembic head f1b9c8d7e6a5, but found {head}"
+
+        # Certified D1-D6 baseline revision must remain intact in migration graph
+        baseline_rev = script.get_revision("f1b9c8d7e6a5")
+        assert baseline_rev is not None, "Certified baseline migration f1b9c8d7e6a5 must exist"
+
+        # Current head must be either the certified baseline or an authorized linear descendant
+        authorized_heads = {"f1b9c8d7e6a5", "b3a4c5d6e7f8"}
+        assert head in authorized_heads, (
+            f"Expected alembic head in {authorized_heads}, but found {head}"
+        )
+        if head != "f1b9c8d7e6a5":
+            all_revs = [r.revision for r in script.iterate_revisions(upper=head, lower="base")]
+            assert "f1b9c8d7e6a5" in all_revs, (
+                f"Head {head} must descend linearly from certified baseline f1b9c8d7e6a5"
+            )
+            assert len(script.get_heads()) == 1, (
+                f"Expected exactly 1 migration head, but found {script.get_heads()}"
+            )

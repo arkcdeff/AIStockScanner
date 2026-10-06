@@ -26,6 +26,7 @@
         <li><a href="/market-data" class="sidebar-link {{ active_class if cp == '/market-data' and not workspace else '' }}" title="Market data operations"><i class="bi bi-database-check sidebar-icon"></i><span class="sidebar-text">Data Operations</span></a></li>
         <li><a href="/market-data?workspace=coverage" class="sidebar-link {{ active_class if cp == '/market-data' and workspace == 'coverage' else '' }}" title="Coverage and readiness"><i class="bi bi-shield-check sidebar-icon"></i><span class="sidebar-text">Data Health</span></a></li>
         <li><a href="/stocks" class="sidebar-link {{ active_class if cp.startswith('/stocks') else '' }}" title="Stock explorer and Stock360"><i class="bi bi-building sidebar-icon"></i><span class="sidebar-text">Stocks</span></a></li>
+        <li><a href="/market-data/options" class="sidebar-link {{ active_class if cp.startswith('/market-data/options') else '' }}" title="Live intraday options workspace"><i class="bi bi-sliders sidebar-icon"></i><span class="sidebar-text">Options</span></a></li>
         {% endif %}
 
         {% if nav_admin or 'scanners.read' in nav_permissions %}
@@ -36,7 +37,14 @@
 
         {% if nav_admin or 'stocks.read' in nav_permissions %}
         <li class="sidebar-menu-label">Derivatives</li>
-        <li><a href="/market-data/derivatives" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives') else '' }}" title="Existing EOD derivatives research"><i class="bi bi-layers sidebar-icon"></i><span class="sidebar-text">Derivatives Workbench</span></a></li>
+        <li><a href="/market-data/options" class="sidebar-link {{ active_class if cp == '/market-data/options' or cp == '/market-data/derivatives/option-chain' else '' }}" title="Live Option Chain with Greeks"><i class="bi bi-sliders sidebar-icon"></i><span class="sidebar-text">Option Chain</span></a></li>
+        <li><a href="/market-data/derivatives/oi-statistics" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/oi-statistics') else '' }}" title="Institutional OI Statistics Dashboard"><i class="bi bi-pie-chart sidebar-icon"></i><span class="sidebar-text">OI Statistics</span></a></li>
+        <li><a href="/market-data/derivatives/oi-change" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/oi-change') else '' }}" title="Intraday OI &amp; Price Interval Analytics"><i class="bi bi-graph-up-arrow sidebar-icon"></i><span class="sidebar-text">OI Change</span></a></li>
+        <li><a href="/market-data/derivatives/multistrike-oi" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/multistrike-oi') else '' }}" title="Multi-Strike OI Comparison &amp; Trajectory"><i class="bi bi-bezier2 sidebar-icon"></i><span class="sidebar-text">Multistrike OI</span></a></li>
+        <li><a href="/market-data/derivatives/options-oi-time" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/options-oi-time') else '' }}" title="Cumulative Options OI vs Time"><i class="bi bi-clock-history sidebar-icon"></i><span class="sidebar-text">Options OI vs Time</span></a></li>
+        <li><a href="/market-data/derivatives/futures-oi-time" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/futures-oi-time') else '' }}" title="Futures OI &amp; Price vs Time"><i class="bi bi-activity sidebar-icon"></i><span class="sidebar-text">Futures OI vs Time</span></a></li>
+        <li><a href="/market-data/derivatives/oi-replay" class="sidebar-link {{ active_class if cp.startswith('/market-data/derivatives/oi-replay') else '' }}" title="Point-in-Time Intraday Option Chain Replay"><i class="bi bi-play-circle sidebar-icon"></i><span class="sidebar-text">OI Replay</span></a></li>
+        <li><a href="/market-data/derivatives" class="sidebar-link {{ active_class if cp == '/market-data/derivatives' else '' }}" title="Historical EOD derivatives research"><i class="bi bi-layers sidebar-icon"></i><span class="sidebar-text">Derivatives Workbench</span></a></li>
         {% endif %}
 
         {% if nav_admin or 'analytics.read' in nav_permissions or 'market_intelligence.read' in nav_permissions or 'ai.read' in nav_permissions or 'backtests.read' in nav_permissions %}

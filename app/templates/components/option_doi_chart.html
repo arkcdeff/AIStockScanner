@@ -1,0 +1,273 @@
+{# ==========================================================================
+   G.11-OPT-12B Phase 2B — Chart B: Strike-wise ΔOI (Chart.js 4.4.0)
+
+   Renders ONLY from the existing backend context ``oi_change_data`` produced
+   by IntradayOptionsService.get_oi_change_analysis (strikes[].call/put with
+   change_in_oi, bar_pct, is_positive; plus backend is_atm per strike).
+
+   Sign semantics are preserved exactly as delivered by the backend:
+     positive ΔOI  -> bar in the positive direction
+     negative ΔOI  -> bar in the negative direction (actual signed value)
+     zero          -> zero-length bar (neutral colour)
+     null          -> gap (Chart.js NaN), never converted to zero; the
+                      tooltip states "unavailable"
+
+   No net ΔOI is invented — the backend provides per-side CE/PE ΔOI only.
+   Lifecycle safety is the Phase 2A hardened pattern (registry, guarded
+   one-time loader, scoped once-bound htmx:beforeSwap, teardown handle),
+   scoped to swaps replacing #oichange-container.
+   ========================================================================== #}
+{% if oi_change_data and oi_change_data.strikes %}
+{% set doi_rows = oi_change_data.strikes %}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header border-bottom border-secondary bg-transparent py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h6 class="card-title mb-0 fw-semibold text-light">
+                <i class="bi bi-activity me-1 text-info"></i>Strike-wise ΔOI — Change in Open Interest
+            </h6>
+            <div class="small text-muted mt-1">
+                {{ oi_change_data.underlying }} Spot: <strong class="text-success">₹{{ '{:,.2f}'.format(oi_change_data.spot_price) }}</strong>
+                &nbsp;|&nbsp; ATM: <span class="badge bg-warning text-dark">{{ '{:,.0f}'.format(oi_change_data.atm_strike) }}</span>
+                &nbsp;|&nbsp; Expiry: <span class="text-light">{{ oi_change_data.selected_expiry }}</span>
+                &nbsp;|&nbsp; Strikes: <span class="text-light">{{ doi_rows | length }}</span>
+                &nbsp;|&nbsp; Baseline: <span class="text-light">{{ oi_change_data.interval_baseline }}</span>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3 small text-muted">
+            <span><span class="badge bg-danger me-1">■</span>CE ΔOI</span>
+            <span><span class="badge bg-success me-1">■</span>PE ΔOI</span>
+            <span class="text-muted">positive ↔ negative · null = unavailable</span>
+        </div>
+    </div>
+    <div class="card-body py-2">
+        <div style="position: relative; height: {{ [doi_rows | length * 26 + 90, 220] | max }}px;">
+            <canvas id="opt12bDoiChart" aria-label="Strike-wise change in open interest chart"></canvas>
+        </div>
+        <div class="small text-muted mt-1">
+            <i class="bi bi-info-circle me-1 text-info"></i>
+            Actual backend ΔOI per side (CE left, PE right). Positive extends one way, negative the other, zero is a zero-length bar, and unavailable values show as gaps — never plotted as zero. Analytics visualization only, no trading signal.
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  var CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+  var REGISTRY_KEY = '__g11Opt12bDoiCharts';
+  var LOADER_KEY = '__g11Opt12bChartJsLoading'; /* shared one-time loader semaphore (Phase 2A pattern) */
+
+  // --- Chart payload (existing backend data only; null stays null) ---
+  var rows = [
+    {% for item in doi_rows %}
+    { "strike": {{ item.strike_price | float }}, "atm": {{ 'true' if item.is_atm else 'false' }}, "ceDoi": {{ item.call.change_in_oi if item.call.change_in_oi is not none else 'null' }}, "peDoi": {{ item.put.change_in_oi if item.put.change_in_oi is not none else 'null' }} }{{ ',' if not loop.last }}
+    {% endfor %}
+  ];
+  var labels = rows.map(function (r) { return fmtInt(r.strike); });
+  /* Coordinate transformation for bidirectional geometry only: CE is mirrored
+     negative so both sides grow outward from the centre. The mirrored value
+     remains the actual |ΔOI| of the backend value; tooltips show the real
+     signed number. Null becomes NaN (a genuine gap), never zero. */
+  var ceData = rows.map(function (r) { return r.ceDoi === null ? NaN : -Math.abs(r.ceDoi); });
+  var peData = rows.map(function (r) { return r.peDoi === null ? NaN : Math.abs(r.peDoi); });
+  var atmFlags = rows.map(function (r) { return r.atm === true; });
+
+  function fmtInt(v) { return new Intl.NumberFormat('en-IN').format(v); }
+  function fmtCompact(v) {
+    var abs = Math.abs(v);
+    if (abs >= 1e7) { var c1 = (v / 1e7).toFixed(2); return c1.replace(/\.?0+$/, '') + 'Cr'; }
+    if (abs >= 1e5) { var c2 = (v / 1e5).toFixed(2); return c2.replace(/\.?0+$/, '') + 'L'; }
+    if (abs >= 1e3) { var c3 = (v / 1e3).toFixed(1); return c3.replace(/\.0$/, '') + 'K'; }
+    return String(v);
+  }
+  function fmtSigned(v) { return (v > 0 ? '+' : '') + fmtInt(v); }
+
+  // Backend-supplied ATM reference: dashed vertical marker at the ATM strike row.
+  var atmReferencePlugin = {
+    id: 'opt12bAtmReferenceDoi',
+    afterDatasetsDraw: function (chart) {
+      var idx = atmFlags.indexOf(true);
+      if (idx < 0) return;
+      var y = chart.scales.y.getPixelForValue(idx);
+      var area = chart.chartArea;
+      if (y < area.top || y > area.bottom) return;
+      var ctx = chart.ctx;
+      ctx.save();
+      ctx.strokeStyle = '#fbbf24';
+      ctx.setLineDash([4, 4]);
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(area.left, y);
+      ctx.lineTo(area.right, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = 'bold 9px sans-serif';
+      ctx.fillText('ATM', area.left + 2, y - 3);
+      ctx.restore();
+    }
+  };
+
+  function destroyPreviousCharts() {
+    var previous = window[REGISTRY_KEY];
+    window[REGISTRY_KEY] = [];
+    if (!previous || !previous.length) return;
+    for (var i = 0; i < previous.length; i++) {
+      try { previous[i].destroy(); } catch (err) { /* canvas already detached by a swap */ }
+    }
+  }
+
+  // --- Deterministic HTMX cleanup (Phase 2A hardened pattern, scoped here to #oichange-container).
+  if (window.htmx && !window.__g11Opt12bDoiBeforeSwapBound) {
+    window.__g11Opt12bDoiBeforeSwapBound = true;
+    var doiBeforeSwap = function (evt) {
+      var target = evt && evt.detail && evt.detail.target;
+      if (!target) return;
+      var ownsFragment = (target.id === 'oichange-container')
+        || (target.querySelector && !!target.querySelector('#oichange-container'));
+      if (!ownsFragment) return;
+      destroyPreviousCharts();
+    };
+    document.body.addEventListener('htmx:beforeSwap', doiBeforeSwap);
+    window.__g11Opt12bDoiBeforeSwapCleanup = function () {
+      document.body.removeEventListener('htmx:beforeSwap', doiBeforeSwap);
+      window.__g11Opt12bDoiBeforeSwapBound = false;
+    };
+  }
+
+  function ensureChartJs(onReady) {
+    if (window.Chart) { onReady(); return; }
+    if (window[LOADER_KEY]) {
+      var waited = 0;
+      var timer = window.setInterval(function () {
+        if (window.Chart || waited > 200) {
+          window.clearInterval(timer);
+          if (window.Chart) onReady();
+        }
+        waited += 1;
+      }, 50);
+      return;
+    }
+    window[LOADER_KEY] = true;
+    var script = document.createElement('script');
+    script.src = CHART_JS_URL;
+    script.async = false;
+    script.onload = function () { window[LOADER_KEY] = false; onReady(); };
+    script.onerror = function () { window[LOADER_KEY] = false; };
+    document.head.appendChild(script);
+  }
+
+  function barColor(ctx) {
+    var i = ctx.dataIndex;
+    var d = ctx.dataset;
+    if (d.label === 'CE ΔOI') {
+      var ce = rows[i].ceDoi;
+      if (ce === null || isNaN(ce)) return '#64748b';
+      return ce > 0 ? '#22c55e' : (ce < 0 ? '#ef4444' : '#94a3b8');
+    }
+    var pe = rows[i].peDoi;
+    if (pe === null || isNaN(pe)) return '#64748b';
+    return pe > 0 ? '#22c55e' : (pe < 0 ? '#ef4444' : '#94a3b8');
+  }
+
+  function buildDoiChart(canvas) {
+    if (!canvas || typeof canvas.getContext !== 'function') return null;
+    if (typeof Chart === 'undefined') return null;
+    return new Chart(canvas, {
+      type: 'bar',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'CE ΔOI',
+            data: ceData,
+            backgroundColor: function (ctx) { return barColor(ctx); },
+            borderColor: '#0f172a',
+            borderWidth: 1
+          },
+          {
+            label: 'PE ΔOI',
+            data: peData,
+            backgroundColor: function (ctx) { return barColor(ctx); },
+            borderColor: '#0f172a',
+            borderWidth: 1
+          }
+        ]
+      },
+      options: {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        scales: {
+          x: {
+            stacked: true,
+            ticks: {
+              color: '#94a3b8',
+              font: { size: 10 },
+              callback: function (v) { return fmtCompact(Math.abs(v)); }
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.15)' },
+            border: { color: '#475569' },
+            title: { display: true, text: 'ΔOI magnitude (CE mirrored left · PE right; sign shown in tooltips)', color: '#94a3b8', font: { size: 10 } }
+          },
+          y: {
+            stacked: true,
+            ticks: {
+              color: function (ctx) { return atmFlags[ctx.index] ? '#fbbf24' : '#94a3b8'; },
+              font: function (ctx) { return { size: 10, weight: atmFlags[ctx.index] ? 'bold' : 'normal' }; }
+            },
+            grid: { display: false },
+            border: { color: '#475569' },
+            title: { display: true, text: 'Strike', color: '#94a3b8', font: { size: 10 } }
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+            callbacks: {
+              title: function (items) {
+                var i = items[0].dataIndex;
+                return 'Strike ' + labels[i] + (atmFlags[i] ? ' (ATM)' : '');
+              },
+              label: function (item) {
+                var i = item.dataIndex;
+                if (item.datasetIndex === 0) {
+                  var ce = rows[i].ceDoi;
+                  if (ce === null) return 'CE ΔOI: N/A (unavailable)';
+                  return 'CE ΔOI: ' + fmtSigned(ce) + (ce === 0 ? ' (zero)' : '');
+                }
+                var pe = rows[i].peDoi;
+                if (pe === null) return 'PE ΔOI: N/A (unavailable)';
+                return 'PE ΔOI: ' + fmtSigned(pe) + (pe === 0 ? ' (zero)' : '');
+              }
+            }
+          }
+        }
+      },
+      plugins: [atmReferencePlugin]
+    });
+  }
+
+  function initCharts() {
+    destroyPreviousCharts();
+    ensureChartJs(function () {
+      if (!window.Chart) return; /* CDN unavailable: truthful no-chart state, no fabrication */
+      var canvas = document.getElementById('opt12bDoiChart');
+      window[REGISTRY_KEY] = [];
+      var chart = buildDoiChart(canvas);
+      if (chart) { window[REGISTRY_KEY].push(chart); }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initCharts);
+  } else {
+    initCharts();
+  }
+})();
+</script>
+{% endif %}

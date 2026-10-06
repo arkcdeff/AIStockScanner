@@ -1,114 +1,610 @@
-<!-- Advanced Exposure & GEX Analytics Tab Component -->
-<div id="advanced-exposure-container" class="space-y-6">
+{# Advanced Exposure & GEX Analytics Tab Component #}
+{#
+  G.11-OPT-8: an all-None analytics snapshot is a VALID but truthy payload - it is
+  what the exposure service returns when the underlying resolves but no stored EOD
+  option history exists. Every nullable analytics field is therefore guarded here
+  (`is not none`) before it is compared or printed, and an unavailable selection
+  renders an explicit reason instead of a number. Nothing is substituted for a
+  missing value: a missing value stays missing and prints as N/A, never as a
+  Python `None` repr, a bare percent sign, NaN, Infinity, or a fabricated zero.
+  Kept as a Jinja comment so this note is stripped from the served HTML.
+#}
+<div id="advanced-exposure-container" class="d-flex flex-column gap-3">
 
   <!-- Mandatory OI Disclaimer -->
-  <div class="bg-amber-900/30 border border-amber-600/50 rounded-lg p-4 text-xs text-amber-200">
-    <div class="font-semibold text-amber-100 mb-1">Exposure Analytics Disclaimer & positioning Notice</div>
-    Exposure analytics are derived from aggregate open interest and Black-Scholes option Greeks. Aggregate open interest does NOT reveal actual dealer or market-maker position direction. Signed exposure metrics and Gamma Flip levels are hypothetical scenario-based estimates under the selected positioning profile. They do NOT guarantee market reversals, support, or resistance.
+  <div class="state-panel state-panel-warning">
+    <i class="bi bi-exclamation-triangle text-warning fs-5 flex-shrink-0"></i>
+    <div>
+      <div class="state-panel-title text-warning mb-1">Exposure Analytics Disclaimer &amp; positioning Notice</div>
+      <div class="state-panel-copy">Exposure analytics are derived from aggregate open interest and Black-Scholes option Greeks. Aggregate open interest does NOT reveal actual dealer or market-maker position direction. Signed exposure metrics and Gamma Flip levels are hypothetical scenario-based estimates under the selected positioning profile. They do NOT guarantee market reversals, support, or resistance.</div>
+    </div>
   </div>
+
+  {# Analytics are "available" only when the snapshot actually carries exposure values. #}
+  {% set analytics_available = snapshot and (
+        snapshot.gross_total_gex is not none
+        or snapshot.scenario_net_gex is not none
+        or snapshot.gross_total_dex is not none
+        or snapshot.concentration.top1_share_pct is not none) %}
+
+  {% if unavailable_reason %}
+    {% set unavailable_label = unavailable_reason %}
+  {% elif snapshot and snapshot.warnings %}
+    {% set unavailable_label = snapshot.warnings|join(', ') %}
+  {% elif snapshot %}
+    {% set unavailable_label = snapshot.exposure_quality %}
+  {% else %}
+    {% set unavailable_label = 'NO_EXPOSURE_SNAPSHOT' %}
+  {% endif %}
+
+  {% if not analytics_available %}
+  <!-- Explicit unavailable state: no analytics were computed, so none are shown. -->
+  <div class="card empty-state p-4 text-start">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-exclamation-triangle text-warning fs-4 flex-shrink-0 mt-1"></i>
+      <div>
+        <div class="fw-semibold text-body-emphasis">Exposure analytics unavailable</div>
+        <div class="small text-secondary mt-1">
+          No stored option exposure could be computed for this selection, so no GEX, DEX, concentration or Gamma Flip value is displayed. Nothing has been estimated or substituted.
+        </div>
+        <div class="small text-body font-monospace mt-2">Reason: {{ unavailable_label }}</div>
+        <div class="small text-muted mt-1" style="font-size: 0.75rem;">
+          Symbol {{ symbol }} &middot; trade date {{ trade_date }}
+          {% if expiry_date %}&middot; expiry {{ expiry_date }}{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   {% if snapshot %}
   <!-- Exposure KPI Cards Header -->
-  <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+  <div class="row row-cols-2 row-cols-md-3 row-cols-lg-6 g-3">
 
     <!-- Gross GEX Card -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gross GEX</div>
-      <div class="text-xl font-bold text-slate-100 mt-1">₹ {{ snapshot.gross_total_gex }}</div>
-      <div class="text-[10px] text-slate-400 mt-0.5">INR Notional per 1% move</div>
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Gross GEX</div>
+        <div class="fs-5 fw-bold text-body-emphasis mt-1">
+          {% if snapshot.gross_total_gex is not none %}₹ {{ snapshot.gross_total_gex }}{% else %}<span class="text-muted">N/A</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">INR Notional per 1% move</div>
+      </div>
     </div>
 
     <!-- Scenario Net GEX Card -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Scenario Net GEX</div>
-      <div class="text-xl font-bold {% if snapshot.scenario_net_gex > 0 %}text-emerald-400{% elif snapshot.scenario_net_gex < 0 %}text-rose-400{% else %}text-slate-200{% endif %} mt-1">
-        ₹ {{ snapshot.scenario_net_gex }}
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Scenario Net GEX</div>
+        <div class="fs-5 fw-bold {% if snapshot.scenario_net_gex is not none and snapshot.scenario_net_gex > 0 %}text-success text-emerald-400{% elif snapshot.scenario_net_gex is not none and snapshot.scenario_net_gex < 0 %}text-danger text-rose-400{% else %}text-body-emphasis{% endif %} mt-1">
+          {% if snapshot.scenario_net_gex is not none %}₹ {{ snapshot.scenario_net_gex }}{% else %}<span class="text-muted">N/A</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">{{ snapshot.assumption_profile }}</div>
       </div>
-      <div class="text-[10px] text-slate-400 mt-0.5">{{ snapshot.assumption_profile }}</div>
     </div>
 
     <!-- Gamma Flip Level Card -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gamma Flip</div>
-      <div class="text-xl font-bold text-cyan-400 mt-1">
-        {% if snapshot.gamma_flip.gamma_flip_level %}
-          {{ snapshot.gamma_flip.gamma_flip_level }}
-        {% else %}
-          N/A
-        {% endif %}
-      </div>
-      <div class="text-[10px] text-slate-400 mt-0.5">
-        {% if snapshot.gamma_flip.distance_pct %}
-          {{ snapshot.gamma_flip.distance_pct }}% from spot
-        {% else %}
-          {{ snapshot.gamma_flip.status }}
-        {% endif %}
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Gamma Flip</div>
+        <div class="fs-5 fw-bold text-info mt-1">
+          {% if snapshot.gamma_flip.gamma_flip_level %}
+            {{ snapshot.gamma_flip.gamma_flip_level }}
+          {% else %}
+            N/A
+          {% endif %}
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+          {% if snapshot.gamma_flip.distance_pct %}
+            {{ snapshot.gamma_flip.distance_pct }}% from spot
+          {% else %}
+            {{ snapshot.gamma_flip.status }}
+          {% endif %}
+        </div>
       </div>
     </div>
 
     <!-- Gross DEX Card -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Gross DEX</div>
-      <div class="text-xl font-bold text-indigo-400 mt-1">₹ {{ snapshot.gross_total_dex }}</div>
-      <div class="text-[10px] text-slate-400 mt-0.5">INR Delta Notional</div>
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Gross DEX</div>
+        <div class="fs-5 fw-bold text-primary mt-1">
+          {% if snapshot.gross_total_dex is not none %}₹ {{ snapshot.gross_total_dex }}{% else %}<span class="text-muted">N/A</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">INR Delta Notional</div>
+      </div>
     </div>
 
     <!-- Top Strike Concentration -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Top Strike Share</div>
-      <div class="text-xl font-bold text-purple-400 mt-1">{{ snapshot.concentration.top1_share_pct }}%</div>
-      <div class="text-[10px] text-slate-400 mt-0.5">Strike: {{ snapshot.concentration.top1_strike }}</div>
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Top Strike Share</div>
+        <div class="fs-5 fw-bold text-info mt-1">
+          {% if snapshot.concentration.top1_share_pct is not none %}{{ snapshot.concentration.top1_share_pct }}%{% else %}<span class="text-muted">N/A</span>{% endif %}
+        </div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+          {% if snapshot.concentration.top1_strike is not none %}Strike: {{ snapshot.concentration.top1_strike }}{% else %}Strike: <span class="text-muted">—</span>{% endif %}
+        </div>
+      </div>
     </div>
 
     <!-- Exposure Quality -->
-    <div class="bg-slate-800 border border-slate-700 rounded-lg p-3">
-      <div class="text-slate-400 text-xs font-medium uppercase tracking-wider">Data Quality</div>
-      <div class="text-xl font-bold text-emerald-400 mt-1">{{ snapshot.exposure_quality }}</div>
-      <div class="text-[10px] text-slate-400 mt-0.5">PIT Verified</div>
+    <div class="col">
+      <div class="card h-100 p-3">
+        <div class="text-uppercase text-secondary small fw-medium" style="letter-spacing: 0.5px; font-size: 0.75rem;">Data Quality</div>
+        <div class="fs-5 fw-bold {% if snapshot.exposure_quality == 'HIGH' %}text-success{% elif snapshot.exposure_quality == 'INSUFFICIENT' %}text-warning{% else %}text-body-emphasis{% endif %} mt-1">{{ snapshot.exposure_quality }}</div>
+        <div class="text-muted small mt-1" style="font-size: 0.75rem;">
+          {% if snapshot.warnings %}{{ snapshot.warnings|join(', ') }}{% else %}NO_QUALITY_WARNINGS{% endif %}
+        </div>
+      </div>
     </div>
 
   </div>
   {% endif %}
 
-  <!-- Strike Exposure Table -->
-  <div class="bg-slate-800 border border-slate-700 rounded-lg p-4">
-    <h3 class="text-sm font-semibold text-slate-200 mb-3">Strike Exposure & GEX Breakdown</h3>
-    <div class="overflow-x-auto">
-      <table class="w-full text-xs text-left text-slate-300">
-        <thead class="text-[11px] uppercase bg-slate-900 text-slate-400 border-b border-slate-700">
-          <tr>
-            <th class="p-2">Strike</th>
-            <th class="p-2 text-right">CE OI</th>
-            <th class="p-2 text-right">PE OI</th>
-            <th class="p-2 text-right">CE Gross GEX</th>
-            <th class="p-2 text-right">PE Gross GEX</th>
-            <th class="p-2 text-right">Total Gross GEX</th>
-            <th class="p-2 text-right">Scenario Net GEX</th>
-            <th class="p-2 text-right">Gross DEX</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-slate-700/50">
-          {% for r in strikes %}
-          <tr class="{% if r.is_atm %}bg-indigo-950/40 font-semibold text-indigo-300{% else %}hover:bg-slate-700/30{% endif %}">
-            <td class="p-2 font-mono">{{ r.strike_price }} {% if r.is_atm %}<span class="text-[10px] px-1 bg-indigo-500/30 text-indigo-200 rounded ml-1">ATM</span>{% endif %}</td>
-            <td class="p-2 text-right font-mono">{{ r.ce_open_interest }}</td>
-            <td class="p-2 text-right font-mono">{{ r.pe_open_interest }}</td>
-            <td class="p-2 text-right font-mono">{% if r.ce_gross_gex is not none %}₹ {{ r.ce_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
-            <td class="p-2 text-right font-mono">{% if r.pe_gross_gex is not none %}₹ {{ r.pe_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
-            <td class="p-2 text-right font-mono font-semibold">{% if r.total_gross_gex is not none %}₹ {{ r.total_gross_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
-            <td class="p-2 text-right font-mono {% if r.net_scenario_gex and r.net_scenario_gex > 0 %}text-emerald-400{% elif r.net_scenario_gex and r.net_scenario_gex < 0 %}text-rose-400{% endif %}">
-              {% if r.net_scenario_gex is not none %}₹ {{ r.net_scenario_gex }}{% else %}<span class="text-slate-500">—</span>{% endif %}
-            </td>
-            <td class="p-2 text-right font-mono">{% if r.gross_dex is not none %}₹ {{ r.gross_dex }}{% else %}<span class="text-slate-500">—</span>{% endif %}</td>
-          </tr>
-          {% else %}
-          <tr>
-            <td colspan="8" class="p-4 text-center text-slate-500">No options exposure data available for selected contract.</td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  {# ============================================================ #}
+  {# G.11-OPT-12B Phase 2A — Advanced Exposure Visualization       #}
+  {# Chart A: Spot Scenario Gamma Profile (snapshot grid data)     #}
+  {# Chart B: Strike-wise Net GEX Profile (strike_exposures data)  #}
+  {# Frontend-only: renders the existing backend-computed          #}
+  {# gamma_profile / strikes context. No new analytics, no fake    #}
+  {# data: missing data renders a truthful empty state, a genuine  #}
+  {# zero stays zero, and an unavailable value stays null.         #}
+  {# ============================================================ #}
+
+  {% if gamma_profile %}
+  <!-- Chart A: Spot Scenario Gamma Profile -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h3 class="section-card-title mb-0"><i class="bi bi-graph-up me-1"></i>Spot Scenario Gamma Profile</h3>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        {% if snapshot and snapshot.resolved_spot is not none and snapshot.resolved_spot > 0 %}
+        <span class="badge badge-info-subtle">Current Spot: ₹ {{ snapshot.resolved_spot }}</span>
+        {% endif %}
+        {% if snapshot and snapshot.gamma_flip.gamma_flip_level is not none %}
+        <span class="badge badge-warning-subtle">Gamma Flip: {{ snapshot.gamma_flip.gamma_flip_level }}</span>
+        {% elif snapshot %}
+        <span class="badge badge-neutral-subtle">Gamma Flip unavailable ({{ snapshot.gamma_flip.status }})</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="card-body p-3">
+      <div style="height: 320px; position: relative;">
+        <canvas id="advExposureScenarioGammaChart" role="img" aria-label="Spot Scenario Gamma Profile: scenario net gamma across the spot scenario grid"></canvas>
+      </div>
+      <div class="small text-muted mt-2">
+        X: scenario spot price &middot; Y: Scenario Net GEX (existing backend scenario grid, STATIC_IV) &middot; persisted EOD data &mdash; point-in-time, not live.
+      </div>
     </div>
   </div>
+  {% else %}
+  {% set grid_reason = 'SCENARIO_GRID_NOT_COMPUTED_LOT_PROVENANCE_UNAVAILABLE' if gamma_profile is none else 'NO_SCENARIO_GRID_POINTS' %}
+  <div class="card empty-state p-4 text-start">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-graph-up text-secondary fs-4 flex-shrink-0 mt-1"></i>
+      <div>
+        <div class="fw-semibold text-body-emphasis">Spot scenario gamma data unavailable.</div>
+        <div class="small text-secondary mt-1">
+          No spot scenario gamma grid was computed for this selection, so the profile chart is not rendered. Nothing has been estimated or substituted.
+        </div>
+        <div class="small text-body font-monospace mt-2">Reason: {{ grid_reason }}{% if snapshot and snapshot.warnings %} &middot; {{ snapshot.warnings|join(', ') }}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if strikes %}
+  <!-- Chart B: Strike-wise Net GEX Profile -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+      <h3 class="section-card-title mb-0"><i class="bi bi-bar-chart me-1"></i>Strike-wise Net GEX Profile</h3>
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <span class="badge badge-success-subtle">Positive Net GEX</span>
+        <span class="badge badge-danger-subtle">Negative Net GEX</span>
+        {% if strikes|selectattr('is_atm')|list %}
+        <span class="badge badge-info-subtle">ATM strike highlighted</span>
+        {% endif %}
+        <span class="badge badge-neutral-subtle">{{ strikes|length }} strikes</span>
+      </div>
+    </div>
+    <div class="card-body p-3">
+      <div style="height: 320px; position: relative;">
+        <canvas id="advExposureStrikeGexChart" role="img" aria-label="Strike-wise Net GEX bar chart: scenario net gamma exposure per strike"></canvas>
+      </div>
+      <div class="small text-muted mt-2">
+        X: strike (sorted numerically) &middot; Y: Scenario Net GEX {% if snapshot %}&middot; scenario profile: {{ snapshot.assumption_profile }}{% endif %} &middot; persisted EOD data &mdash; not live.
+      </div>
+    </div>
+  </div>
+  {% else %}
+  <div class="card empty-state p-4 text-start">
+    <div class="d-flex align-items-start gap-3">
+      <i class="bi bi-bar-chart text-secondary fs-4 flex-shrink-0 mt-1"></i>
+      <div>
+        <div class="fw-semibold text-body-emphasis">Strike-wise net GEX data unavailable.</div>
+        <div class="small text-secondary mt-1">
+          No strike exposure rows were computed for this selection, so the strike GEX chart is not rendered. Nothing has been estimated or substituted.
+        </div>
+        <div class="small text-body font-monospace mt-2">Reason: NO_STRIKE_EXPOSURE_ROWS{% if snapshot and snapshot.warnings %} &middot; {{ snapshot.warnings|join(', ') }}{% endif %}</div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Strike Exposure Table -->
+  <div class="card">
+    <div class="card-header d-flex justify-content-between align-items-center">
+      <h3 class="section-card-title mb-0"><i class="bi bi-table me-1"></i>Strike Exposure & GEX Breakdown</h3>
+    </div>
+    <div class="card-body p-0">
+      <div class="table-responsive">
+        <table class="table table-sm table-hover table-financial mb-0 align-middle">
+          <thead>
+            <tr>
+              <th>Strike</th>
+              <th class="text-end">CE OI</th>
+              <th class="text-end">PE OI</th>
+              <th class="text-end">CE Gross GEX</th>
+              <th class="text-end">PE Gross GEX</th>
+              <th class="text-end">Total Gross GEX</th>
+              <th class="text-end">Scenario Net GEX</th>
+              <th class="text-end">Gross DEX</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in strikes %}
+            <tr class="{% if r.is_atm %}table-primary fw-semibold{% endif %}">
+              <td class="font-monospace">{{ r.strike_price }} {% if r.is_atm %}<span class="badge bg-primary ms-1">ATM</span>{% endif %}</td>
+              <td class="text-end font-monospace">{{ r.ce_open_interest }}</td>
+              <td class="text-end font-monospace">{{ r.pe_open_interest }}</td>
+              <td class="text-end font-monospace">{% if r.ce_gross_gex is not none %}₹ {{ r.ce_gross_gex }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end font-monospace">{% if r.pe_gross_gex is not none %}₹ {{ r.pe_gross_gex }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end font-monospace fw-semibold">{% if r.total_gross_gex is not none %}₹ {{ r.total_gross_gex }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+              <td class="text-end font-monospace {% if r.net_scenario_gex is not none and r.net_scenario_gex > 0 %}text-success text-emerald-400{% elif r.net_scenario_gex is not none and r.net_scenario_gex < 0 %}text-danger text-rose-400{% endif %}">
+                {% if r.net_scenario_gex is not none %}₹ {{ r.net_scenario_gex }}{% else %}<span class="text-muted">—</span>{% endif %}
+              </td>
+              <td class="text-end font-monospace">{% if r.gross_dex is not none %}₹ {{ r.gross_dex }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="8" class="p-4 text-center text-muted">
+                No options exposure data available for selected contract.
+                {% if not analytics_available %}<span class="d-block mt-1 font-monospace small text-secondary">Reason: {{ unavailable_label }}</span>{% endif %}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  {% if gamma_profile or strikes %}
+  {# G.11-OPT-12B Phase 2A chart bootstrap. This fragment is only ever
+     mounted via an HTMX swap of #deriv-exposure-output, and htmx evaluates
+     inline scripts in swapped content on EVERY swap. Lifecycle contract:
+       1. Chart.js 4.4.0 is injected once and guarded (window.Chart), never
+          re-executed from a script src tag on each swap.
+       2. Every instance created by a previous swap is destroyed before new
+          charts are built (window.__g11Opt12bAdvExposureCharts registry),
+          preventing leaked instances and stale-canvas references.
+       3. No global htmx event handlers are registered here, so no handler
+          duplication accumulates across swaps.
+     A genuine zero value stays a zero-height bar; an unavailable value is
+     serialized as null (gap), never as a fabricated zero. #}
+  <script>
+  (function () {
+    'use strict';
+
+    var CHART_JS_URL = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+    var REGISTRY_KEY = '__g11Opt12bAdvExposureCharts';
+    var LOADER_KEY = '__g11Opt12bChartJsLoading';
+
+    // --- Chart payload (existing backend data only; null stays null) ---
+    {# The route context can legitimately carry gamma_profile=None (the service
+       declines to compute the grid when lot-size provenance is unavailable)
+       while strike rows still exist, so both lists are normalized before use. #}
+    {% set grid_points = gamma_profile or [] %}
+    {% set strike_rows_ctx = strikes or [] %}
+    var scenarioGrid = [
+      {%- for p in grid_points -%}
+      {"spot": {{ p.spot_level|float|tojson }}, "chg": {{ p.spot_change_pct|float|tojson }}, "net": {{ p.scenario_net_gex|float|tojson }}}
+      {%- if not loop.last -%},{%- endif -%}
+      {%- endfor -%}
+    ];
+    var strikeRows = [
+      {%- for r in strike_rows_ctx -%}
+      {"strike": {{ r.strike_price|float|tojson }}, "atm": {{ 'true' if r.is_atm else 'false' }},
+       "net": {% if r.net_scenario_gex is not none %}{{ r.net_scenario_gex|float|tojson }}{% else %}null{% endif %},
+       "ceGex": {% if r.ce_gross_gex is not none %}{{ r.ce_gross_gex|float|tojson }}{% else %}null{% endif %},
+       "peGex": {% if r.pe_gross_gex is not none %}{{ r.pe_gross_gex|float|tojson }}{% else %}null{% endif %},
+       "totGex": {% if r.total_gross_gex is not none %}{{ r.total_gross_gex|float|tojson }}{% else %}null{% endif %}}
+      {%- if not loop.last -%},{%- endif -%}
+      {%- endfor -%}
+    ];
+    {# resolved_spot of 0 is the service's own sentinel for "spot unresolved"; treat it as unavailable, never as a genuine spot of 0. #}
+    var currentSpot = {{ (snapshot.resolved_spot|float|tojson) if snapshot is not none and snapshot.resolved_spot is not none else 'null' }};
+    var gammaFlip = {{ (snapshot.gamma_flip.gamma_flip_level|float|tojson) if snapshot is not none and snapshot.gamma_flip.gamma_flip_level is not none else 'null' }};
+
+    // --- Formatting (descriptive only; no trading conclusions) ---
+    function fmtGrouped(v) {
+      return new Intl.NumberFormat('en-IN', { maximumFractionDigits: 2 }).format(v);
+    }
+    function fmtCompact(v) {
+      return new Intl.NumberFormat('en-IN', { notation: 'compact', maximumFractionDigits: 2 }).format(v);
+    }
+    function fmtSigned(v) {
+      return (v > 0 ? '+' : '') + fmtGrouped(v);
+    }
+
+    // --- Local plugin: vertical reference lines (Current Spot / Gamma Flip).
+    // No annotation library is added; values outside the rendered axis range
+    // are skipped rather than extrapolated. ---
+    var refLinePlugin = {
+      id: 'g11RefLine',
+      afterDatasetsDraw: function (chart) {
+        var cfg = chart.options.plugins && chart.options.plugins.g11RefLine;
+        if (!cfg || !cfg.lines || !chart.chartArea) return;
+        var area = chart.chartArea;
+        var xScale = chart.scales.x;
+        var ctx = chart.ctx;
+        cfg.lines.forEach(function (line) {
+          if (line.value === null || line.value === undefined || !isFinite(line.value)) return;
+          var x = xScale.getPixelForValue(line.value);
+          if (!isFinite(x) || x < area.left || x > area.right) return;
+          ctx.save();
+          ctx.setLineDash([5, 4]);
+          ctx.strokeStyle = line.color;
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.moveTo(x, area.top);
+          ctx.lineTo(x, area.bottom);
+          ctx.stroke();
+          ctx.setLineDash([]);
+          ctx.fillStyle = line.color;
+          ctx.font = '600 10px sans-serif';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'top';
+          ctx.fillText(line.label, x, area.top + 2);
+          ctx.restore();
+        });
+      }
+    };
+
+    function axisScales(xTitle, yTitle, xTickExtra) {
+      var xTicks = {
+        color: '#94a3b8',
+        font: { size: 9 },
+        maxRotation: 0,
+        minRotation: 0,
+        autoSkip: true,
+        maxTicksLimit: 12
+      };
+      if (xTickExtra) { Object.assign(xTicks, xTickExtra); }
+      return {
+        x: {
+          title: { display: true, text: xTitle, color: '#94a3b8', font: { size: 10 } },
+          ticks: xTicks,
+          grid: { color: 'rgba(255, 255, 255, 0.05)' }
+        },
+        y: {
+          title: { display: true, text: yTitle, color: '#94a3b8', font: { size: 10 } },
+          ticks: {
+            color: '#94a3b8',
+            font: { size: 9 },
+            callback: function (value) { return fmtCompact(value); }
+          },
+          grid: {
+            color: function (ctx) { return (ctx.tick && ctx.tick.value === 0) ? 'rgba(226, 232, 240, 0.35)' : 'rgba(255, 255, 255, 0.05)'; }
+          },
+          suggestedMin: 0,
+          suggestedMax: 0
+        }
+      };
+    }
+
+    function buildScenarioChart(canvas) {
+      if (!scenarioGrid.length) return null;
+      var points = scenarioGrid.map(function (p) { return { x: p.spot, y: p.net }; });
+      var refLines = [];
+      if (currentSpot !== null && currentSpot > 0) {
+        refLines.push({ value: currentSpot, color: '#3b82f6', label: 'Current Spot' });
+      }
+      if (gammaFlip !== null && isFinite(gammaFlip)) {
+        refLines.push({ value: gammaFlip, color: '#eab308', label: 'Gamma Flip' });
+      }
+      return new Chart(canvas, {
+        type: 'line',
+        data: {
+          datasets: [{
+            label: 'Scenario Net GEX',
+            data: points,
+            borderColor: '#3b82f6',
+            backgroundColor: 'rgba(59, 130, 246, 0.10)',
+            borderWidth: 2,
+            pointRadius: 2,
+            pointHitRadius: 8,
+            tension: 0.2,
+            fill: false
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'nearest', axis: 'x', intersect: false },
+          scales: axisScales('Scenario Spot Price', 'Scenario Net GEX (INR per 1% move)', {
+            callback: function (value) { return fmtGrouped(value); },
+            maxTicksLimit: 9
+          }),
+          plugins: {
+            legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+            tooltip: {
+              mode: 'nearest',
+              axis: 'x',
+              intersect: false,
+              callbacks: {
+                title: function (items) {
+                  var p = scenarioGrid[items[0].dataIndex];
+                  if (!p) return '';
+                  return 'Spot: ' + fmtGrouped(p.spot) + ' (' + fmtSigned(p.chg) + '%)';
+                },
+                label: function (item) {
+                  return 'Scenario Net GEX: ₹ ' + fmtGrouped(item.parsed.y);
+                }
+              }
+            },
+            g11RefLine: { lines: refLines }
+          }
+        },
+        plugins: [refLinePlugin]
+      });
+    }
+
+    function buildStrikeGexChart(canvas) {
+      if (!strikeRows.length) return null;
+      var rows = strikeRows.slice().sort(function (a, b) { return a.strike - b.strike; });
+      var labels = rows.map(function (r) { return String(r.strike); });
+      var netData = rows.map(function (r) { return r.net; });
+      var atmFlags = rows.map(function (r) { return r.atm === true; });
+      function barColor(raw) {
+        if (raw === null || raw === undefined) return 'rgba(0, 0, 0, 0)';
+        if (raw > 0) return 'rgba(34, 197, 94, 0.75)';
+        if (raw < 0) return 'rgba(239, 68, 68, 0.75)';
+        return 'rgba(148, 163, 184, 0.6)'; // genuine zero stays a visible zero bar
+      }
+      function barBorder(raw) {
+        if (raw === null || raw === undefined) return 'rgba(0, 0, 0, 0)';
+        if (raw > 0) return 'rgb(34, 197, 94)';
+        if (raw < 0) return 'rgb(239, 68, 68)';
+        return 'rgba(148, 163, 184, 0.9)';
+      }
+      return new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Scenario Net GEX',
+            data: netData,
+            backgroundColor: function (ctx) { return barColor(netData[ctx.dataIndex]); },
+            borderColor: function (ctx) { return barBorder(netData[ctx.dataIndex]); },
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: { mode: 'index', intersect: false },
+          scales: axisScales('Strike', 'Scenario Net GEX (INR per 1% move)', {
+            color: function (ctx) { return atmFlags[ctx.index] ? '#3b82f6' : '#94a3b8'; },
+            font: function (ctx) { return { size: 9, weight: atmFlags[ctx.index] ? 'bold' : 'normal' }; }
+          }),
+          plugins: {
+            legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              callbacks: {
+                title: function (items) {
+                  var i = items[0].dataIndex;
+                  return 'Strike ' + labels[i] + (atmFlags[i] ? ' (ATM)' : '');
+                },
+                label: function (item) {
+                  var raw = netData[item.dataIndex];
+                  if (raw === null || raw === undefined) return 'Scenario Net GEX: N/A (unavailable)';
+                  return 'Scenario Net GEX: ₹ ' + fmtGrouped(raw);
+                },
+                afterBody: function (items) {
+                  var i = items[0].dataIndex;
+                  var r = rows[i];
+                  var lines = [];
+                  if (r.ceGex !== null) lines.push('CE Gross GEX: ₹ ' + fmtGrouped(r.ceGex));
+                  if (r.peGex !== null) lines.push('PE Gross GEX: ₹ ' + fmtGrouped(r.peGex));
+                  if (r.totGex !== null) lines.push('Total Gross GEX: ₹ ' + fmtGrouped(r.totGex));
+                  return lines;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function destroyPreviousCharts() {
+      var previous = window[REGISTRY_KEY];
+      window[REGISTRY_KEY] = [];
+      if (!previous || !previous.length) return;
+      for (var i = 0; i < previous.length; i++) {
+        try { previous[i].destroy(); } catch (err) { /* canvas already detached by a swap */ }
+      }
+    }
+
+    // --- Deterministic HTMX cleanup (G.11-OPT-12B Phase 2A hardening #3).
+    // Destroy this fragment's charts BEFORE htmx replaces the container, so
+    // canvases never outlive their Chart.js instances and the next generation
+    // initializes on clean canvases. Strictly scoped to swaps targeting the
+    // Advanced Exposure output (or an ancestor of it), registered exactly once
+    // per browser session, and never touching charts owned by other fragments. ---
+    if (window.htmx && !window.__g11Opt12bBeforeSwapBound) {
+      window.__g11Opt12bBeforeSwapBound = true;
+      var advExposureBeforeSwap = function (evt) {
+        var target = evt && evt.detail && evt.detail.target;
+        if (!target) return;
+        var ownsFragment = (target.id === 'deriv-exposure-output')
+          || (target.querySelector && !!target.querySelector('#deriv-exposure-output'));
+        if (!ownsFragment) return;
+        destroyPreviousCharts();
+      };
+      document.body.addEventListener('htmx:beforeSwap', advExposureBeforeSwap);
+      window.__g11Opt12bBeforeSwapCleanup = function () {
+        document.body.removeEventListener('htmx:beforeSwap', advExposureBeforeSwap);
+        window.__g11Opt12bBeforeSwapBound = false;
+      };
+    }
+
+    function ensureChartJs(onReady) {
+      if (window.Chart) { onReady(); return; }
+      if (window[LOADER_KEY]) {
+        var waited = 0;
+        var timer = window.setInterval(function () {
+          if (window.Chart || waited > 200) {
+            window.clearInterval(timer);
+            if (window.Chart) onReady();
+          }
+          waited += 1;
+        }, 50);
+        return;
+      }
+      window[LOADER_KEY] = true;
+      var script = document.createElement('script');
+      script.src = CHART_JS_URL;
+      script.async = false;
+      script.onload = function () { window[LOADER_KEY] = false; onReady(); };
+      script.onerror = function () { window[LOADER_KEY] = false; };
+      document.head.appendChild(script);
+    }
+
+    function initCharts() {
+      destroyPreviousCharts();
+      // Chart.js 4.4.0 is injected once on first use (guarded loader); chart
+      // construction continues from its onload callback.
+      ensureChartJs(function () {
+        if (!window.Chart) return; // CDN unavailable: leave the truthful empty/text content in place
+        var created = [];
+        var scenarioCanvas = document.getElementById('advExposureScenarioGammaChart');
+        if (scenarioCanvas) { created.push(buildScenarioChart(scenarioCanvas)); }
+        var strikeCanvas = document.getElementById('advExposureStrikeGexChart');
+        if (strikeCanvas) { created.push(buildStrikeGexChart(strikeCanvas)); }
+        window[REGISTRY_KEY] = created.filter(function (c) { return !!c; });
+      });
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initCharts);
+    } else {
+      initCharts();
+    }
+  })();
+  </script>
+  {% endif %}
 
 </div>

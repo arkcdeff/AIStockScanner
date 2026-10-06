@@ -1,0 +1,239 @@
+{# =====================================================================
+   G.11-OPT-3 shared derivatives filter / selection panel
+   Requires context: form_action
+   Optional context:
+     filter                - DerivativesFilterSpec (or dict) with the current state
+     scope                 - provider-grounded scope payload (spot/ATM/grid/lots)
+     underlyings           - list of {symbol, name}
+     expiries              - list of {expiry_date, display_label, is_weekly,
+                                          is_provider_listed, provenance}
+     selected_symbol       - canonical underlying symbol
+     selected_expiry       - ISO expiry currently selected
+     show_expiry           - default true
+     show_strike_count     - default true
+     show_manual_strikes   - default true
+     show_interval         - default true
+     show_oi_unit          - default false
+     show_spot_meta        - default true
+   ===================================================================== #}
+{% set _show_expiry = show_expiry if show_expiry is defined else True %}
+{% set _show_strike_count = show_strike_count if show_strike_count is defined else True %}
+{% set _show_manual = show_manual_strikes if show_manual_strikes is defined else True %}
+{% set _show_interval = show_interval if show_interval is defined else True %}
+{% set _show_oi_unit = show_oi_unit if show_oi_unit is defined else False %}
+{% set _show_spot_meta = show_spot_meta if show_spot_meta is defined else True %}
+{% set _strike_choices = [5, 10, 15, 20, 25] %}
+{% set _interval_choices = [1, 2, 3, 5, 10, 15, 30, 45, 60] %}
+{% set _window_choices = [3, 5, 10, 15, 30, 45, 60] %}
+
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-funnel me-1 text-info"></i>Derivatives Filter &amp; Selection
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            {% if scope and scope.atm and scope.atm.atm_strike %}
+            <span class="badge bg-info bg-opacity-25 text-info"
+                  title="ATM resolved from the actual provider-listed strike grid ({{ scope.atm.grid_source }}). Method: {{ scope.atm.method }}; tie-break: {{ scope.atm.tie_break }}.">
+                ATM {{ fmt_num(scope.atm.atm_strike) }}
+                {%- if scope.atm.is_listed %} · listed{% else %} · NOT LISTED{% endif %}
+            </span>
+            {% endif %}
+            {% if scope and scope.strike_grid and scope.strike_grid.step %}
+            <span class="badge bg-secondary bg-opacity-25 text-light"
+                  title="{{ scope.strike_grid.description }}">
+                Strike interval {{ fmt_num(scope.strike_grid.step) }}
+                ({{ 'listed' if scope.strike_grid.source == 'PROVIDER_LISTED_CONTRACT_MASTER' else scope.strike_grid.source }})
+            </span>
+            {% endif %}
+            {% if scope and scope.lot_size %}
+            <span class="badge bg-dark border border-secondary text-muted"
+                  title="Provider-published contract specifications for the selected expiry.">
+                Lot {{ scope.lot_size.lot_size }} · Tick {{ scope.lot_size.tick_size }}
+            </span>
+            {% endif %}
+            {% if capture_status is defined and capture_status %}
+            <span class="badge border border-secondary {{ 'bg-success bg-opacity-25 text-success' if capture_status.is_running else ('bg-danger bg-opacity-25 text-danger' if capture_status.state == 'FAILED' else 'bg-dark text-muted') }}"
+                  title="Real Observation Capture (G.11-OPT-4): {{ capture_status.state }}. {{ capture_status.observations_captured }} observations recorded. Storage: {{ (capture_status.storage_used_bytes / 1024 / 1024)|round(1) }} MB.">
+                <i class="bi {{ 'bi-record-circle text-danger' if capture_status.is_running else 'bi-dash-circle' }} me-1"></i>Capture: {{ capture_status.state }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-body py-2 px-3">
+        <form method="GET" action="{{ form_action }}" class="row g-2 align-items-end">
+            {# ---------------- Underlying ---------------- #}
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Underlying</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="symbol">
+                    {% for u in underlyings or [] %}
+                    <option value="{{ u.symbol }}" {{ 'selected' if u.symbol == selected_symbol else '' }}>{{ u.name }} ({{ u.symbol }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {# ---------------- Expiry ---------------- #}
+            {% if _show_expiry %}
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Expiry (provider-listed)</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="expiry">
+                    {% for exp in expiries or [] %}
+                    <option value="{{ exp.expiry_date }}" {{ 'selected' if exp.expiry_date == selected_expiry else '' }}>
+                        {{ exp.display_label or exp.expiry_date }}{% if exp.is_provider_listed is defined and not exp.is_provider_listed %} ⚠ unverified{% endif %}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            {% endif %}
+
+            {# ---------------- Strike count ---------------- #}
+            {% if _show_strike_count %}
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">
+                    Strike Count
+                    <i class="bi bi-info-circle" title="This control selects N strikes on EACH side of ATM plus the ATM strike itself. The exact total is shown beside the selector."></i>
+                </label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="strikes">
+                    {% for count in _strike_choices %}
+                    <option value="{{ count }}" {{ 'selected' if selected_strikes == count|string else '' }}>ATM ±{{ count }} per side</option>
+                    {% endfor %}
+                    <option value="all" {{ 'selected' if selected_strikes == 'all' else '' }}>All listed strikes</option>
+                </select>
+            </div>
+            {% endif %}
+
+            {# ---------------- Interval ---------------- #}
+            {% if _show_interval %}
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Interval</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="interval">
+                    {% for mins in _interval_choices %}
+                    <option value="{{ mins }}m" {{ 'selected' if selected_interval == mins|string + 'm' else '' }}>{{ mins }} minute{{ 's' if mins != 1 else '' }}</option>
+                    {% endfor %}
+                    <option value="session" {{ 'selected' if selected_interval == 'session' else '' }}>Full session</option>
+                </select>
+            </div>
+            {% endif %}
+
+            {# ---------------- OI unit ---------------- #}
+            {% if _show_oi_unit %}
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">OI Units</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="oi_unit">
+                    <option value="CONTRACTS" {{ 'selected' if selected_oi_unit == 'CONTRACTS' else '' }}>Contracts</option>
+                    <option value="LOTS" {{ 'selected' if selected_oi_unit == 'LOTS' else '' }}>Lots{% if not (scope and scope.lot_size and scope.lot_size.verified) %} (unavailable){% endif %}</option>
+                    <option value="QUANTITY" {{ 'selected' if selected_oi_unit == 'QUANTITY' else '' }}>Quantity (contracts × lot)</option>
+                </select>
+            </div>
+            {% endif %}
+
+            {# ---------------- Actions ---------------- #}
+            <div class="col-lg-{{ 2 if not _show_oi_unit else 1 }} col-md-4 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary fw-semibold flex-grow-1">
+                    <i class="bi bi-arrow-clockwise me-1"></i>Apply
+                </button>
+                <a class="btn btn-sm btn-outline-secondary"
+                   href="{{ form_action }}?symbol={{ selected_symbol or 'NIFTY' }}"
+                   title="Reset every filter to this underlying's defaults (ATM and nearest listed expiry).">
+                    <i class="bi bi-x-circle"></i>
+                </a>
+            </div>
+
+            {# ---------------- Manual CE / PE selection ---------------- #}
+            {% if _show_manual %}
+            <div class="col-12">
+                <div class="row g-2 pt-1">
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">
+                            Manual CE strikes (comma-separated, any listed strike)
+                        </label>
+                        <input type="text" name="call_strikes" value="{{ selected_call_strikes or '' }}"
+                               class="form-control form-control-sm bg-dark text-light border-secondary"
+                               placeholder="e.g. 23000,23100,23200"
+                               title="Select specific call contracts independently. Values must be listed strikes for the selected underlying and expiry.">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">
+                            Manual PE strikes (comma-separated, any listed strike)
+                        </label>
+                        <input type="text" name="put_strikes" value="{{ selected_put_strikes or '' }}"
+                               class="form-control form-control-sm bg-dark text-light border-secondary"
+                               placeholder="e.g. 23000,23100,23200"
+                               title="Select specific put contracts independently of the calls.">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Explicit range</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" step="any" name="min_strike" value="{{ selected_min_strike or '' }}"
+                                   class="form-control bg-dark text-light border-secondary" placeholder="min">
+                            <input type="number" step="any" name="max_strike" value="{{ selected_max_strike or '' }}"
+                                   class="form-control bg-dark text-light border-secondary" placeholder="max">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </form>
+
+        {% if _show_spot_meta %}
+        <div class="d-flex flex-wrap gap-3 mt-2 pt-2 border-top border-secondary small">
+            {# G.11-OPT-9 (D-01): labelled "Current spot" so it can never be mistaken
+               for a replayed point-in-time spot on the OI Replay page, where the two
+               appeared side by side with no distinction. #}
+            <span class="text-muted">
+                Current spot:
+                <span class="text-light fw-bold">
+                    {% if scope and scope.spot_price %}₹{{ fmt_num(scope.spot_price, 2) }}{% else %}unavailable{% endif %}
+                </span>
+                {% if scope and scope.spot_provenance %}
+                <span class="badge bg-dark border border-secondary text-muted ms-1">{{ scope.spot_provenance }}</span>
+                {% endif %}
+            </span>
+            <span class="text-muted">
+                Underlying ID: <span class="text-info">{{ selected_symbol or 'NIFTY' }}</span>
+                {% if scope and scope.index_instrument_key %}
+                <span class="font-monospace text-muted">({{ scope.index_instrument_key }})</span>
+                {% endif %}
+            </span>
+            {% if scope and scope.selected_expiry %}
+            <span class="text-muted">Expiry: <span class="text-light">{{ scope.selected_expiry }}</span>
+                <span class="badge bg-dark border border-secondary text-muted">{{ scope.expiry_provenance }}</span>
+            </span>
+            {% endif %}
+            {% if scope and scope.strike_grid %}
+            <span class="text-muted">Coverage: <span class="text-light">{{ scope.strike_grid.strike_count }} listed strikes</span></span>
+            {% endif %}
+            <span class="text-muted">Selected contracts: <span class="text-light">{{ selected_contract_count if selected_contract_count is defined else '—' }}</span></span>
+            <span class="text-muted">Observation time: <span class="text-light">{{ as_of_ist or '—' }}</span></span>
+            {# This is the LIVE adapter serving the current scope/spot — not the source of
+               any replayed or stored record. #}
+            <span class="text-muted">Source (current feed): <span class="text-light">{{ provider_name or '—' }}</span></span>
+            {% if scope and scope.scope_fingerprint %}
+            <span class="text-muted" title="Responses carrying a different fingerprint belong to a previous selection and must be ignored.">
+                Scope fingerprint: <span class="font-monospace text-muted">{{ scope.scope_fingerprint[:12] }}…</span>
+            </span>
+            {% endif %}
+            {% if capture_status is defined and capture_status and capture_status.last_observation_ist %}
+            <span class="text-muted">Last Capture: <span class="text-info">{{ capture_status.last_observation_ist }}</span></span>
+            <span class="text-muted">Captured Obs: <span class="text-light">{{ capture_status.observations_captured }}</span></span>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if scope and scope.atm and not scope.atm.is_listed %}
+        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            ATM could not be matched to a listed strike ({{ scope.atm.reason or 'unknown reason' }}).
+            No strike has been invented to fill the gap.
+        </div>
+        {% endif %}
+        {% if scope and scope.expiry_provenance and scope.expiry_provenance != 'PROVIDER_LISTED_CONTRACT_MASTER' %}
+        <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            Expiries shown are <strong>calendar estimates</strong>, not provider-listed contracts
+            ({{ scope.expiry_reason or scope.expiry_provenance }}). Treat them as unverified.
+        </div>
+        {% endif %}
+    </div>
+</div>

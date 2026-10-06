@@ -50,6 +50,7 @@ from app.models.notification import (
     NotificationDelivery,
     NotificationPreference,
 )
+from app.models.option_chain import OptionChainQuote, OptionChainSnapshot
 from app.models.portfolio import Holding, Portfolio
 from app.models.scan_definition import ScanDefinition
 from app.models.scan_result import ScanResult
@@ -131,4 +132,7 @@ __all__ = [
     "ComparableCompany",
     # Stage 2 G.10 — Bulk & Block Deals
     "BulkBlockDeal",
+    # G.11-OPT-1 — Option-Chain Data Foundation
+    "OptionChainSnapshot",
+    "OptionChainQuote",
 ]

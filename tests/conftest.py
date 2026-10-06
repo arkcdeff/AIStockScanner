@@ -205,12 +205,17 @@ async def _clean_test_db():
 async def _seed_scan_definitions(_clean_test_db):
     """Per-test seed of scan definitions after truncate."""
 
+    from sqlalchemy import select
+
     from app.db.session import get_session_factory
     from app.models.scan_definition import ScanDefinition
 
     factory = get_session_factory()
     async with factory() as session:
+        existing = set((await session.execute(select(ScanDefinition.code))).scalars())
         for code, name, description, category in _SCANNER_DEFINITIONS:
+            if code in existing:
+                continue
             scan_def = ScanDefinition(
                 code=code,
                 name=name,
@@ -221,16 +226,6 @@ async def _seed_scan_definitions(_clean_test_db):
             )
             session.add(scan_def)
         await session.commit()
-
-
-@pytest.fixture(autouse=True)
-def _clear_db_engine_cache() -> None:
-    """Clear the cached engine to ensure fresh connections."""
-    from app.db.session import get_engine
-
-    get_engine.cache_clear()
-    yield
-    get_engine.cache_clear()
 
 
 @pytest.fixture(autouse=True)

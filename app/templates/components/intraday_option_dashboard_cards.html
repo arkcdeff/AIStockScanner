@@ -1,0 +1,169 @@
+{% if not dashboard %}
+<div class="empty-state py-5 text-center">
+    <i class="bi bi-grid-3x3-gap display-4 text-muted mb-3 d-block"></i>
+    <h5 class="fw-semibold text-light">No Dashboard Analytics Available</h5>
+    <p class="text-muted small">Please select an underlying and expiry to load the options dashboard.</p>
+</div>
+{% else %}
+<div class="row g-3 mb-4">
+    <!-- Spot Price Card -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold mb-1">
+                    <i class="bi bi-cash-stack me-1 text-primary"></i>Spot Price
+                </div>
+                <div class="h3 fw-bold text-light mb-1">
+                    ₹{{ '{:,.2f}'.format(dashboard.spot_price) }}
+                </div>
+                <div class="small text-muted">
+                    {{ dashboard.underlying_name }}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Expiry & DTE Card -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold mb-1">
+                    <i class="bi bi-calendar3 me-1 text-info"></i>Active Expiry
+                </div>
+                <div class="h3 fw-bold text-info mb-1">
+                    {{ dashboard.selected_expiry or 'N/A' }}
+                </div>
+                <div class="small text-muted">
+                    <span class="badge bg-secondary">{{ dashboard.days_to_expiry }} DTE</span>
+                    &nbsp;|&nbsp; {{ dashboard.strike_count }} strikes observed
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live PCR Card -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold mb-1">
+                    <i class="bi bi-calculator me-1 text-warning"></i>Live PCR (Put/Call)
+                </div>
+                <div class="h3 fw-bold mb-1 {{ 'text-success' if dashboard.pcr and dashboard.pcr >= 1.0 else ('text-danger' if dashboard.pcr else 'text-muted') }}">
+                    {{ dashboard.pcr if dashboard.pcr is not none else 'N/A' }}
+                </div>
+                <div class="small">
+                    {% if dashboard.pcr_bias == 'BULLISH_BIAS' %}
+                    <span class="badge bg-success bg-opacity-25 text-success border border-success border-opacity-50">Bullish OI Support</span>
+                    {% elif dashboard.pcr_bias == 'BEARISH_BIAS' %}
+                    <span class="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-50">Bearish Call Wall</span>
+                    {% else %}
+                    <span class="badge bg-secondary text-light">Neutral Range</span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ATM Straddle Premium Card -->
+    <div class="col-md-3 col-sm-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-body">
+                <div class="text-muted small text-uppercase fw-semibold mb-1">
+                    <i class="bi bi-layers me-1 text-warning"></i>ATM Straddle Premium
+                </div>
+                <div class="h3 fw-bold text-warning mb-1">
+                    {% if dashboard.atm_straddle_premium is not none %}
+                        ₹{{ '{:,.2f}'.format(dashboard.atm_straddle_premium) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </div>
+                <div class="small text-muted">
+                    Strike: <span class="fw-bold text-light">{{ '{:,.0f}'.format(dashboard.atm_strike) }}</span>
+                    {% if dashboard.atm_call_ltp and dashboard.atm_put_ltp %}
+                    (CE: ₹{{ '{:,.1f}'.format(dashboard.atm_call_ltp) }} + PE: ₹{{ '{:,.1f}'.format(dashboard.atm_put_ltp) }})
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- OI Breakdown and Volume Metrics -->
+<div class="row g-3">
+    <!-- Call vs Put Open Interest Progress -->
+    <div class="col-md-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-header border-bottom border-secondary bg-transparent py-2">
+                <h6 class="card-title mb-0 fw-semibold text-light"><i class="bi bi-pie-chart me-2 text-primary"></i>Open Interest Distribution</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <div>
+                        <span class="text-danger fw-bold"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i>Call OI:</span>
+                        <span class="text-light fw-bold ms-1">{{ '{:,}'.format(dashboard.total_call_oi) }}</span>
+                        <span class="text-muted small ms-1">({{ dashboard.ce_oi_percentage }}%)</span>
+                    </div>
+                    <div>
+                        <span class="text-success fw-bold"><i class="bi bi-circle-fill me-1" style="font-size: 0.6rem;"></i>Put OI:</span>
+                        <span class="text-light fw-bold ms-1">{{ '{:,}'.format(dashboard.total_put_oi) }}</span>
+                        <span class="text-muted small ms-1">({{ dashboard.pe_oi_percentage }}%)</span>
+                    </div>
+                </div>
+                <!-- Dual Progress Bar -->
+                <div class="progress" style="height: 18px; background-color: #1e2638;">
+                    <div class="progress-bar bg-danger" role="progressbar" style="width: {{ dashboard.ce_oi_percentage }}%;" aria-valuenow="{{ dashboard.ce_oi_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ dashboard.ce_oi_percentage }}%
+                    </div>
+                    <div class="progress-bar bg-success" role="progressbar" style="width: {{ dashboard.pe_oi_percentage }}%;" aria-valuenow="{{ dashboard.pe_oi_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                        {{ dashboard.pe_oi_percentage }}%
+                    </div>
+                </div>
+                <div class="mt-3 small text-muted">
+                    Total Contracts OI: <span class="text-light fw-bold">{{ '{:,}'.format(dashboard.total_call_oi + dashboard.total_put_oi) }}</span>
+                    &nbsp;|&nbsp;
+                    Net Difference:
+                    {% set diff = dashboard.total_put_oi - dashboard.total_call_oi %}
+                    <span class="fw-bold {{ 'text-success' if diff >= 0 else 'text-danger' }}">
+                        {{ '{:+,}'.format(diff) }}
+                    </span>
+                    ({{ 'Put Dominant' if diff >= 0 else 'Call Dominant' }})
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Volume & Trading Activity -->
+    <div class="col-md-6">
+        <div class="card h-100 border border-secondary" style="background-color: #121722;">
+            <div class="card-header border-bottom border-secondary bg-transparent py-2">
+                <h6 class="card-title mb-0 fw-semibold text-light"><i class="bi bi-activity me-2 text-info"></i>Trading Activity &amp; Freshness</h6>
+            </div>
+            <div class="card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                            <div class="text-muted small">Total Traded Volume</div>
+                            <div class="h5 fw-bold text-light mb-0">{{ '{:,}'.format(dashboard.total_volume) }}</div>
+                            <div class="small text-muted">CE: {{ '{:,}'.format(dashboard.total_call_volume) }} | PE: {{ '{:,}'.format(dashboard.total_put_volume) }}</div>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                            <div class="text-muted small">Data Provider</div>
+                            <div class="h5 fw-bold text-info mb-0">{{ dashboard.provider }}</div>
+                            <div class="small">
+                                <span class="badge {{ 'bg-success' if dashboard.freshness == 'LIVE' else 'bg-secondary' }}">{{ dashboard.freshness }}</span>
+                                <span class="badge {{ 'bg-success' if dashboard.is_market_open else 'bg-dark text-muted' }} ms-1">{{ dashboard.market_session }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="small text-muted">
+                    <i class="bi bi-clock-history me-1"></i>Last Observation: <span class="text-light">{{ dashboard.as_of_ist }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}

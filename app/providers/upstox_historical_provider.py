@@ -28,14 +28,21 @@ logger = logging.getLogger(__name__)
 
 
 def redact_secrets(text_content: str) -> str:
-    """Redact bearer tokens and secret strings from log outputs and exception strings."""
+    """Redact bearer tokens, API keys, and secret strings from log outputs and exception strings."""
     if not text_content:
         return ""
     token = settings.upstox_analytics_token
     if token and len(token) > 4:
         text_content = text_content.replace(token, f"{token[:3]}...REDACTED...")
     # General Bearer token pattern
-    text_content = re.sub(r"Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*", "Bearer [REDACTED_TOKEN]", text_content)
+    text_content = re.sub(r"Bearer\s+[A-Za-z0-9\-\._~\+\/]+=*", "Bearer [REDACTED_TOKEN]", text_content, flags=re.IGNORECASE)
+    # JSON access_token / refresh_token / api_key / secret / password pattern
+    text_content = re.sub(
+        r'("(?:access_token|refresh_token|api_key|api_secret|client_secret|password|secret)"\s*:\s*")[^"]+(")',
+        r"\1[REDACTED_SECRET]\2",
+        text_content,
+        flags=re.IGNORECASE,
+    )
     return text_content
 
 

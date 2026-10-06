@@ -47,6 +47,17 @@ class Settings(BaseSettings):
     freshness_delayed_seconds: float = 30.0
     freshness_stale_seconds: float = 30.0
 
+    # Derivatives Real Observation Capture (Milestone G.11-OPT-4)
+    # Strictly disabled by default; requires explicit operator activation
+    derivatives_observation_capture_enabled: bool = False
+    derivatives_observation_dir: Path = Field(default=Path("data/derivatives_observations"))
+    derivatives_capture_max_duration_minutes: int = 375
+    derivatives_capture_default_interval_seconds: int = 60
+    derivatives_capture_max_contracts_per_capture: int = 100
+    derivatives_capture_max_storage_bytes: int = 500 * 1024 * 1024
+    derivatives_capture_rate_limit_rps: float = 5.0
+    derivatives_interval_tolerance_ratio: float = 0.34
+
     eod_scheduler_enabled: bool = False
     eod_scheduler_timezone: str = "Asia/Kolkata"
     eod_scheduler_hour: int = 18
@@ -115,6 +126,21 @@ class Settings(BaseSettings):
     market_intelligence_snapshot_timezone: str = "Asia/Kolkata"
     market_intelligence_snapshot_max_instances: int = 1
     market_intelligence_snapshot_coalesce: bool = True
+
+    # G.11-OPT-3 Derivatives Workbench
+    # Contract-master cache lifetime for provider-listed expiries/strikes/contracts.
+    derivatives_contract_master_ttl_seconds: int = 900
+    derivatives_contract_master_cache_dir: Path = Field(
+        default=Path("data/reference/derivatives_contract_master")
+    )
+    # Capture enablement + observation dir are declared once in the OPT-4 block
+    # above. Maximum tolerated lag when co-locating two real observations for an
+    # interval delta: a fraction of the requested interval (0.34 = one third).
+    derivatives_instrument_master_timeout_seconds: int = 60
+    # Publish the instrument master download for futures keys (public static asset).
+    derivatives_instrument_master_url: str = (
+        "https://assets.upstox.com/market-quote/instruments/exchange/{exchange}.json.gz"
+    )
 
     telegram_bot_token: str = ""
     telegram_default_chat_id: str = ""

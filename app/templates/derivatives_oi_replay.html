@@ -1,0 +1,461 @@
+{% extends "layouts/shell.html" %}
+{% block title %}OI Replay - AI Stock Scanner{% endblock %}
+{% block page_title %}Derivatives · OI Replay / Historical Playback{% endblock %}
+
+{% block topbar_status %}
+<span class="status-dot status-dot-info"></span>
+<span>POINT-IN-TIME REPLAY · ZERO LOOKAHEAD BIAS</span>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <div class="workspace-eyebrow text-uppercase text-info fw-semibold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            <i class="bi bi-play-circle me-1"></i>Derivatives Intelligence · Historical Playback
+        </div>
+        <h1 class="workspace-title h2 fw-bold text-light mb-1">
+            OI Replay &amp; Strike History
+        </h1>
+        <p class="workspace-subtitle text-muted small mb-0">
+            Scrub back in time to reconstruct the exact state of the option chain and open interest distribution at any point during the session.
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-info bg-opacity-25 text-info px-2 py-1">
+            <i class="bi bi-shield-check me-1"></i>PIT Enforced
+        </span>
+    </div>
+</div>
+
+<!-- Derivatives Navigation Bar -->
+{% with active_view='oi_replay', selected_symbol=selected_symbol, selected_expiry=selected_expiry %}
+{% include "components/derivatives_nav_tabs.html" %}
+{% endwith %}
+{# G.11-OPT-3 shared filter / selection panel #}
+{% include "components/derivatives_filter_panel.html" %}
+
+
+<!-- PIT Safety Notice -->
+<div class="alert alert-dark border-secondary d-flex align-items-center justify-content-between py-2 px-3 mb-3" style="background-color: rgba(15, 23, 42, 0.6); font-size: 0.82rem;">
+    <div class="d-flex align-items-center">
+        <i class="bi bi-clock-history text-info fs-5 me-2"></i>
+        <div>
+            <strong class="text-light">Point-in-Time Integrity Guarantee:</strong>
+            <span class="text-muted ms-1">Historical observations are strictly bounded to <code>available_at &le; evaluation_time</code>. Zero lookahead data leakage into prior timestamps.</span>
+        </div>
+    </div>
+    <span class="badge bg-secondary">HISTORICAL SNAPSHOT REPLAY</span>
+</div>
+
+<!-- Controls & Replay Scrubber -->
+<div class="card border border-secondary mb-4" style="background-color: #121722;">
+    <div class="card-body py-3 px-3">
+        <div class="row g-2 align-items-center mb-3">
+            <!-- Underlying Selector -->
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Underlying</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="replay-symbol" onchange="changeUnderlying(this.value)">
+                    {% for u in underlyings %}
+                    <option value="{{ u.symbol }}" {{ 'selected' if u.symbol == selected_symbol else '' }}>{{ u.name }} ({{ u.symbol }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Session Date Selector -->
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Session Date</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="replaySessionDate" onchange="changeSessionDate(this.value)">
+                    {% for sess in replay_timeline.available_sessions %}
+                    <option value="{{ sess.trade_date }}" {{ 'selected' if sess.trade_date == selected_session_date else '' }}>
+                        {{ sess.trade_date }} ({{ sess.snapshot_count }} snap)
+                    </option>
+                    {% endfor %}
+                    {% if not replay_timeline.available_sessions %}
+                    <option value="{{ replay_timeline.session_date }}" selected>{{ replay_timeline.session_date }} (0 snap)</option>
+                    {% endif %}
+                </select>
+            </div>
+
+            <!-- Expiry Selector -->
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Expiry Date</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="replay-expiry" onchange="changeExpiry(this.value)">
+                    {% for exp in expiries %}
+                    <option value="{{ exp.expiry_date }}" {{ 'selected' if exp.expiry_date == selected_expiry else '' }}>
+                        {{ exp.display_label or exp.expiry_date }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Replay interval -->
+            <div class="col-md-2 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Interval</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="replayInterval">
+                    {% for mins in replay_interval_choices %}
+                    <option value="{{ mins }}" {{ 'selected' if mins == replay_interval_minutes else '' }}>{{ mins }}m</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Replay speed -->
+            <div class="col-md-1 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Playback Speed</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" id="replaySpeed">
+                    <option value="1600">0.5x</option>
+                    <option value="800" selected>1x</option>
+                    <option value="400">2x</option>
+                    <option value="200">4x</option>
+                </select>
+            </div>
+
+            <!-- Active Snapshot Time Display -->
+            <div class="col-md-2 col-sm-12 text-end">
+                <span class="text-muted small">Replay Instant:</span>
+                <span class="h5 fw-bold text-info ms-2" id="replayTimeDisplay">—</span>
+            </div>
+        </div>
+
+        <!-- Slider Bar -->
+        <div class="px-2">
+            <input type="range" class="form-range" id="replayRangeSlider"
+                   aria-label="Replay time"
+                   min="0" max="{{ (replay_timeline.total_steps - 1) if replay_timeline.total_steps else 0 }}" value="0"
+                   oninput="updateReplayStep(this.value)"
+                   {{ 'disabled' if not replay_timeline.replay_available else '' }}>
+            <div class="d-flex justify-content-between text-muted small" style="font-size: 0.72rem;">
+                <span>First observed instant</span>
+                <span>Replay position</span>
+                <span>Last observable instant</span>
+            </div>
+        </div>
+
+        <!-- Player Controls -->
+        <div class="d-flex justify-content-center align-items-center gap-3 mt-3 pt-2 border-top border-secondary">
+            <button class="btn btn-sm btn-outline-secondary" onclick="stepReplay(-1)" title="Previous interval" aria-label="Previous interval"><i class="bi bi-skip-backward-fill"></i></button>
+            <button class="btn btn-sm btn-primary px-3 fw-bold" id="playBtn" onclick="togglePlay()"><i class="bi bi-play-fill me-1"></i>Play</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="stepReplay(1)" title="Next interval" aria-label="Next interval"><i class="bi bi-skip-forward-fill"></i></button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="resetReplay()" title="Reset to the first observed instant" aria-label="Reset replay"><i class="bi bi-arrow-counterclockwise"></i></button>
+            <span class="badge bg-dark border border-secondary text-muted" id="replayCoverageBadge">
+                {{ replay_timeline.real_step_count }} real observation{{ 's' if replay_timeline.real_step_count != 1 else '' }}
+            </span>
+        </div>
+
+        {% if not replay_timeline.replay_available %}
+        <div class="alert alert-warning py-2 px-3 mt-3 mb-0 small" role="alert">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            {{ replay_timeline.coverage_message or 'No persisted observations exist for this underlying and session, so point-in-time replay cannot be reconstructed.' }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Replay Ladder View Container -->
+<div class="card border border-secondary mb-4" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-clock me-1 text-info"></i>Reconstructed Option Chain Ladder (Point-in-Time State)
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-info text-dark" id="replaySpotBadge">Spot: —</span>
+            <span class="badge bg-dark border border-secondary text-muted" id="replayLadderMeta">Ladder not loaded</span>
+        </div>
+    </div>
+    <div class="card-body p-0 table-responsive">
+        <table class="table table-dark table-hover table-sm align-middle mb-0 text-center" style="font-size: 0.82rem;">
+            <thead>
+                <tr class="border-secondary text-muted" style="background-color: #0b0e14;">
+                    <th class="py-2 text-danger">Call Buildup</th>
+                    <th class="py-2 text-danger">Call LTP</th>
+                    <th class="py-2 text-danger">Call OI</th>
+                    <th class="py-2 text-danger" title="Change between this contract's two most recent point-in-time visible observations.">Call ΔOI</th>
+                    <th class="py-2 text-warning bg-dark">STRIKE</th>
+                    <th class="py-2 text-success" title="Change between this contract's two most recent point-in-time visible observations.">Put ΔOI</th>
+                    <th class="py-2 text-success">Put OI</th>
+                    <th class="py-2 text-success">Put LTP</th>
+                    <th class="py-2 text-success">Put Buildup</th>
+                </tr>
+            </thead>
+            <tbody id="replayTableBody">
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-muted">
+                        {{ replay_timeline.coverage_message or 'Loading the point-in-time ladder…' }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer bg-transparent border-secondary small text-muted">
+        {{ replay_timeline.no_lookahead_statement }}
+        {# G.11-OPT-9 (D-01): the filter panel above describes the CURRENT provider
+           context. Say so, so its spot cannot be mistaken for the replayed one. #}
+        <span class="d-block mt-1">
+            <strong>Scope note:</strong> the <em>Current spot</em> and <em>Source (current feed)</em>
+            values in the filter panel above describe the <strong>current</strong> live provider
+            context, not the replayed records. This ladder replays stored observations only; the
+            badge in this card names the record source and the observation instant it came from.
+        </span>
+    </div>
+</div>
+
+<!-- Point-in-time OI / spot chart for the selected window -->
+<div class="card border border-secondary mb-4" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-graph-up me-1 text-info"></i>Point-in-Time OI by Observed Instant (selected window)
+        </span>
+    </div>
+    <div class="card-body">
+        <canvas id="replayChart" height="90"></canvas>
+        <div class="text-muted small mt-2" id="replayChartNote">
+            Every plotted instant uses only observations that were already available at that instant.
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const timelineSteps = {{ replay_timeline.timeline_steps|tojson }};
+const scopeFingerprint = {{ (scope.scope_fingerprint if scope else '')|tojson }};
+const symbol = {{ selected_symbol|tojson }};
+const sessionDate = {{ (selected_session_date or '')|tojson }};
+const expiry = {{ (selected_expiry or '')|tojson }};
+const strikes = {{ selected_strikes|tojson }};
+let currentStep = 0;
+let isPlaying = false;
+let playInterval = null;
+let replayChart = null;
+let requestSeq = 0;
+
+function changeUnderlying(sym) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('symbol', sym);
+    url.searchParams.delete('session_date');
+    window.location.href = url.toString();
+}
+
+function changeSessionDate(dateVal) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('session_date', dateVal);
+    url.searchParams.delete('expiry');
+    window.location.href = url.toString();
+}
+
+function changeExpiry(expVal) {
+    const url = new URL(window.location.href);
+    url.searchParams.set('expiry', expVal);
+    window.location.href = url.toString();
+}
+
+function fmtMoney(value) {
+    return (value === null || value === undefined) ? '—'
+        : '₹' + Number(value).toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function fmtInt(value) {
+    return (value === null || value === undefined) ? '—'
+        : Number(value).toLocaleString('en-IN');
+}
+
+function fmtSigned(value) {
+    if (value === null || value === undefined) return '—';
+    const num = Number(value);
+    return (num > 0 ? '+' : '') + num.toLocaleString('en-IN');
+}
+
+function sideCells(side, kind) {
+    // Column order differs per side: Call = LTP, OI, ΔOI; Put = ΔOI, OI, LTP.
+    const cls = kind === 'call' ? 'text-danger' : 'text-success';
+    const align = kind === 'call' ? 'text-end pe-3' : 'text-start ps-3';
+    const unavailableTitle = side.reason === 'INSUFFICIENT_OBSERVATIONS'
+        ? 'No point-in-time visible observation exists for this contract at the replay instant.'
+        : (side.reason || 'unavailable');
+    if (!side.available) {
+        return '<td class="' + align + ' text-muted">—</td>'
+            + '<td class="' + align + ' text-muted fst-italic" title="' + unavailableTitle + '">unavailable</td>'
+            + '<td class="' + align + ' text-muted">—</td>';
+    }
+    const oiChange = fmtSigned(side.interval_change_in_oi);
+    const changeTitle = side.interval_change_in_oi === null
+        ? ' title="Only one point-in-time visible observation exists for this contract, so no interval change can be measured."'
+        : ' title="Measured between this contract&apos;s two most recent point-in-time visible observations."';
+    const ltpCell = '<td class="' + align + '">' + fmtMoney(side.ltp) + '</td>';
+    const oiCell = '<td class="' + align + ' ' + cls + ' fw-semibold">' + fmtInt(side.open_interest) + '</td>';
+    const changeCell = '<td class="' + align + ' text-muted"' + changeTitle + '>' + oiChange + '</td>';
+    return kind === 'call'
+        ? ltpCell + oiCell + changeCell
+        : changeCell + oiCell + ltpCell;
+}
+
+function updateReplayStep(val) {
+    currentStep = parseInt(val, 10);
+    const stepObj = timelineSteps[currentStep] || timelineSteps[0];
+    if (stepObj) {
+        document.getElementById("replayTimeDisplay").textContent = stepObj.timestamp_ist + " IST";
+    }
+    loadLadder(stepObj);
+}
+
+async function loadLadder(stepObj) {
+    const seq = ++requestSeq;
+    if (!stepObj) {
+        document.getElementById("replayLadderMeta").textContent = 'No observable instant';
+        return;
+    }
+    const evalAt = stepObj.available_at_utc || stepObj.iso_timestamp;
+    const params = new URLSearchParams({
+        symbol: symbol,
+        strikes: strikes,
+        at: evalAt,
+    });
+    if (expiry) params.set('expiry', expiry);
+    if (sessionDate) params.set('session_date', sessionDate);
+    document.getElementById("replayLadderMeta").textContent = 'Loading…';
+
+    let payload = null;
+    try {
+        const response = await fetch('/api/v1/market-data/options/replay-ladder?' + params.toString(), {
+            headers: {'Accept': 'application/json'}
+        });
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        payload = await response.json();
+    } catch (err) {
+        if (seq !== requestSeq) return;
+        document.getElementById("replayLadderMeta").textContent = 'Ladder read failed';
+        document.getElementById("replayTableBody").innerHTML =
+            '<tr><td colspan="9" class="text-center py-4 text-warning">Point-in-time ladder could not be read (' + err.message + ').</td></tr>';
+        return;
+    }
+    // A slower response for a previously selected underlying must never overwrite
+    // the current selection.
+    if (seq !== requestSeq) return;
+    if (scopeFingerprint && payload.scope_fingerprint &&
+        payload.underlying !== symbol) return;
+
+    // G.11-OPT-9 (D-01): label this spot as the REPLAYED point-in-time value and
+    // name the stored source it came from. The filter panel above shows the CURRENT
+    // live spot and provider; without this distinction two different "spot" figures
+    // appeared on one screen with nothing telling them apart.
+    const replayedSpotAt = payload.spot_observed_at_ist ? ' @ ' + payload.spot_observed_at_ist + ' IST' : '';
+    const replaySpotBadge = document.getElementById("replaySpotBadge");
+    replaySpotBadge.textContent = 'Replayed spot: ' + fmtMoney(payload.spot_price) + replayedSpotAt;
+    replaySpotBadge.title =
+        'Point-in-time spot from the stored observation (' + (payload.spot_provenance || 'PERSISTED_SNAPSHOT')
+        + '). This is NOT the current live quote shown in the filter panel.';
+    const recordSources = (payload.record_source_names || []).join(', ')
+        || (payload.read_meta && payload.read_meta.source) || 'unknown';
+    document.getElementById("replayLadderMeta").textContent =
+        (payload.atm_strike === null ? 'ATM unresolved' : 'ATM ' + fmtInt(payload.atm_strike))
+        + ' · ' + payload.coverage.strike_count + ' strikes · '
+        + payload.coverage.both_sides + ' two-sided'
+        + ' · replayed from ' + recordSources;
+
+    const body = document.getElementById("replayTableBody");
+    if (!payload.rows || !payload.rows.length) {
+        body.innerHTML = '<tr><td colspan="9" class="text-center py-4 text-muted">'
+            + (payload.coverage_message || 'No point-in-time observation covers this instant.') + '</td></tr>';
+    } else {
+        body.innerHTML = payload.rows.map(function (row) {
+            const atmClass = row.is_atm ? 'bg-info bg-opacity-10' : '';
+            return '<tr class="border-secondary ' + atmClass + '">'
+                + '<td><span class="badge bg-' + row.call.buildup.color_class + '" title="' + row.call.buildup.tooltip + '">' + row.call.buildup.code + '</span></td>'
+                + sideCells(row.call, 'call')
+                + '<td class="fw-bold text-light bg-dark py-2">' + fmtInt(row.strike_price) + '</td>'
+                + sideCells(row.put, 'put')
+                + '<td><span class="badge bg-' + row.put.buildup.color_class + '" title="' + row.put.buildup.tooltip + '">' + row.put.buildup.code + '</span></td>'
+                + '</tr>';
+        }).join('');
+    }
+    renderChart(payload.series || []);
+}
+
+function renderChart(points) {
+    const canvas = document.getElementById('replayChart');
+    if (!canvas || typeof Chart === 'undefined') return;
+    const labels = points.map(function (p) { return p.timestamp_ist; });
+    const datasets = [
+        {label: 'Call OI (window)', data: points.map(function (p) { return p.call_oi; }),
+         borderColor: '#dc3545', backgroundColor: 'rgba(220,53,69,0.15)', tension: 0.25},
+        {label: 'Put OI (window)', data: points.map(function (p) { return p.put_oi; }),
+         borderColor: '#198754', backgroundColor: 'rgba(25,135,84,0.15)', tension: 0.25},
+        {label: 'Underlying spot', data: points.map(function (p) { return p.spot_price; }),
+         borderColor: '#0dcaf0', borderDash: [4, 4], tension: 0.25, yAxisID: 'y1'}
+    ];
+    if (replayChart) { replayChart.destroy(); }
+    replayChart = new Chart(canvas.getContext('2d'), {
+        type: 'line',
+        data: {labels: labels, datasets: datasets},
+        options: {
+            responsive: true,
+            interaction: {mode: 'index', intersect: false},
+            scales: {
+                y: {title: {display: true, text: 'Open interest'}, ticks: {color: '#adb5bd'}},
+                y1: {position: 'right', grid: {drawOnChartArea: false}, ticks: {color: '#0dcaf0'}},
+                x: {ticks: {color: '#adb5bd'}}
+            },
+            plugins: {legend: {labels: {color: '#dee2e6'}}}
+        }
+    });
+    document.getElementById('replayChartNote').textContent = points.length
+        ? points.length + ' point-in-time instants plotted. Later revisions are never used to populate an earlier instant.'
+        : 'No point-in-time observations exist for the selected window, so no chart is drawn.';
+}
+
+function stepReplay(delta) {
+    const slider = document.getElementById("replayRangeSlider");
+    let nextVal = currentStep + delta;
+    if (nextVal < 0) nextVal = 0;
+    if (nextVal >= timelineSteps.length) nextVal = timelineSteps.length - 1;
+    slider.value = nextVal;
+    updateReplayStep(nextVal);
+}
+
+function resetReplay() {
+    pause();
+    const slider = document.getElementById("replayRangeSlider");
+    slider.value = 0;
+    updateReplayStep(0);
+}
+
+function togglePlay() {
+    if (isPlaying) {
+        pause();
+    } else {
+        play();
+    }
+}
+
+function play() {
+    if (!timelineSteps.length) return;
+    isPlaying = true;
+    const playBtn = document.getElementById("playBtn");
+    playBtn.innerHTML = '<i class="bi bi-pause-fill me-1"></i>Pause';
+    playBtn.classList.replace("btn-primary", "btn-warning");
+    const speed = parseInt(document.getElementById("replaySpeed").value, 10) || 800;
+    playInterval = setInterval(() => {
+        if (currentStep < timelineSteps.length - 1) {
+            stepReplay(1);
+        } else {
+            pause();
+        }
+    }, speed);
+}
+
+function pause() {
+    isPlaying = false;
+    clearInterval(playInterval);
+    const playBtn = document.getElementById("playBtn");
+    playBtn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Play';
+    playBtn.classList.replace("btn-warning", "btn-primary");
+}
+
+if (timelineSteps.length) {
+    const firstSnapshotIndex = timelineSteps.findIndex(function (s) { return s.has_snapshot; });
+    const initialStep = firstSnapshotIndex >= 0 ? firstSnapshotIndex : 0;
+    const slider = document.getElementById("replayRangeSlider");
+    if (slider) slider.value = initialStep;
+    updateReplayStep(initialStep);
+}
+</script>
+{% endblock %}

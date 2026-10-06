@@ -1,0 +1,425 @@
+{% if not chain or not chain.ladder %}
+<div class="empty-state py-5 text-center">
+    <i class="bi bi-diagram-3 display-4 text-muted mb-3 d-block"></i>
+    <h5 class="fw-semibold text-light">No Intraday Option Chain Available</h5>
+    <p class="text-muted small">No active quotes found for {{ underlying or 'selected underlying' }} and expiry {{ expiry or 'selected expiry' }}. Please check provider connection or select a different expiry.</p>
+</div>
+{% else %}
+{% set extra_cols = (1 if show_buildup else 0) + (1 if show_iv else 0) + (1 if show_delta else 0) + (1 if show_gamma else 0) + (1 if show_vega else 0) %}
+{% set call_cols = 5 + extra_cols %}
+{% set put_cols = 5 + extra_cols %}
+
+{# G.11-OPT-12B Phase 2B: deterministic dataset-local scaling for the relative
+   OI / ΔOI visual bars. Maxima are computed None-safe from the rows actually
+   displayed (value / largest displayed value). Stored values are never altered
+   and the numeric cells remain the only authoritative values — the bars are
+   pure background decoration with accessibility titles distinguishing the
+   actual value from the visual relative bar. Zero renders no bar; unavailable
+   values render no bar. #}
+{% set oi_ns = namespace(max_oi = 0, max_abs_doi = 0) %}
+{% for row in chain.ladder %}
+    {% if row.call.open_interest is not none and row.call.open_interest > oi_ns.max_oi %}{% set oi_ns.max_oi = row.call.open_interest %}{% endif %}
+    {% if row.put.open_interest is not none and row.put.open_interest > oi_ns.max_oi %}{% set oi_ns.max_oi = row.put.open_interest %}{% endif %}
+    {% if row.call.change_in_oi is not none and (row.call.change_in_oi | abs) > oi_ns.max_abs_doi %}{% set oi_ns.max_abs_doi = (row.call.change_in_oi | abs) %}{% endif %}
+    {% if row.put.change_in_oi is not none and (row.put.change_in_oi | abs) > oi_ns.max_abs_doi %}{% set oi_ns.max_abs_doi = (row.put.change_in_oi | abs) %}{% endif %}
+{% endfor %}
+
+{% macro oi_bar_style(value, max_val, direction, tint) -%}
+{% if value is not none and max_val and max_val > 0 and value > 0 %}{% set bar_w = ((value / max_val) * 100) | round(1) %}background-image: linear-gradient(to {{ direction }}, {{ tint }} {{ bar_w }}%, transparent {{ bar_w }}%); background-repeat: no-repeat;{% endif %}
+{%- endmacro %}
+{% macro doi_bar_style(value, max_abs, direction) -%}
+{% if value is not none and value != 0 and max_abs and max_abs > 0 %}{% set bar_w = ((value | abs) / max_abs * 100) | round(1) %}{% set doi_tint = 'rgba(34, 197, 94, 0.26)' if value > 0 else 'rgba(239, 68, 68, 0.26)' %}background-image: linear-gradient(to {{ direction }}, {{ doi_tint }} {{ bar_w }}%, transparent {{ bar_w }}%); background-repeat: no-repeat;{% endif %}
+{%- endmacro %}
+
+<!-- Top Header Strip -->
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-2 px-1 gap-2">
+    <div class="small text-muted">
+        <span class="fw-semibold text-light">{{ chain.underlying }}</span> Spot: <span class="text-success fw-bold">₹{{ '{:,.2f}'.format(chain.spot_price) }}</span>
+        &nbsp;|&nbsp; ATM Strike: <span class="badge bg-warning text-dark fw-bold">{{ '{:,.0f}'.format(chain.atm_strike) }}</span>
+        &nbsp;|&nbsp; Coverage: <span class="badge bg-dark border border-secondary text-info">{{ chain.summary.strike_coverage_label }}</span>
+        &nbsp;|&nbsp; PCR: <span class="fw-bold {{ 'text-success' if chain.pcr and chain.pcr >= 1.0 else 'text-danger' }}">{{ chain.pcr if chain.pcr is not none else 'N/A' }}</span>
+    </div>
+    <div class="small text-muted d-flex align-items-center gap-2">
+        <span class="badge bg-dark border border-secondary text-info"><i class="bi bi-broadcast me-1"></i>{{ chain.provider }}</span>
+        <span class="badge {{ 'bg-success' if chain.is_market_open else 'bg-secondary' }}">{{ chain.market_session }}</span>
+        <span class="ms-1">{{ chain.as_of_ist }}</span>
+    </div>
+</div>
+
+<!-- Strike Ladder Table -->
+<div class="table-responsive border border-secondary rounded" style="max-height: 650px; overflow-y: auto;">
+    <table class="table table-sm table-dark table-hover mb-0 text-center align-middle" style="font-size: 0.81rem; font-family: var(--bs-font-monospace, monospace);">
+        <thead class="sticky-top bg-dark border-bottom border-secondary text-uppercase" style="z-index: 5;">
+            <!-- Super Header -->
+            <tr style="background-color: #121722;">
+                <th colspan="{{ call_cols }}" class="py-2 text-danger border-end border-secondary"><i class="bi bi-arrow-up-circle me-1"></i>CALLS (CE)</th>
+                <th class="py-2 text-warning border-end border-secondary">STRIKE</th>
+                <th colspan="{{ put_cols }}" class="py-2 text-success"><i class="bi bi-arrow-down-circle me-1"></i>PUTS (PE)</th>
+            </tr>
+            <tr style="background-color: #161c2b; font-size: 0.73rem;">
+                <!-- CALLS (Outer to Inner) -->
+                {% if show_buildup %}
+                <th class="text-muted text-center" style="min-width: 50px;">Buildup</th>
+                {% endif %}
+                {% if show_iv %}
+                <th class="text-muted text-end" style="min-width: 55px;" title="Implied Volatility (%)">IV</th>
+                {% endif %}
+                {% if show_delta %}
+                <th class="text-muted text-end" style="min-width: 55px;" title="Delta">Delta</th>
+                {% endif %}
+                {% if show_gamma %}
+                <th class="text-muted text-end" style="min-width: 55px;" title="Gamma">Gamma</th>
+                {% endif %}
+                {% if show_vega %}
+                <th class="text-muted text-end" style="min-width: 55px;" title="Vega (per 1% vol)">Vega</th>
+                {% endif %}
+                <th class="text-muted text-end">OI</th>
+                <th class="text-muted text-end">ΔOI</th>
+                <th class="text-muted text-end">Volume</th>
+                <th class="text-muted text-end">LTP</th>
+                <th class="text-muted border-end border-secondary">Bid / Ask</th>
+
+                <!-- CENTER STRIKE -->
+                <th class="text-warning fw-bold border-end border-secondary" style="min-width: 90px;">Strike</th>
+
+                <!-- PUTS (Inner to Outer) -->
+                <th class="text-muted">Bid / Ask</th>
+                <th class="text-muted text-start">LTP</th>
+                <th class="text-muted text-start">Volume</th>
+                <th class="text-muted text-start">ΔOI</th>
+                <th class="text-muted text-start">OI</th>
+                {% if show_iv %}
+                <th class="text-muted text-start" style="min-width: 55px;" title="Implied Volatility (%)">IV</th>
+                {% endif %}
+                {% if show_vega %}
+                <th class="text-muted text-start" style="min-width: 55px;" title="Vega (per 1% vol)">Vega</th>
+                {% endif %}
+                {% if show_gamma %}
+                <th class="text-muted text-start" style="min-width: 55px;" title="Gamma">Gamma</th>
+                {% endif %}
+                {% if show_delta %}
+                <th class="text-muted text-start" style="min-width: 55px;" title="Delta">Delta</th>
+                {% endif %}
+                {% if show_buildup %}
+                <th class="text-muted text-center" style="min-width: 50px;">Buildup</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in chain.ladder %}
+            {% set c = row.call %}
+            {% set p = row.put %}
+            {% set is_atm = row.is_atm %}
+            <tr class="{{ 'table-warning text-dark fw-bold' if is_atm else '' }}" style="{{ 'background-color: rgba(255, 193, 7, 0.14);' if is_atm else '' }}">
+                <!-- CALLS -->
+                {% if show_buildup %}
+                <td class="text-center py-1 {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    <span class="badge bg-{{ c.buildup.color_class }}" title="{{ c.buildup.tooltip }}" style="font-size: 0.68rem; min-width: 24px;">
+                        {{ c.buildup.code }}
+                    </span>
+                </td>
+                {% endif %}
+
+                {% if show_iv %}
+                <td class="text-end text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {% if c.iv is not none %}
+                        {{ '{:.1f}%'.format(c.iv) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_delta %}
+                <td class="text-end text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {% if c.delta is not none %}
+                        {{ '{:+.3f}'.format(c.delta) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_gamma %}
+                <td class="text-end text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {% if c.gamma is not none %}
+                        {{ '{:.4f}'.format(c.gamma) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_vega %}
+                <td class="text-end text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {% if c.vega is not none %}
+                        {{ '{:.2f}'.format(c.vega) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                <!-- Call OI (numeric value authoritative; background bar is a relative visual aid only) -->
+                <td class="text-end {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}" style="{{ 'color: #93c5fd;' if c.open_interest else 'color: #4b5563;' }} {{ oi_bar_style(c.open_interest, oi_ns.max_oi, 'left', 'rgba(147, 197, 253, 0.28)') }}"
+                    title="{% if c.open_interest is not none %}CE OI {{ '{:,}'.format(c.open_interest) }} — shaded bar length is a visual aid relative to the largest displayed OI, not a data value{% else %}CE OI unavailable{% endif %}">
+                    {{ '{:,}'.format(c.open_interest) if c.open_interest is not none else '—' }}
+                </td>
+                <!-- Call ΔOI (numeric value authoritative; background bar is a relative visual aid only) -->
+                <td class="text-end {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }} {{ 'text-success' if c.change_in_oi and c.change_in_oi > 0 else ('text-danger' if c.change_in_oi and c.change_in_oi < 0 else 'text-muted') }}" style="{{ doi_bar_style(c.change_in_oi, oi_ns.max_abs_doi, 'left') }}"
+                    title="{% if c.change_in_oi is not none %}CE ΔOI {{ '{:+,}'.format(c.change_in_oi) }}{% if c.change_in_oi == 0 %} (no change){% endif %} — shaded bar length is a visual aid relative to the largest displayed |ΔOI|, not a data value{% else %}CE ΔOI unavailable{% endif %}">
+                    {% if c.change_in_oi is not none %}
+                        {{ '{:+,}'.format(c.change_in_oi) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <!-- Call Volume -->
+                <td class="text-end text-muted {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {{ '{:,}'.format(c.volume) if c.volume is not none else '—' }}
+                </td>
+                <!-- Call LTP -->
+                <td class="text-end fw-bold {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }} {{ 'text-success' if c.change and c.change >= 0 else ('text-danger' if c.change and c.change < 0 else 'text-light') }}">
+                    {% if c.ltp is not none %}
+                        ₹{{ '{:,.2f}'.format(c.ltp) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <!-- Call Bid/Ask -->
+                <td class="text-end text-muted small border-end border-secondary {{ 'bg-opacity-10 bg-warning' if c.is_itm and not is_atm else '' }}">
+                    {% if c.bid is not none and c.ask is not none %}
+                        {{ '{:,.1f}'.format(c.bid) }}/{{ '{:,.1f}'.format(c.ask) }}
+                    {% elif c.bid is not none %}
+                        {{ '{:,.1f}'.format(c.bid) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+
+                <!-- STRIKE (CENTER) -->
+                <td class="fw-bold border-end border-secondary {{ 'bg-warning text-dark' if is_atm else 'text-warning bg-dark' }}" style="{{ 'letter-spacing: 0.5px;' if is_atm else '' }}">
+                    {{ '{:,.0f}'.format(row.strike_price) }}
+                    {% if is_atm %}
+                    <span class="badge bg-dark text-warning ms-1" style="font-size: 0.65rem;">ATM</span>
+                    {% endif %}
+                </td>
+
+                <!-- PUTS -->
+                <!-- Put Bid/Ask -->
+                <td class="text-start text-muted small {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {% if p.bid is not none and p.ask is not none %}
+                        {{ '{:,.1f}'.format(p.bid) }}/{{ '{:,.1f}'.format(p.ask) }}
+                    {% elif p.bid is not none %}
+                        {{ '{:,.1f}'.format(p.bid) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <!-- Put LTP -->
+                <td class="text-start fw-bold {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }} {{ 'text-success' if p.change and p.change >= 0 else ('text-danger' if p.change and p.change < 0 else 'text-light') }}">
+                    {% if p.ltp is not none %}
+                        ₹{{ '{:,.2f}'.format(p.ltp) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <!-- Put Volume -->
+                <td class="text-start text-muted {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {{ '{:,}'.format(p.volume) if p.volume is not none else '—' }}
+                </td>
+                <!-- Put ΔOI (numeric value authoritative; background bar is a relative visual aid only) -->
+                <td class="text-start {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }} {{ 'text-success' if p.change_in_oi and p.change_in_oi > 0 else ('text-danger' if p.change_in_oi and p.change_in_oi < 0 else 'text-muted') }}" style="{{ doi_bar_style(p.change_in_oi, oi_ns.max_abs_doi, 'right') }}"
+                    title="{% if p.change_in_oi is not none %}PE ΔOI {{ '{:+,}'.format(p.change_in_oi) }}{% if p.change_in_oi == 0 %} (no change){% endif %} — shaded bar length is a visual aid relative to the largest displayed |ΔOI|, not a data value{% else %}PE ΔOI unavailable{% endif %}">
+                    {% if p.change_in_oi is not none %}
+                        {{ '{:+,}'.format(p.change_in_oi) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                <!-- Put OI (numeric value authoritative; background bar is a relative visual aid only) -->
+                <td class="text-start {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}" style="{{ 'color: #86efac;' if p.open_interest else 'color: #4b5563;' }} {{ oi_bar_style(p.open_interest, oi_ns.max_oi, 'right', 'rgba(134, 239, 172, 0.24)') }}"
+                    title="{% if p.open_interest is not none %}PE OI {{ '{:,}'.format(p.open_interest) }} — shaded bar length is a visual aid relative to the largest displayed OI, not a data value{% else %}PE OI unavailable{% endif %}">
+                    {{ '{:,}'.format(p.open_interest) if p.open_interest is not none else '—' }}
+                </td>
+
+                {% if show_iv %}
+                <td class="text-start text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {% if p.iv is not none %}
+                        {{ '{:.1f}%'.format(p.iv) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_vega %}
+                <td class="text-start text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {% if p.vega is not none %}
+                        {{ '{:.2f}'.format(p.vega) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_gamma %}
+                <td class="text-start text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {% if p.gamma is not none %}
+                        {{ '{:.4f}'.format(p.gamma) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_delta %}
+                <td class="text-start text-muted small py-1 {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    {% if p.delta is not none %}
+                        {{ '{:+.3f}'.format(p.delta) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </td>
+                {% endif %}
+
+                {% if show_buildup %}
+                <td class="text-center py-1 {{ 'bg-opacity-10 bg-warning' if p.is_itm and not is_atm else '' }}">
+                    <span class="badge bg-{{ p.buildup.color_class }}" title="{{ p.buildup.tooltip }}" style="font-size: 0.68rem; min-width: 24px;">
+                        {{ p.buildup.code }}
+                    </span>
+                </td>
+                {% endif %}
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot class="sticky-bottom bg-dark border-top border-secondary fw-bold text-uppercase" style="background-color: #121722 !important; z-index: 5;">
+            <tr>
+                {% if show_buildup %}<td class="text-center text-muted">—</td>{% endif %}
+                {% if show_iv %}<td class="text-end text-muted">—</td>{% endif %}
+                {% if show_delta %}<td class="text-end text-muted">—</td>{% endif %}
+                {% if show_gamma %}<td class="text-end text-muted">—</td>{% endif %}
+                {% if show_vega %}<td class="text-end text-muted">—</td>{% endif %}
+                <td class="text-end text-info">{{ '{:,}'.format(chain.total_call_oi) }}</td>
+                <td class="text-end text-muted">—</td>
+                <td class="text-end text-muted">{{ '{:,}'.format(chain.total_call_volume) }}</td>
+                <td colspan="2" class="text-end text-muted border-end border-secondary">Total Call OI</td>
+                <td class="text-center text-warning border-end border-secondary">TOTALS</td>
+                <td colspan="2" class="text-start text-muted">Total Put OI</td>
+                <td class="text-start text-muted">{{ '{:,}'.format(chain.total_put_volume) }}</td>
+                <td class="text-start text-muted">—</td>
+                <td class="text-start text-success">{{ '{:,}'.format(chain.total_put_oi) }}</td>
+                {% if show_iv %}<td class="text-start text-muted">—</td>{% endif %}
+                {% if show_vega %}<td class="text-start text-muted">—</td>{% endif %}
+                {% if show_gamma %}<td class="text-start text-muted">—</td>{% endif %}
+                {% if show_delta %}<td class="text-start text-muted">—</td>{% endif %}
+                {% if show_buildup %}<td class="text-center text-muted">—</td>{% endif %}
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+<!-- Seven-Metric (6 Distinct Metrics) Summary Panel Placed Immediately Below Strike Ladder -->
+<div class="card border border-secondary mt-3 mb-2" style="background-color: #121722;">
+    <div class="card-header border-bottom border-secondary bg-transparent py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="small fw-semibold text-light">
+            <i class="bi bi-speedometer2 me-1 text-info"></i>Option Chain Summary Panel
+            <span class="badge bg-dark border border-secondary text-info ms-2">{{ chain.summary.strike_coverage_label }}</span>
+        </div>
+        <div class="small text-muted">
+            <span>As of: {{ chain.summary.as_of_ist }} &middot; <span class="badge bg-dark border border-secondary text-light">{{ chain.summary.provider }}</span></span>
+        </div>
+    </div>
+    <div class="card-body p-2">
+        <div class="row g-2 text-center">
+            <!-- 1. Total CE OI -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Total CE OI</div>
+                    <div class="fw-bold text-info fs-6">{{ '{:,}'.format(chain.summary.total_ce_oi) }}</div>
+                </div>
+            </div>
+            <!-- 2. Call OI Change -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Call OI Change</div>
+                    <div class="fw-bold fs-6 {{ 'text-success' if chain.summary.call_oi_change and chain.summary.call_oi_change > 0 else ('text-danger' if chain.summary.call_oi_change and chain.summary.call_oi_change < 0 else 'text-muted') }}">
+                        {% if chain.summary.call_oi_change is not none %}
+                            {{ '{:+,}'.format(chain.summary.call_oi_change) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!-- 3. CE Volume -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">CE Volume</div>
+                    <div class="fw-bold text-light fs-6">{{ '{:,}'.format(chain.summary.ce_volume) }}</div>
+                </div>
+            </div>
+            <!-- 4. PE Volume -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">PE Volume</div>
+                    <div class="fw-bold text-light fs-6">{{ '{:,}'.format(chain.summary.pe_volume) }}</div>
+                </div>
+            </div>
+            <!-- 5. PE OI Change -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">PE OI Change</div>
+                    <div class="fw-bold fs-6 {{ 'text-success' if chain.summary.pe_oi_change and chain.summary.pe_oi_change > 0 else ('text-danger' if chain.summary.pe_oi_change and chain.summary.pe_oi_change < 0 else 'text-muted') }}">
+                        {% if chain.summary.pe_oi_change is not none %}
+                            {{ '{:+,}'.format(chain.summary.pe_oi_change) }}
+                        {% else %}
+                            —
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            <!-- 6. Total PE OI -->
+            <div class="col-6 col-md-2">
+                <div class="p-2 rounded border border-secondary" style="background-color: #161c2b;">
+                    <div class="text-muted text-uppercase fw-semibold" style="font-size: 0.68rem;">Total PE OI</div>
+                    <div class="fw-bold text-success fs-6">{{ '{:,}'.format(chain.summary.total_pe_oi) }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Buildup Legend and Footer Notes -->
+<div class="card border border-secondary mt-2" style="background-color: #121722;">
+    <div class="card-body py-2 px-3 small text-muted">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <!-- Buildup Classification Legend -->
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="fw-semibold text-light" style="font-size: 0.75rem;">Buildup Legend:</span>
+                <span><span class="badge bg-success me-1">LB</span> <strong class="text-success">Long Buildup</strong> (Price ↑, OI ↑)</span>
+                <span><span class="badge bg-danger me-1">SB</span> <strong class="text-danger">Short Buildup</strong> (Price ↓, OI ↑)</span>
+                <span><span class="badge bg-info me-1">SC</span> <strong class="text-info">Short Covering</strong> (Price ↑, OI ↓)</span>
+                <span><span class="badge bg-warning me-1">LU</span> <strong class="text-warning">Long Unwinding</strong> (Price ↓, OI ↓)</span>
+                <span><span class="badge bg-secondary me-1">—</span> Neutral</span>
+            </div>
+            <!-- Visual cues -->
+            <div>
+                <span class="badge bg-warning bg-opacity-10 text-warning border border-warning border-opacity-25 me-1">Shaded</span> ITM
+                &nbsp;|&nbsp;
+                <span class="badge bg-warning text-dark me-1">ATM</span> At-the-Money
+            </div>
+        </div>
+        <div class="mt-2 pt-2 border-top border-secondary border-opacity-50 text-muted" style="font-size: 0.72rem;">
+            <i class="bi bi-bar-chart me-1 text-info"></i>
+            OI / ΔOI bar shading is a relative visual aid computed only from the rows currently displayed (value ÷ largest displayed value in this view); it is not a data value and never replaces the exact numbers shown. Zero renders no bar; unavailable values show "—" with no bar.
+        </div>
+        {% if show_iv or show_delta or show_gamma or show_vega %}
+        <div class="mt-2 pt-2 border-top border-secondary border-opacity-50 text-muted" style="font-size: 0.72rem;">
+            <i class="bi bi-cpu me-1 text-info"></i>
+            Quantitative Engine: Greeks and IV calculated via analytical Black-Scholes model with guarded Newton-Raphson & Brent bisection solver (Risk-free rate: 6.5%). Vega is scaled per 1% change in volatility; Theta is annualized / 365. Near zero DTE edge cases handled gracefully.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}

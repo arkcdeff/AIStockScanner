@@ -1,0 +1,600 @@
+{% extends "layouts/shell.html" %}
+{% block title %}Options / Intraday Workbench - AI Stock Scanner{% endblock %}
+{% block page_title %}Options / Intraday Workbench{% endblock %}
+
+{% block topbar_status %}
+<span class="status-dot {{ 'status-dot-success' if is_market_open else 'status-dot-secondary' }}"></span>
+<span>{{ provider_name }} · {{ 'LIVE TRADING SESSION' if is_market_open else 'MARKET CLOSED' }}</span>
+{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <div class="workspace-eyebrow text-uppercase text-info fw-semibold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            <i class="bi bi-broadcast me-1"></i>Real-Time Market Data · Analytics Only
+        </div>
+        <h1 class="workspace-title h2 fw-bold text-light mb-1">
+            Options / Intraday Workbench
+        </h1>
+        <p class="workspace-subtitle text-muted small mb-0">
+            Real-time Indian index options analytics inspired by TradingTick. Live strike ladder, option dashboard, PCR tracking, Call vs Put OI, and OI change analysis.
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <a href="/market-data/derivatives" class="btn btn-sm btn-outline-secondary" title="Switch to Historical Derivatives Workbench">
+            <i class="bi bi-clock-history me-1"></i>Historical Derivatives
+        </a>
+    </div>
+</div>
+
+<!-- Safety Notice Banner -->
+<div class="state-panel mb-3 p-2 px-3 rounded border border-info border-opacity-25" style="background-color: rgba(14, 165, 233, 0.05); font-size: 0.82rem;">
+    <div class="d-flex align-items-center text-info">
+        <i class="bi bi-shield-check fs-5 me-2"></i>
+        <div>
+            <strong class="text-light">Live Analytics Isolation:</strong>
+            This workspace operates strictly in read-only market analytics mode. Zero order routing, no CE/PE trade recommendations, and no automated execution.
+        </div>
+    </div>
+</div>
+
+{% with active_view='option_chain' %}
+{% include "components/derivatives_nav_tabs.html" %}
+{% endwith %}
+
+<!-- Controls Strip (TradingTick style) -->
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-body py-2 px-3">
+        <form id="optionsControlForm" class="row g-2 align-items-center">
+            <!-- Underlying Selector -->
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Underlying Index</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="symbol" id="opt-symbol"
+                        hx-get="/market-data/options/expiries-select"
+                        hx-target="#opt-expiry-container"
+                        hx-trigger="change">
+                    {% for u in underlyings %}
+                    <option value="{{ u.symbol }}" {{ 'selected' if u.symbol == selected_symbol else '' }}>{{ u.name }} ({{ u.symbol }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Dynamic Expiry Selector Container -->
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Expiry Date</label>
+                <div id="opt-expiry-container">
+                    <select class="form-select form-select-sm bg-dark text-light border-secondary" name="expiry_date" id="opt-expiry">
+                        {% for exp in expiries %}
+                        <option value="{{ exp.expiry_date }}" {{ 'selected' if exp.expiry_date == selected_expiry else '' }}>
+                            {{ exp.expiry_date }} ({{ exp.days_to_expiry }} DTE · {{ exp.expiry_type }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- Strike Range Filter (for Option Chain, OI comparison, and OI Change) -->
+            {% set _selected_strike_count = (selected_strike_count|string) if selected_strike_count is defined and selected_strike_count is not none else '10' %}
+            <div class="col-md-3 col-sm-6">
+                <label class="form-label small text-muted mb-1 text-uppercase fw-semibold" style="font-size: 0.72rem;">Strike Range (ATM ±)</label>
+                <select class="form-select form-select-sm bg-dark text-light border-secondary" name="strike_count" id="opt-strike-count">
+                    <option value="5" {{ 'selected' if _selected_strike_count == '5' else '' }}>ATM ± 5 Strikes</option>
+                    <option value="10" {{ 'selected' if _selected_strike_count == '10' else '' }}>ATM ± 10 Strikes</option>
+                    <option value="15" {{ 'selected' if _selected_strike_count == '15' else '' }}>ATM ± 15 Strikes</option>
+                    <option value="20" {{ 'selected' if _selected_strike_count == '20' else '' }}>ATM ± 20 Strikes</option>
+                    <option value="25" {{ 'selected' if _selected_strike_count == '25' else '' }}>ATM ± 25 Strikes</option>
+                    <option value="all" {{ 'selected' if _selected_strike_count == 'all' else '' }}>Show All Strikes</option>
+                </select>
+            </div>
+
+            <!-- Refresh / Action Button -->
+            <div class="col-md-3 col-sm-6 d-flex align-items-end gap-2 pt-3 pt-md-0">
+                <button type="button" class="btn btn-sm btn-primary flex-grow-1" id="opt-refresh-btn" onclick="refreshActiveTab()">
+                    <i class="bi bi-arrow-repeat me-1"></i>Refresh Data
+                </button>
+            </div>
+        </form>
+        {# G.11-OPT-13 (Phase A): explicit workspace status. A tab whose selection
+           changed is cleared and reported here, so stale state is never presented
+           as the current selection. #}
+        <div class="row g-2 mt-1 d-none" id="workspace-status-row">
+            <div class="col-12 d-flex align-items-center gap-2 small text-muted">
+                <span class="spinner-border spinner-border-sm text-info" role="status" aria-hidden="true"></span>
+                <span id="workspace-status-text">Loading…</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Navigation Tabs -->
+<ul class="nav nav-tabs stock-tabs mb-3 border-secondary" id="optionsWorkspaceTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-semibold" id="tab-chain-btn" data-bs-toggle="tab" data-bs-target="#tab-chain" type="button" role="tab">
+            <i class="bi bi-diagram-3 me-1"></i>Option Chain
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-dashboard-btn" data-bs-toggle="tab" data-bs-target="#tab-dashboard" type="button" role="tab">
+            <i class="bi bi-grid-3x3-gap me-1"></i>Option Dashboard
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-pcr-btn" data-bs-toggle="tab" data-bs-target="#tab-pcr" type="button" role="tab">
+            <i class="bi bi-speedometer2 me-1"></i>Live PCR
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-oi-btn" data-bs-toggle="tab" data-bs-target="#tab-oi" type="button" role="tab">
+            <i class="bi bi-bar-chart-steps me-1"></i>Call vs Put OI
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link fw-semibold" id="tab-oichange-btn" data-bs-toggle="tab" data-bs-target="#tab-oichange" type="button" role="tab">
+            <i class="bi bi-activity me-1"></i>OI Change
+        </button>
+    </li>
+</ul>
+
+<!-- Tab Contents -->
+<div class="tab-content" id="optionsWorkspaceContent">
+    <!-- 1. OPTION CHAIN TAB -->
+    <div class="tab-pane fade show active" id="tab-chain" role="tabpanel">
+        <!-- Optional Columns Visibility Toolbar -->
+        <div class="card border border-secondary mb-2" style="background-color: #121722;">
+            <div class="card-body py-1 px-3 d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="d-flex align-items-center gap-1 text-muted small">
+                    <i class="bi bi-sliders me-1 text-info"></i>
+                    <span class="text-uppercase fw-semibold" style="font-size: 0.72rem;">Optional Columns:</span>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3">
+                    <div class="form-check form-check-inline form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-buildup" onchange="refreshActiveTab()">
+                        <label class="form-check-label small text-light" for="toggle-buildup" style="font-size: 0.75rem;">Buildup</label>
+                    </div>
+                    <div class="form-check form-check-inline form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-iv" onchange="refreshActiveTab()">
+                        <label class="form-check-label small text-light" for="toggle-iv" style="font-size: 0.75rem;">IV</label>
+                    </div>
+                    <div class="form-check form-check-inline form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-delta" onchange="refreshActiveTab()">
+                        <label class="form-check-label small text-light" for="toggle-delta" style="font-size: 0.75rem;">Delta</label>
+                    </div>
+                    <div class="form-check form-check-inline form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-gamma" onchange="refreshActiveTab()">
+                        <label class="form-check-label small text-light" for="toggle-gamma" style="font-size: 0.75rem;">Gamma</label>
+                    </div>
+                    <div class="form-check form-check-inline form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" id="toggle-vega" onchange="refreshActiveTab()">
+                        <label class="form-check-label small text-light" for="toggle-vega" style="font-size: 0.75rem;">Vega</label>
+                    </div>
+                    <div class="form-check form-check-inline form-switch mb-0 border-start border-secondary ps-3">
+                        <input class="form-check-input" type="checkbox" id="toggle-all-greeks" onchange="toggleAllGreeks(this)">
+                        <label class="form-check-label small text-info fw-semibold" for="toggle-all-greeks" style="font-size: 0.75rem;">All Greeks</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card border border-secondary" style="background-color: #121722;">
+            <div class="card-body p-2" id="chain-container">
+                {% include "components/intraday_option_chain_table.html" %}
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. OPTION DASHBOARD TAB -->
+    <div class="tab-pane fade" id="tab-dashboard" role="tabpanel">
+        <div id="dashboard-container">
+            {% include "components/intraday_option_dashboard_cards.html" %}
+        </div>
+    </div>
+
+    <!-- 3. LIVE PCR TAB -->
+    <div class="tab-pane fade" id="tab-pcr" role="tabpanel">
+        <div id="pcr-container">
+            {% include "components/intraday_option_pcr_view.html" %}
+        </div>
+    </div>
+
+    <!-- 4. CALL VS PUT OI TAB -->
+    <div class="tab-pane fade" id="tab-oi" role="tabpanel">
+        <div id="oi-container">
+            {% include "components/intraday_option_oi_comparison.html" %}
+            {# G.11-OPT-12B Phase 2B: strike-wise Call vs Put OI tornado (Chart.js 4.4.0, backend oi_data only) #}
+            {% include "components/option_oi_tornado_chart.html" %}
+        </div>
+    </div>
+
+    <!-- 5. OI CHANGE TAB -->
+    <div class="tab-pane fade" id="tab-oichange" role="tabpanel">
+        <div id="oichange-container">
+            {% include "components/intraday_option_oi_change_view.html" %}
+            {# G.11-OPT-12B Phase 2B: strike-wise ΔOI visualization (Chart.js 4.4.0, backend oi_change_data only) #}
+            {% include "components/option_doi_chart.html" %}
+        </div>
+    </div>
+</div>
+
+<!-- Options Workspace Auto-Sync Script -->
+<script>
+// Set while the expiry options are being refreshed for a newly selected
+// underlying. Tab refreshes are held back during that window because they would
+// read the previous underlying's expiry and request a scope the new underlying
+// does not have. The completed swap always triggers exactly one refresh built
+// from the freshly selected, provider-listed expiry.
+let expiryOptionsRefreshing = false;
+
+// ---------------------------------------------------------------------------
+// G.11-OPT-13 (Phase A): ONE authoritative workspace state.
+//
+// The three controls (#opt-symbol, #opt-expiry, #opt-strike-count) are the only
+// source of truth: symbol, expiry and strike range. No tab keeps its own copy
+// of any of them. Every container records the scope it was actually rendered
+// for; when the controls move, a container whose recorded scope no longer
+// matches is invalidated — its previous selection's content is cleared and
+// replaced by an explicit pending state — so no tab can present an earlier
+// underlying or expiry as the current selection, whether it is on screen or is
+// opened later.
+// ---------------------------------------------------------------------------
+
+// Pane id -> the container element its HTMX partial is swapped into.
+const TAB_CONTAINERS = {
+    'tab-chain': '#chain-container',
+    'tab-dashboard': '#dashboard-container',
+    'tab-pcr': '#pcr-container',
+    'tab-oi': '#oi-container',
+    'tab-oichange': '#oichange-container'
+};
+
+// Pane id -> the controls that pane's request actually consumes. A tab is stale
+// exactly when one of ITS OWN inputs differs from the scope it was rendered for,
+// so a strike-range change does not invalidate a tab that never reads it.
+const TAB_SCOPE_INPUTS = {
+    'tab-chain': ['symbol', 'expiry', 'strikeCount'],
+    'tab-dashboard': ['symbol', 'expiry'],
+    'tab-pcr': ['symbol', 'expiry'],
+    'tab-oi': ['symbol', 'expiry', 'strikeCount'],
+    'tab-oichange': ['symbol', 'expiry', 'strikeCount']
+};
+
+// Scope each container currently displays, and the scope of the request in
+// flight for it (both keyed by pane id). Populated by the server-rendered page
+// on load, then maintained by the swap and error handlers below.
+const renderedScope = {};
+const pendingScope = {};
+
+function getFilterParams() {
+    const symbol = document.getElementById('opt-symbol')?.value || 'NIFTY';
+    const expiry = document.getElementById('opt-expiry')?.value || '';
+    const strikeCount = document.getElementById('opt-strike-count')?.value || '10';
+    return { symbol, expiry, strikeCount };
+}
+
+// G.11-OPT-9 (D-03): the underlying, expiry and strike-range controls swap the page
+// content over AJAX, so the address bar kept pointing at the underlying the page was
+// first loaded with. An operator who copied, refreshed or bookmarked the URL therefore
+// got different data than the screen showed. Mirror the live control values into the
+// query string so the URL can never disagree with what is displayed.
+function syncWorkspaceUrl() {
+    const url = new URL(window.location.href);
+    const symbol = document.getElementById('opt-symbol')?.value;
+    const expiry = document.getElementById('opt-expiry')?.value;
+    const strikeCount = document.getElementById('opt-strike-count')?.value;
+    if (symbol) url.searchParams.set('symbol', symbol);
+    if (expiry) { url.searchParams.set('expiry', expiry); } else { url.searchParams.delete('expiry'); }
+    if (strikeCount) url.searchParams.set('strike_count', strikeCount);
+    if (url.toString() !== window.location.href) {
+        window.history.replaceState(window.history.state, '', url.toString());
+    }
+}
+
+// Delegated on document so it keeps working after htmx replaces the expiry select.
+document.addEventListener('change', (event) => {
+    const id = event.target && event.target.id;
+    if (id === 'opt-symbol') {
+        // The underlying changed: the expiry select is about to be replaced by
+        // the new underlying's listed expiries, so no tab may refresh against
+        // the outgoing expiry value. Every tab is invalidated immediately (not
+        // only the active one) because every tab was rendered for the outgoing
+        // underlying, and the new valid expiry is not known yet.
+        expiryOptionsRefreshing = true;
+        invalidateAllTabs();
+        updateWorkspaceStatus();
+    }
+    if (id === 'opt-symbol' || id === 'opt-expiry' || id === 'opt-strike-count') {
+        syncWorkspaceUrl();
+    }
+});
+
+function getColumnToggles() {
+    const showBuildup = document.getElementById('toggle-buildup')?.checked || false;
+    const showIv = document.getElementById('toggle-iv')?.checked || false;
+    const showDelta = document.getElementById('toggle-delta')?.checked || false;
+    const showGamma = document.getElementById('toggle-gamma')?.checked || false;
+    const showVega = document.getElementById('toggle-vega')?.checked || false;
+    return { showBuildup, showIv, showDelta, showGamma, showVega };
+}
+
+function toggleAllGreeks(master) {
+    const isChecked = master.checked;
+    const iv = document.getElementById('toggle-iv');
+    const delta = document.getElementById('toggle-delta');
+    const gamma = document.getElementById('toggle-gamma');
+    const vega = document.getElementById('toggle-vega');
+    if (iv) iv.checked = isChecked;
+    if (delta) delta.checked = isChecked;
+    if (gamma) gamma.checked = isChecked;
+    if (vega) vega.checked = isChecked;
+    refreshActiveTab();
+}
+
+function refreshOIChangeFilter() {
+    refreshActiveTab();
+}
+
+function paneIds() {
+    return Object.keys(TAB_CONTAINERS);
+}
+
+function paneOf(buttonId) {
+    const pane = String(buttonId || '').replace(/-btn$/, '');
+    return TAB_CONTAINERS[pane] ? pane : null;
+}
+
+function activePaneId() {
+    const active = document.querySelector('#optionsWorkspaceTabs .nav-link.active');
+    return active ? paneOf(active.id) : null;
+}
+
+// The scope a tab's request depends on, read from the controls themselves.
+function scopeForPane(pane) {
+    const { symbol, expiry, strikeCount } = getFilterParams();
+    const values = { symbol: symbol, expiry: expiry, strikeCount: strikeCount };
+    return (TAB_SCOPE_INPUTS[pane] || ['symbol', 'expiry']).map((name) => values[name]).join('|');
+}
+
+function escapeHtml(value) {
+    const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+    return String(value == null ? '' : value).replace(/[&<>"']/g, (ch) => entities[ch]);
+}
+
+function pendingHtml(pane, mode, detail) {
+    const { symbol, expiry } = getFilterParams();
+    const scopeText = escapeHtml(symbol) + ' · ' + escapeHtml(expiry || 'no listed expiry');
+    const titles = {
+        loading: 'Loading ' + scopeText + '…',
+        invalidated: 'Not loaded for the current selection',
+        error: 'Could not load ' + scopeText
+    };
+    const bodies = {
+        loading: 'This tab is being reloaded for the selection above. The previous selection ' +
+                 'is no longer displayed.',
+        invalidated: 'The selection changed, so this tab was cleared rather than left showing ' +
+                     'an earlier underlying or expiry as if it were current.',
+        error: escapeHtml(detail || 'The request failed.') + ' No earlier selection is shown.'
+    };
+    return '<div class="workspace-pending" data-workspace-pending="1" ' +
+        'style="border: 1px dashed #334155; border-radius: 8px; padding: 14px 16px; ' +
+        'background-color: rgba(15, 23, 42, 0.55);">' +
+        '<div class="fw-semibold text-light small">' + titles[mode] + '</div>' +
+        '<div class="text-muted small mt-1">' + bodies[mode] + '</div>' +
+        '<button type="button" class="btn btn-sm btn-outline-info mt-2" ' +
+        'data-workspace-load="' + escapeHtml(pane) + '">' +
+        '<i class="bi bi-arrow-repeat me-1"></i>Load ' + escapeHtml(symbol) + '</button>' +
+        '</div>';
+}
+
+// Replace a container's content with an explicit pending/error state and drop
+// its recorded scope, so the old selection can never be read as current.
+function setTabPending(pane, mode, detail) {
+    const container = document.querySelector(TAB_CONTAINERS[pane]);
+    if (!container) return;
+    renderedScope[pane] = null;
+    if (mode !== 'loading') pendingScope[pane] = null;
+    container.setAttribute('data-workspace-state', mode);
+    container.removeAttribute('data-workspace-scope');
+    container.innerHTML = pendingHtml(pane, mode, detail);
+}
+
+function markTabRendered(pane) {
+    const container = document.querySelector(TAB_CONTAINERS[pane]);
+    if (!container) return;
+    const scope = pendingScope[pane] || scopeForPane(pane);
+    renderedScope[pane] = scope;
+    pendingScope[pane] = null;
+    container.setAttribute('data-workspace-state', 'ready');
+    container.setAttribute('data-workspace-scope', scope);
+}
+
+function invalidateStaleTabs() {
+    paneIds().forEach((pane) => {
+        const current = scopeForPane(pane);
+        if (renderedScope[pane] !== null && renderedScope[pane] !== current) {
+            setTabPending(pane, 'invalidated');
+        }
+    });
+}
+
+function invalidateAllTabs() {
+    paneIds().forEach((pane) => setTabPending(pane, 'invalidated'));
+}
+
+function updateWorkspaceStatus() {
+    const row = document.getElementById('workspace-status-row');
+    const text = document.getElementById('workspace-status-text');
+    if (!row || !text) return;
+    const stateOf = (pane) => {
+        const container = document.querySelector(TAB_CONTAINERS[pane]);
+        return container ? (container.getAttribute('data-workspace-state') || '') : '';
+    };
+    const loading = paneIds().filter((pane) => stateOf(pane) === 'loading');
+    const cleared = paneIds().filter((pane) => stateOf(pane) === 'invalidated');
+    if (loading.length) {
+        row.classList.remove('d-none');
+        text.textContent = 'Loading ' + loading.length + ' tab' + (loading.length > 1 ? 's' : '') +
+            ' for the current selection…';
+    } else if (cleared.length) {
+        row.classList.remove('d-none');
+        text.textContent = cleared.length + ' tab' + (cleared.length > 1 ? 's' : '') +
+            ' cleared for the current selection — open the tab to load it.';
+    } else {
+        row.classList.add('d-none');
+    }
+}
+
+// The request for one tab, built ONLY from the current control state.
+function requestForTab(buttonId) {
+    const { symbol, expiry, strikeCount } = getFilterParams();
+
+    if (buttonId === 'tab-chain-btn') {
+        const { showBuildup, showIv, showDelta, showGamma, showVega } = getColumnToggles();
+        const scParam = strikeCount === 'all' ? '' : `&strike_count=${strikeCount}`;
+        const query = `/market-data/options/chain-table?symbol=${symbol}&expiry=${expiry}${scParam}` +
+                      `&show_buildup=${showBuildup}&show_iv=${showIv}&show_delta=${showDelta}&show_gamma=${showGamma}&show_vega=${showVega}`;
+        return { target: '#chain-container', url: query };
+    } else if (buttonId === 'tab-dashboard-btn') {
+        return {
+            target: '#dashboard-container',
+            url: `/market-data/options/dashboard-cards?symbol=${symbol}&expiry=${expiry}`
+        };
+    } else if (buttonId === 'tab-pcr-btn') {
+        return {
+            target: '#pcr-container',
+            url: `/market-data/options/pcr-view?symbol=${symbol}&expiry=${expiry}`
+        };
+    } else if (buttonId === 'tab-oi-btn') {
+        const scParam = strikeCount === 'all' ? '&strike_count=25' : `&strike_count=${strikeCount}`;
+        return {
+            target: '#oi-container',
+            url: `/market-data/options/oi-chart?symbol=${symbol}&expiry=${expiry}${scParam}`
+        };
+    } else if (buttonId === 'tab-oichange-btn') {
+        const scParam = strikeCount === 'all' ? '&strike_count=25' : `&strike_count=${strikeCount}`;
+        const buildupFilter = document.getElementById('opt-buildup-filter')?.value || 'ALL';
+        return {
+            target: '#oichange-container',
+            url: `/market-data/options/oi-change-view?symbol=${symbol}&expiry=${expiry}${scParam}&buildup_filter=${buildupFilter}`
+        };
+    }
+    return null;
+}
+
+function loadTab(buttonId) {
+    const pane = paneOf(buttonId);
+    const request = requestForTab(buttonId);
+    if (!pane || !request) return;
+    // Record which scope this request is for, and clear the container now: the
+    // outgoing selection must not stay on screen while the swap is in flight.
+    pendingScope[pane] = scopeForPane(pane);
+    setTabPending(pane, 'loading');
+    updateWorkspaceStatus();
+    htmx.ajax('GET', request.url, {
+        target: request.target,
+        swap: 'innerHTML'
+    });
+}
+
+function refreshActiveTab() {
+    if (expiryOptionsRefreshing) {
+        // The #opt-expiry-container swap handler refreshes the active tab as
+        // soon as the new underlying's expiries are in the DOM.
+        return;
+    }
+    // Any tab whose own inputs moved is invalidated first, so nothing keeps
+    // showing the previous selection as if it were current.
+    invalidateStaleTabs();
+    const activeTab = document.querySelector('#optionsWorkspaceTabs .nav-link.active')?.id;
+    if (activeTab) loadTab(activeTab);
+    updateWorkspaceStatus();
+}
+
+// Event listeners for seamless tab switching and controls
+document.addEventListener('DOMContentLoaded', function() {
+    // The server rendered every tab for the scope the page was loaded with, so
+    // that is the scope each container is marked as holding.
+    paneIds().forEach((pane) => markTabRendered(pane));
+    updateWorkspaceStatus();
+
+    // Opening a tab loads it only when it does not already hold the current
+    // selection; a tab that is already current is shown as-is (no duplicate
+    // request for data the operator is looking at).
+    const tabButtons = document.querySelectorAll('#optionsWorkspaceTabs button[data-bs-toggle="tab"]');
+    tabButtons.forEach(btn => {
+        btn.addEventListener('shown.bs.tab', function() {
+            if (expiryOptionsRefreshing) return; // the swap handler refreshes the then-active tab
+            const pane = paneOf(btn.id);
+            if (!pane) return;
+            const current = scopeForPane(pane);
+            if (renderedScope[pane] === current || pendingScope[pane] === current) {
+                updateWorkspaceStatus();
+                return;
+            }
+            loadTab(btn.id);
+        });
+    });
+
+    // When expiry or strike count changes, refresh active tab
+    document.addEventListener('change', function(e) {
+        if (e.target && (e.target.id === 'opt-expiry' || e.target.id === 'opt-strike-count')) {
+            refreshActiveTab();
+        }
+    });
+
+    // Explicit load button inside a cleared tab's pending state.
+    document.addEventListener('click', function(e) {
+        const trigger = e.target && e.target.closest ? e.target.closest('[data-workspace-load]') : null;
+        if (!trigger) return;
+        loadTab(trigger.getAttribute('data-workspace-load') + '-btn');
+    });
+
+    // When underlying changes and new expiry options are loaded into container,
+    // re-sync the URL to the freshly selected expiry and then refresh the active
+    // tab from that single authoritative control state.
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        const target = evt.detail && evt.detail.target;
+        if (target && target.id === 'opt-expiry-container') {
+            expiryOptionsRefreshing = false;
+            syncWorkspaceUrl();
+            invalidateStaleTabs();
+            refreshActiveTab();
+            updateWorkspaceStatus();
+            return;
+        }
+        if (target && target.id) {
+            paneIds().forEach((pane) => {
+                if (TAB_CONTAINERS[pane] === '#' + target.id) markTabRendered(pane);
+            });
+            updateWorkspaceStatus();
+        }
+    });
+
+    // A failed expiry-options refresh must not wedge the workspace: release the
+    // hold so explicit refreshes work again. No tab is auto-refreshed here,
+    // because the control may still hold the previous underlying's expiry — the
+    // active tab is left in an explicit, honest error state instead.
+    ['htmx:responseError', 'htmx:sendError', 'htmx:timeout'].forEach(function(eventName) {
+        document.body.addEventListener(eventName, function(evt) {
+            const target = evt.detail && evt.detail.target;
+            if (target && target.id === 'opt-expiry-container') {
+                expiryOptionsRefreshing = false;
+                const active = activePaneId();
+                if (active) {
+                    setTabPending(active, 'error', 'The expiries for the selected underlying could not be loaded.');
+                }
+                updateWorkspaceStatus();
+                return;
+            }
+            if (target && target.id) {
+                const pane = paneIds().find((id) => TAB_CONTAINERS[id] === '#' + target.id);
+                if (pane) {
+                    setTabPending(pane, 'error', 'The server could not render this tab.');
+                    updateWorkspaceStatus();
+                }
+            }
+        });
+    });
+
+});
+</script>
+{% endblock %}

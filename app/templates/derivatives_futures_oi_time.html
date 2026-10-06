@@ -1,0 +1,454 @@
+{% extends "layouts/shell.html" %}
+{% block title %}Futures OI vs Time - AI Stock Scanner{% endblock %}
+{% block page_title %}Derivatives · Futures OI vs Time &amp; Ledger{% endblock %}
+
+{% block topbar_status %}
+<span class="status-dot {{ 'status-dot-success' if is_market_open else 'status-dot-secondary' }}"></span>
+<span>{{ provider_name }} · {{ 'LIVE TRADING SESSION' if is_market_open else 'MARKET CLOSED' }}</span>
+{% endblock %}
+
+{% block content %}
+<div class="page-header d-flex justify-content-between align-items-center mb-3">
+    <div>
+        <div class="workspace-eyebrow text-uppercase text-info fw-semibold" style="font-size: 0.75rem; letter-spacing: 1px;">
+            <i class="bi bi-activity me-1"></i>Derivatives Intelligence · Futures Open Interest
+        </div>
+        <h1 class="workspace-title h2 fw-bold text-light mb-1">Futures OI vs Time &amp; Interval Ledger</h1>
+        <p class="workspace-subtitle text-muted small mb-0">
+            Real futures last price, volume and open interest read from the authorized provider quote feed.
+            Every interval OI change is measured between two real comparable observations of the same contract.
+        </p>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-dark border border-secondary text-muted px-2 py-1">
+            <i class="bi bi-clock me-1"></i>IST: {{ as_of_ist }}
+        </span>
+    </div>
+</div>
+
+{% with active_view='futures_oi_time', selected_symbol=selected_symbol %}
+{% include "components/derivatives_nav_tabs.html" %}
+{% endwith %}
+
+{% include "components/derivatives_filter_panel.html" %}
+
+{# ------------------------------------------------------------------ #}
+{# Entitlement / provenance banner                                     #}
+{# ------------------------------------------------------------------ #}
+{% if fut_data.available %}
+<div class="alert alert-success border-success py-2 px-3 mb-3 d-flex align-items-start" style="background-color: rgba(6, 78, 59, 0.35); font-size: 0.82rem;">
+    <i class="bi bi-shield-check text-success fs-5 me-2"></i>
+    <div class="flex-grow-1">
+        <strong class="text-light">Real provider futures feed:</strong>
+        <span class="text-light-emphasis ms-1">{{ fut_data.entitlement_statement }}</span>
+        <div class="text-muted mt-1">
+            Contract <span class="text-info">{{ fut_data.contract_symbol }}</span>
+            <span class="font-monospace">({{ fut_data.instrument_key }})</span> ·
+            expiry {{ fut_data.selected_expiry }} · lot {{ fut_data.lot_size }}
+        </div>
+    </div>
+    <span class="badge bg-success text-dark text-uppercase ms-2">{{ fut_data.provider_entitlement }}</span>
+</div>
+{% else %}
+<div class="alert alert-warning border-warning py-2 px-3 mb-3" style="font-size: 0.85rem;">
+    <strong><i class="bi bi-exclamation-triangle me-1"></i>Futures ledger unavailable.</strong>
+    <span class="ms-1">{{ fut_data.reason or 'No real futures observation is available for this underlying.' }}</span>
+    <div class="text-muted mt-1">
+        Synthetic cost-of-carry prices are never substituted for real traded futures prices or real futures open interest.
+    </div>
+</div>
+{% endif %}
+
+{% if not fut_data.history_available and fut_data.history_reason %}
+<div class="alert alert-dark border-secondary py-2 px-3 mb-3" style="background-color: rgba(15, 23, 42, 0.6); font-size: 0.82rem;">
+    <i class="bi bi-info-circle text-info me-1"></i>
+    <strong class="text-light">Interval history notice:</strong>
+    <span class="text-muted ms-1">{{ fut_data.history_reason }}</span>
+</div>
+{% endif %}
+
+{% if fut_data.limitations %}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-body py-2 px-3 small text-muted">
+        <strong class="text-light"><i class="bi bi-list-check me-1"></i>Known limitations for this contract:</strong>
+        <ul class="mb-0 mt-1">
+            {% for limitation in fut_data.limitations %}
+            <li>{{ limitation }}</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Summary cards                                                       #}
+{# ------------------------------------------------------------------ #}
+{% if fut_data.summary_cards %}
+<div class="row g-2 mb-3">
+    {% for card in fut_data.summary_cards %}
+    <div class="col-lg-3 col-md-4 col-sm-6">
+        <div class="card border border-secondary h-100" style="background-color: #121722;">
+            <div class="card-body py-2 px-3">
+                <div class="text-uppercase text-muted fw-semibold" style="font-size: 0.68rem; letter-spacing: 0.5px;">{{ card.label }}</div>
+                <div class="text-light fw-bold" style="font-size: 1.05rem;">
+                    {% if card.value is none %}
+                    <span class="text-muted fw-normal small">Unavailable</span>
+                    {% elif card.value is iterable and card.value is not string %}
+                    {% for v in card.value %}{{ "{:,.2f}".format(v) if v is not none else '—' }}{{ ' / ' if not loop.last else '' }}{% endfor %}
+                    {% elif card.unit == '₹' %}
+                    ₹{{ "{:,.2f}".format(card.value) }}
+                    {% else %}
+                    {% if card.value is number %}{{ "{:,.0f}".format(card.value) }}{% else %}{{ card.value }}{% endif %}
+                    {% if card.unit and card.unit not in ['₹'] %}<span class="text-muted small">{{ card.unit }}</span>{% endif %}
+                    {% endif %}
+                </div>
+                <div class="text-muted" style="font-size: 0.68rem;" title="{{ card.note }}">{{ card.note }}</div>
+                <span class="badge bg-dark border border-secondary text-muted mt-1" style="font-size: 0.6rem;">{{ card.provenance }}</span>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Basis and carry                                                     #}
+{# ------------------------------------------------------------------ #}
+{% if fut_data.basis %}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-calculator me-1 text-info"></i>Futures Basis &amp; Carry (Futures LTP − Underlying Spot)
+        </span>
+    </div>
+    <div class="card-body py-2 px-3">
+        {% if fut_data.basis.availability == 'OK' %}
+        <div class="row g-2 small">
+            <div class="col-md-2"><span class="text-muted d-block">Futures LTP</span><span class="text-light fw-bold">₹{{ "{:,.2f}".format(fut_data.basis.futures_price) }}</span></div>
+            <div class="col-md-2"><span class="text-muted d-block">Underlying Spot</span><span class="text-light fw-bold">₹{{ "{:,.2f}".format(fut_data.basis.spot_price) }}</span></div>
+            <div class="col-md-2"><span class="text-muted d-block">Basis</span>
+                <span class="fw-bold {{ 'text-success' if fut_data.basis.basis >= 0 else 'text-danger' }}">
+                    {{ "{:+,.2f}".format(fut_data.basis.basis) }}
+                </span>
+            </div>
+            <div class="col-md-2"><span class="text-muted d-block">Basis %</span>
+                <span class="fw-bold {{ 'text-success' if fut_data.basis.basis_pct >= 0 else 'text-danger' }}">
+                    {{ "{:+.3f}".format(fut_data.basis.basis_pct) }}%
+                </span>
+            </div>
+            <div class="col-md-2"><span class="text-muted d-block">Days to Expiry</span><span class="text-light fw-bold">{{ fut_data.basis.days_to_expiry }}</span></div>
+            <div class="col-md-2"><span class="text-muted d-block">Annualised Carry</span>
+                {% if fut_data.basis.annualised_carry_valid %}
+                <span class="fw-bold text-info">{{ "{:+.2f}".format(fut_data.basis.annualised_carry_pct) }}%</span>
+                <span class="badge bg-dark border border-secondary text-muted">{{ fut_data.basis.annualised_carry_provenance }}</span>
+                {% else %}
+                <span class="text-muted small">Unavailable</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-muted mt-2" style="font-size: 0.7rem;">
+            <i class="bi bi-info-circle me-1"></i>{{ fut_data.basis.denominator_note }}
+            {% if fut_data.basis.annualised_carry_valid %}<br>{{ fut_data.basis.carry_assumptions }}{% endif %}
+        </div>
+        {% else %}
+        <div class="text-muted small">
+            Basis is unavailable: {{ fut_data.basis.reason }}. A basis is only computed from a real futures
+            observation and a real same-underlying spot observation.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{# ------------------------------------------------------------------ #}
+{# Chart                                                              #}
+{# ------------------------------------------------------------------ #}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-graph-up me-1 text-info"></i>{{ fut_data.contract_symbol or 'Futures' }} — Price, OI Change &amp; Volume
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <span class="badge bg-info bg-opacity-25 text-info">Futures LTP</span>
+            <span class="badge bg-warning bg-opacity-25 text-warning">OI Change (interval)</span>
+            <span class="badge bg-secondary bg-opacity-25 text-light">Volume</span>
+            <span class="badge bg-danger bg-opacity-25 text-danger">Day High / Low</span>
+        </div>
+    </div>
+    <div class="card-body p-3">
+        {% if not fut_data.history_available %}
+        <div class="alert alert-dark border-secondary d-flex align-items-center py-4 px-4 my-2 text-center justify-content-center" style="background-color: #0b0e14;">
+            <div>
+                <i class="bi bi-clock-history fs-2 text-info mb-2 d-block"></i>
+                <div class="fw-bold text-light mb-1">Single Snapshot Available — No Interval History Recorded</div>
+                <div class="text-muted small mb-2" style="max-width: 620px;">
+                    The live provider serves the current futures quote, but interval trajectories require accumulated historical observations. Enable the operator capture service during market hours to populate this chart.
+                </div>
+                <span class="badge bg-secondary border border-secondary text-light">Capture Status: {{ capture_status.state if capture_status else 'IDLE' }}</span>
+            </div>
+        </div>
+        {% endif %}
+        <div style="height: 340px; position: relative; {{ 'display: none;' if not fut_data.history_available else '' }}">
+            <canvas id="futuresLedgerChart"></canvas>
+        </div>
+        <div class="text-muted mt-2" style="font-size: 0.7rem; {{ 'display: none;' if not fut_data.history_available else '' }}">
+            Hovering a bar highlights the matching ledger row; clicking a row highlights its interval on the chart.
+            Day high/low reference lines and level-break markers are drawn from provider session extremes.
+        </div>
+    </div>
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Detailed interval ledger (15 columns)                               #}
+{# ------------------------------------------------------------------ #}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2 d-flex justify-content-between align-items-center">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-table me-1 text-info"></i>Futures Interval Ledger
+            {% if fut_data.ledger %}
+            <span class="badge bg-dark border border-secondary text-muted ms-1">{{ fut_data.ledger.interval_minutes }}m</span>
+            {% endif %}
+        </span>
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-outline-info"
+               href="/api/v1/market-data/options/export?kind=futures-ledger&symbol={{ selected_symbol }}&interval={{ selected_interval or '5m' }}{% if selected_expiry %}&expiry={{ selected_expiry }}{% endif %}"
+               title="Download the selected ledger as CSV. Exports carry source and observation timestamps for every row and never include credentials or internal identifiers.">
+                <i class="bi bi-download me-1"></i>Export CSV
+            </a>
+        </div>
+    </div>
+
+    {% if fut_data.ledger and fut_data.ledger.rows %}
+    {% if fut_data.ledger.availability != 'OK' %}
+    <div class="alert alert-dark border-secondary mx-3 mt-3 mb-0 py-2 px-3 small" style="background-color: rgba(15, 23, 42, 0.7);">
+        <i class="bi bi-info-circle text-info me-1"></i>{{ fut_data.ledger.reason }}
+    </div>
+    {% endif %}
+    <div class="table-responsive">
+        <table class="table table-sm table-dark table-hover align-middle mb-0" id="futuresLedgerTable" style="font-size: 0.76rem;">
+            <thead class="text-uppercase text-muted" style="font-size: 0.65rem;">
+                <tr>
+                    {% for col in fut_data.ledger.columns %}
+                    <th title="{{ col.tooltip }}" class="text-nowrap">{{ col.label }}</th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in fut_data.ledger.rows %}
+                <tr data-row-number="{{ row.row_number }}" data-interval="{{ row.interval_start_ist or '' }}">
+                    <td class="text-muted">{{ row.row_number }}</td>
+                    <td class="text-nowrap">{{ row.interval_label }}</td>
+                    <td>
+                        {% if row.total_oi is none %}<span class="text-muted">—</span>
+                        {% else %}{{ "{:,.0f}".format(row.total_oi) }}{% endif %}
+                    </td>
+                    <td class="{{ 'text-success' if row.oi_change and row.oi_change > 0 else ('text-danger' if row.oi_change and row.oi_change < 0 else 'text-muted') }}">
+                        {% if row.oi_change is none %}<span class="text-muted" title="{{ row.reason or 'No comparable observation pair' }}">unavailable</span>
+                        {% else %}{{ "{:+,d}".format(row.oi_change) }}{% endif %}
+                    </td>
+                    <td>{% if row.day_high is none %}<span class="text-muted">—</span>{% else %}{{ "{:,.2f}".format(row.day_high) }}{% endif %}</td>
+                    <td>{% if row.day_low is none %}<span class="text-muted">—</span>{% else %}{{ "{:,.2f}".format(row.day_low) }}{% endif %}</td>
+                    <td>
+                        <span class="badge bg-{{ 'warning text-dark' if row.level_break.broke_high or row.level_break.broke_low else 'secondary' }} bg-opacity-{{ '100' if row.level_break.broke_high or row.level_break.broke_low else '25' }}"
+                              title="{{ row.level_break.reason or row.level_break.label }}">
+                            {{ row.level_break.label }}
+                        </span>
+                    </td>
+                    <td title="{{ row.oi_churn.definition }}">
+                        {% if row.oi_churn.value is none %}<span class="text-muted">—</span>
+                        {% else %}{{ "{:,.0f}".format(row.oi_churn.value) }}{% endif %}
+                    </td>
+                    <td>{% if row.interval_volume is none %}<span class="text-muted">—</span>{% else %}{{ "{:+,d}".format(row.interval_volume) }}{% endif %}</td>
+                    <td>{% if row.ltp is none %}<span class="text-muted">—</span>{% else %}{{ "{:,.2f}".format(row.ltp) }}{% endif %}</td>
+                    <td class="{{ 'text-success' if row.ltp_change and row.ltp_change > 0 else ('text-danger' if row.ltp_change and row.ltp_change < 0 else 'text-muted') }}">
+                        {% if row.ltp_change is none %}<span class="text-muted">—</span>{% else %}{{ "{:+,.2f}".format(row.ltp_change) }}{% endif %}
+                    </td>
+                    <td>
+                        {% if row.ltp_change_pct is none %}<span class="text-muted">—</span>
+                        {% else %}{{ "{:+.2f}".format(row.ltp_change_pct) }}%{% endif %}
+                    </td>
+                    <td><span class="badge bg-{{ row.direction.color_class }} bg-opacity-25 text-{{ row.direction.color_class }}">{{ row.direction.label }}</span></td>
+                    <td title="{{ row.interpretation.tooltip }}">
+                        <span class="badge bg-{{ row.interpretation.color_class }} bg-opacity-25 text-{{ row.interpretation.color_class }}">
+                            {{ row.interpretation.label }}
+                        </span>
+                    </td>
+                    <td class="text-muted text-nowrap">
+                        {{ row.source }} · {{ row.source_timestamp_ist or '—' }}
+                        <span class="badge bg-dark border border-secondary text-muted">{{ row.availability }}</span>
+                        {% if row.quality_flags %}
+                        <span class="badge bg-warning text-dark">{{ row.quality_flags|join(', ') }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <div class="px-3 py-2 text-muted" style="font-size: 0.7rem;">
+            Coverage: {{ fut_data.ledger.observation_count }} real observation(s);
+            alignment tolerance {{ "{:,.0f}".format(fut_data.ledger.tolerance_seconds) }}s.
+            Cells reading “unavailable” mean no comparable real observation existed — they are never zero, estimated or forward-filled.
+        </div>
+    </div>
+    {% else %}
+    <div class="card-body">
+        <div class="text-muted small">
+            No ledger rows are available because no real futures observation could be read.
+            Placeholder or synthetic rows are never generated for this table.
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{# ------------------------------------------------------------------ #}
+{# Session positioning cards                                          #}
+{# ------------------------------------------------------------------ #}
+{% if fut_data.positioning %}
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header bg-transparent border-secondary py-2">
+        <span class="fw-semibold small text-uppercase text-light">
+            <i class="bi bi-pie-chart me-1 text-info"></i>Session Positioning (Descriptive Interval Classifications)
+        </span>
+    </div>
+    <div class="card-body py-2 px-3">
+        {% if fut_data.positioning.available %}
+        <div class="row g-2">
+            {% for card in fut_data.positioning.cards %}
+            <div class="col-lg-3 col-md-6">
+                <div class="card border border-secondary h-100" style="background-color: #0f1520;">
+                    <div class="card-body py-2 px-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-{{ card.color_class }}">{{ card.label }}</span>
+                            <span class="badge bg-{{ card.color_class }} bg-opacity-25 text-{{ card.color_class }}">{{ card.code }}</span>
+                        </div>
+                        <div class="text-muted small mt-1">{{ card.direction_hint }}</div>
+                        <div class="text-light small mt-1">
+                            <strong>{{ card.interval_count }}</strong> interval(s) ·
+                            Aggregated ΔOI
+                            <span class="{{ 'text-success' if card.aggregated_oi_change > 0 else ('text-danger' if card.aggregated_oi_change < 0 else 'text-muted') }}">
+                                {{ "{:+,d}".format(card.aggregated_oi_change) }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                </div>
+            {% endfor %}
+        </div>
+        <div class="row g-2 mt-1">
+            <div class="col-md-6">
+                <div class="text-muted small">
+                    <strong class="text-light">Aggregation method:</strong> {{ fut_data.positioning.aggregation_label }}
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="text-muted small">
+                    Net session OI change:
+                    {% if fut_data.positioning.net_oi_change is none %}<span class="text-muted">unavailable</span>
+                    {% else %}<span class="text-light fw-bold">{{ "{:+,d}".format(fut_data.positioning.net_oi_change) }}</span>{% endif %}
+                    · Net futures price change:
+                    {% if fut_data.positioning.net_price_change is none %}<span class="text-muted">unavailable</span>
+                    {% else %}<span class="text-light fw-bold">{{ "{:+,.2f}".format(fut_data.positioning.net_price_change) }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="alert alert-dark border-secondary mt-2 mb-0 py-2 px-3" style="background-color: rgba(15, 23, 42, 0.6); font-size: 0.75rem;">
+            <i class="bi bi-info-circle text-info me-1"></i>{{ fut_data.positioning.disclaimer }}
+            <div class="text-muted mt-1">{{ fut_data.positioning.absolute_level_note }}</div>
+        </div>
+        {% else %}
+        <div class="text-muted small">
+            Session positioning cannot be classified: {{ fut_data.positioning.reason }}.
+            A classification requires real comparable price and OI observations for the same futures contract and interval.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const rows = {{ (fut_data.ledger.rows if fut_data.ledger else [])|tojson }};
+    const canvas = document.getElementById("futuresLedgerChart");
+    if (!canvas || !rows.length) { return; }
+
+    const labels = rows.map(r => r.interval_end_ist || r.interval_label);
+    const priceSeries = rows.map(r => r.ltp);
+    const oiChangeSeries = rows.map(r => r.oi_change);
+    const volumeSeries = rows.map(r => r.interval_volume);
+    const dayHigh = rows[0].day_high;
+    const dayLow = rows[0].day_low;
+
+    const annotations = [];
+    if (dayHigh !== null && dayHigh !== undefined) {
+        annotations.push({ type: 'line', yMin: dayHigh, yMax: dayHigh, borderColor: 'rgba(248,113,113,0.6)', borderWidth: 1, borderDash: [4, 4], label: { display: true, content: 'Day High', color: '#f87171', position: 'end', font: { size: 9 } } });
+    }
+    if (dayLow !== null && dayLow !== undefined) {
+        annotations.push({ type: 'line', yMin: dayLow, yMax: dayLow, borderColor: 'rgba(52,211,153,0.6)', borderWidth: 1, borderDash: [4, 4], label: { display: true, content: 'Day Low', color: '#34d399', position: 'end', font: { size: 9 } } });
+    }
+
+    const chart = new Chart(canvas.getContext("2d"), {
+        data: {
+            labels: labels,
+            datasets: [
+                { type: 'line', label: 'Futures LTP', data: priceSeries, borderColor: '#38bdf8', backgroundColor: 'rgba(56,189,248,0.12)', borderWidth: 2, yAxisID: 'y', tension: 0.2, spanGaps: false },
+                { type: 'bar', label: 'OI Change (interval)', data: oiChangeSeries, backgroundColor: oiChangeSeries.map(v => v === null ? 'rgba(148,163,184,0.25)' : (v >= 0 ? 'rgba(234,179,8,0.55)' : 'rgba(244,63,94,0.55)')), yAxisID: 'y1' },
+                { type: 'bar', label: 'Interval Volume', data: volumeSeries, backgroundColor: 'rgba(148,163,184,0.28)', yAxisID: 'y2', hidden: true }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { mode: 'index', intersect: false },
+            scales: {
+                x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                y: { type: 'linear', position: 'left', ticks: { color: '#38bdf8', font: { size: 10 } }, grid: { color: 'rgba(255,255,255,0.05)' }, title: { display: true, text: 'Futures LTP (₹)', color: '#38bdf8', font: { size: 10 } } },
+                y1: { type: 'linear', position: 'right', ticks: { color: '#eab308', font: { size: 10 } }, grid: { drawOnChartArea: false }, title: { display: true, text: 'OI Change', color: '#eab308', font: { size: 10 } } },
+                y2: { display: false }
+            },
+            plugins: {
+                legend: { labels: { color: '#e2e8f0', font: { size: 11 } } },
+                tooltip: {
+                    callbacks: {
+                        afterBody: function (items) {
+                            const idx = items[0].dataIndex;
+                            const row = rows[idx];
+                            return [
+                                'OI: ' + (row.total_oi === null ? 'unavailable' : row.total_oi.toLocaleString()),
+                                'OI change: ' + (row.oi_change === null ? 'unavailable' : row.oi_change.toLocaleString()),
+                                'Day high / low: ' + (row.day_high ?? '—') + ' / ' + (row.day_low ?? '—'),
+                                'Level break: ' + row.level_break.label,
+                                'Interpretation: ' + row.interpretation.label,
+                                'Observed: ' + (row.source_timestamp_ist || '—') + ' · ' + row.source
+                            ];
+                        }
+                    }
+                }
+            },
+            onHover: function (event, elements) {
+                document.querySelectorAll('#futuresLedgerTable tbody tr').forEach(tr => tr.classList.remove('table-active'));
+                if (elements && elements.length) {
+                    const tr = document.querySelector('#futuresLedgerTable tbody tr[data-row-number="' + (elements[0].index + 1) + '"]');
+                    if (tr) { tr.classList.add('table-active'); }
+                }
+            }
+        }
+    });
+
+    document.querySelectorAll('#futuresLedgerTable tbody tr').forEach(tr => {
+        tr.addEventListener('click', function () {
+            const idx = parseInt(tr.getAttribute('data-row-number'), 10) - 1;
+            document.querySelectorAll('#futuresLedgerTable tbody tr').forEach(x => x.classList.remove('table-active'));
+            tr.classList.add('table-active');
+            const meta = chart.getDatasetMeta(0);
+            if (meta.data[idx]) {
+                const x = meta.data[idx].x;
+                const y = meta.data[idx].y;
+                chart.tooltip.setActiveElements([{ datasetIndex: 0, index: idx }], { x: x, y: y });
+                chart.update();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

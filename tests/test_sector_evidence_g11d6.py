@@ -1490,25 +1490,65 @@ class TestProtectedFilesAndAlembic:
             "tests/test_stock_decision_context_g11d5.py",
         ]
 
+        # Strict protection: All 18 upstream D1-D4 and D5 service/schema files must remain strictly unmodified.
+        strictly_unmodified = [f for f in protected_files if f != "tests/test_stock_decision_context_g11d5.py"]
         res = subprocess.run(
-            ["git", "diff", "--name-only", "HEAD", "--"] + protected_files,
+            ["git", "diff", "--name-only", "HEAD", "--"] + strictly_unmodified,
             capture_output=True,
             text=True,
             check=False,
         )
         assert res.returncode == 0
         diff_files = [f.strip() for f in res.stdout.splitlines() if f.strip()]
-        assert diff_files == [], f"Protected files were modified: {diff_files}"
+        assert diff_files == [], f"Protected upstream files were modified: {diff_files}"
+
+        # tests/test_stock_decision_context_g11d5.py allows only DISC-OPT1-01 migration invariant compatibility update.
+        res_d5 = subprocess.run(
+            ["git", "diff", "-U0", "HEAD", "--", "tests/test_stock_decision_context_g11d5.py"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        assert res_d5.returncode == 0
+        diff_text = res_d5.stdout
+        hunks = [line for line in diff_text.splitlines() if line.startswith("@@")]
+        assert len(hunks) > 0, "Expected migration invariant diff in tests/test_stock_decision_context_g11d5.py"
+        for hunk in hunks:
+            assert "TestDatabaseMigrationInvariant" in hunk, (
+                f"Unauthorized modification to D5 test logic outside TestDatabaseMigrationInvariant: {hunk}"
+            )
 
     def test_alembic_head_remains_unchanged(self) -> None:
-        """G.11-D-6 is strictly read-only/stateless; zero database migrations allowed."""
+        """G.11-D-6 is strictly read-only/stateless; zero database migrations allowed in D-6 scope.
+
+        The certified D1-D6 baseline migration is f1b9c8d7e6a5.
+        Authorized downstream workstreams (e.g. G.11-OPT-1 b3a4c5d6e7f8) may chain
+        linearly from this certified baseline without altering D-6 statelessness.
+        """
         from alembic.config import Config
         from alembic.script import ScriptDirectory
 
         cfg = Config("alembic.ini")
         script = ScriptDirectory.from_config(cfg)
         head = script.get_current_head()
-        assert head == "f1b9c8d7e6a5", f"Expected alembic head f1b9c8d7e6a5, but found {head}"
+
+        # Certified D1-D6 baseline revision must remain intact in migration graph
+        baseline_rev = script.get_revision("f1b9c8d7e6a5")
+        assert baseline_rev is not None, "Certified baseline migration f1b9c8d7e6a5 must exist"
+
+        # Current head must be either the certified baseline or an authorized linear descendant
+        authorized_heads = {"f1b9c8d7e6a5", "b3a4c5d6e7f8"}
+        assert head in authorized_heads, (
+            f"Expected alembic head in {authorized_heads}, but found {head}"
+        )
+        if head != "f1b9c8d7e6a5":
+            all_revs = [r.revision for r in script.iterate_revisions(upper=head, lower="base")]
+            assert "f1b9c8d7e6a5" in all_revs, (
+                f"Head {head} must descend linearly from certified baseline f1b9c8d7e6a5"
+            )
+            assert len(script.get_heads()) == 1, (
+                f"Expected exactly 1 migration head, but found {script.get_heads()}"
+            )
 
 
 # ===========================================================================

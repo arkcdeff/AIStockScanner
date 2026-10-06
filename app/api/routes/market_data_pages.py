@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime, timedelta
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -14,14 +16,22 @@ from app.db.session import get_db_session
 from app.repositories.market_data import MarketDataRepository
 from app.services.market_data_service import MarketDataService
 
+logger = logging.getLogger(__name__)
+
 
 def _render(template_name: str, context: dict) -> str:
     from jinja2 import Environment, FileSystemLoader, select_autoescape
+
+    from app.services.derivatives_scope import format_display_number
 
     env = Environment(
         loader=FileSystemLoader(str(settings.base_dir / "app" / "templates")),
         autoescape=select_autoescape(("html", "htm", "xml")),
     )
+    # Provider-derived numbers reach templates as Decimal, float or an exact
+    # decimal string, depending on which service produced them. ``fmt_num``
+    # renders all three identically instead of raising on the odd type out.
+    env.globals["fmt_num"] = format_display_number
     return env.get_template(template_name).render(**context)
 
 
@@ -32,6 +42,109 @@ def _flash_url(**params: str | int) -> str:
 
 router = APIRouter(dependencies=[Depends(require_browser_permission("stocks.read"))])
 WRITE_DEPENDENCIES = [Depends(require_browser_permission("market_data.write"))]
+
+
+async def _safe_scope(service: Any, symbol: str, expiry: date | None) -> dict | None:
+    """Resolve the provider-grounded scope for a page, tolerating read failures.
+
+    A failed scope read must not break the page: the filter panel renders an
+    explicit unavailable state instead of a guessed value.
+    """
+    try:
+        return await service.get_scope(symbol, expiry)
+    except Exception:  # noqa: BLE001 - provider outage must not 500 the page
+        return None
+
+
+async def _canonical_listed_expiry(
+    service: Any,
+    symbol: str,
+    expiry: date | None,
+    *,
+    expiries: list[dict] | None = None,
+) -> str | None:
+    """Resolve the one expiry a view may actually use for the selected underlying.
+
+    An expiry reaches a route from a URL that is a durable copy of the control
+    state, so an expiry belonging to a previously selected underlying can survive
+    inside a bookmark, a refresh, a shared link or a filter-panel submission.
+    Only an expiry actually listed for the selected underlying may drive a view:
+    anything else falls back to the nearest listed expiry — exactly the value the
+    expiry control selects when no expiry is supplied. An expiry is never invented
+    and an unlisted expiry is never silently used, which is how a previous
+    underlying's expiry used to leak into another underlying's tabs and charts.
+
+    The same rule is applied by the full workspace page, its tab partials and the
+    standalone derivatives pages, so full-page and partial behavior cannot
+    disagree.
+    """
+    if expiries is None:
+        try:
+            expiries = await service.get_available_expiries(symbol)
+        except Exception as exc:  # noqa: BLE001 - no listed expiry is known
+            logger.warning("Expiry lookup failed for %s: %s", symbol, exc)
+            return None
+    listed_tokens = {expiry_row["expiry_date"] for expiry_row in expiries}
+    if expiry is not None and expiry.isoformat() in listed_tokens:
+        return expiry.isoformat()
+    if expiries:
+        selected_expiry = expiries[0]["expiry_date"]
+        if expiry is not None:
+            logger.warning(
+                "Expiry %s is not listed for %s; using nearest listed expiry %s",
+                expiry.isoformat(),
+                symbol,
+                selected_expiry,
+            )
+        return selected_expiry
+    return None
+
+
+async def _derivatives_filter_context(
+    service: Any,
+    symbol: str,
+    *,
+    form_action: str,
+    expiry: date | None = None,
+    interval: str = "5m",
+    strikes: str = "5",
+    call_strikes: str | None = None,
+    put_strikes: str | None = None,
+    min_strike: str | None = None,
+    max_strike: str | None = None,
+    oi_unit: str = "CONTRACTS",
+    show_expiry: bool = True,
+    show_strike_count: bool = True,
+    show_manual_strikes: bool = True,
+    show_interval: bool = True,
+    show_oi_unit: bool = False,
+) -> dict[str, Any]:
+    """Shared context for the reusable derivatives filter/selection panel.
+
+    The same keys feed every derivatives page, so filter state stays consistent
+    across views while remaining scoped to the selected underlying and expiry.
+    """
+    from app.services.derivatives_capture_service import get_capture_service
+    from app.services.derivatives_scope import parse_interval_token
+
+    minutes = parse_interval_token(interval) or 5
+    return {
+        "scope": await _safe_scope(service, symbol, expiry),
+        "form_action": form_action,
+        "selected_interval": f"{minutes}m",
+        "selected_strikes": strikes,
+        "selected_call_strikes": call_strikes or "",
+        "selected_put_strikes": put_strikes or "",
+        "selected_min_strike": min_strike or "",
+        "selected_max_strike": max_strike or "",
+        "selected_oi_unit": oi_unit.upper(),
+        "show_expiry": show_expiry,
+        "show_strike_count": show_strike_count,
+        "show_manual_strikes": show_manual_strikes,
+        "show_interval": show_interval,
+        "show_oi_unit": show_oi_unit,
+        "capture_status": get_capture_service().get_status(),
+    }
 
 
 def _require_csrf(request: Request, form: dict | None = None) -> None:
@@ -110,6 +223,752 @@ async def derivatives_workspace_page(
         },
     )
     return HTMLResponse(content=html)
+
+
+@router.get("/derivatives/option-chain", response_class=HTMLResponse)
+@router.get("/options", response_class=HTMLResponse)
+async def options_workspace_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    strike_count: str = Query(
+        default="10", description="Strike-range control value: 5, 10, 15, 20, 25 or 'all'"
+    ),
+) -> HTMLResponse:
+    """Full-page view for the Live Intraday Options Workbench.
+
+    The query string is a durable copy of the workspace control state (the
+    workspace script mirrors the controls into it), so the page renders the same
+    three controls it was asked for: underlying, a **listed** expiry for that
+    underlying, and the strike-range the tabs consuming it must use. Rendering a
+    different strike range than the control showed left the pre-rendered OI tabs
+    silently disagreeing with the control on a reloaded URL.
+    """
+    from app.services.derivatives_scope import parse_strike_count_token
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+
+    # The strike-range control is part of the workspace state: parse it with the
+    # project's own vocabulary so the control and the tabs that consume it agree.
+    # It is validated before any provider read, because a malformed request must
+    # be rejected rather than served with a substituted default.
+    parsed_strike_count, strike_problem = parse_strike_count_token(strike_count)
+    if strike_problem:
+        raise HTTPException(status_code=400, detail=strike_problem)
+    selected_strike_token = "all" if parsed_strike_count is None else str(parsed_strike_count)
+
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    # Only an expiry listed for this underlying may drive the tab views; an
+    # unlisted one falls back to the nearest listed expiry (never invented,
+    # never the outgoing underlying's expiry). Shared with the tab partials.
+    selected_expiry = await _canonical_listed_expiry(
+        service, symbol, expiry, expiries=expiries
+    )
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+
+    chain = None
+    dashboard = None
+    pcr_data = None
+    oi_data = None
+    oi_change_data = None
+    try:
+        chain = await service.get_option_chain_ladder(
+            symbol, expiry_date=sel_exp_date, strike_count=parsed_strike_count
+        )
+        dashboard = await service.get_option_dashboard(symbol, expiry_date=sel_exp_date)
+        pcr_data = await service.get_live_pcr(symbol, expiry_date=sel_exp_date)
+        oi_data = await service.get_call_vs_put_oi(
+            symbol, expiry_date=sel_exp_date, strike_count=parsed_strike_count
+        )
+        oi_change_data = await service.get_oi_change_analysis(
+            symbol, expiry_date=sel_exp_date, strike_count=parsed_strike_count
+        )
+    except Exception as exc:
+        logger.warning("Error pre-loading intraday options: %s", exc)
+
+    html = _render(
+        "options_workspace.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "selected_strike_count": selected_strike_token,
+            "chain": chain,
+            "dashboard": dashboard,
+            "pcr_data": pcr_data,
+            "oi_data": oi_data,
+            "oi_change_data": oi_change_data,
+            "show_buildup": False,
+            "show_greeks": False,
+            "show_iv": False,
+            "show_delta": False,
+            "show_gamma": False,
+            "show_vega": False,
+            "is_market_open": chain["is_market_open"] if chain else False,
+            "provider_name": service.adapter.source_name,
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/oi-statistics", response_class=HTMLResponse)
+async def derivatives_oi_statistics_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    range: str | None = Query(default=None),
+    strikes: str | None = Query(default=None),
+) -> HTMLResponse:
+    """Full-page view for the institutional OI Statistics Dashboard.
+
+    G.11-OPT-9 (D-02): this page renders TWO strike controls — its own ``range``
+    select and the shared derivatives filter panel's Strike Count (``strikes``).
+    The route previously read only ``range``, so the shared panel's control was
+    rendered but ignored: submitting it navigated to a URL that changed nothing.
+    Both controls express the same thing (N strikes per side around ATM) and both
+    drive the same **display** filter — the certified aggregates (totals, PCR, Max
+    Pain, concentration, additions/reductions) are always computed over every
+    listed strike, so this is analytics-neutral. ``range`` keeps precedence when
+    the page's own control submits it.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    # The shared filter panel re-submits the expiry select it was rendered with,
+    # so after a symbol change it can still name the previous underlying's
+    # expiry. Only this underlying's listed expiries may drive the read.
+    selected_expiry = await _canonical_listed_expiry(service, symbol, expiry, expiries=expiries)
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+
+    effective_range = range if range is not None else (strikes or "15")
+    stats = await service.get_oi_statistics(symbol, expiry_date=sel_exp_date, strike_range=effective_range)
+    html = _render(
+        "derivatives_oi_statistics.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "selected_range": effective_range,
+            "stats": stats,
+            **(await _derivatives_filter_context(
+                service,
+                symbol,
+                form_action="/market-data/derivatives/oi-statistics",
+                strikes=effective_range,
+                expiry=sel_exp_date,
+                show_interval=False,
+            )),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": stats.get("is_market_open", False),
+            "as_of_ist": stats.get("as_of_ist", "09:15 IST"),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/oi-change", response_class=HTMLResponse)
+async def derivatives_oi_change_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    interval: str = Query(default="15m"),
+    strikes: str = Query(default="15", description="Strike count per side, or 'all'"),
+) -> HTMLResponse:
+    """Full-page view for the Intraday OI Change and Interval Analytics view.
+
+    G.11-OPT-9: ``strikes`` accepts the same vocabulary the shared derivatives
+    filter panel actually emits (a per-side count or ``all``). Declaring it as
+    ``int`` made the panel's "All listed strikes" option a user-reachable HTTP 422,
+    because the select submits the literal string ``all``. The token is now parsed
+    with the project's own ``parse_strike_count_token``; ``None`` means every
+    listed strike, which the service layer already supports.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    # The shared filter panel re-submits the expiry select it was rendered with,
+    # so after a symbol change it can still name the previous underlying's
+    # expiry. Only this underlying's listed expiries may drive the read.
+    selected_expiry = await _canonical_listed_expiry(service, symbol, expiry, expiries=expiries)
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+
+    from app.services.derivatives_scope import parse_strike_count_token
+
+    strike_count, strike_problem = parse_strike_count_token(strikes)
+    if strike_problem:
+        # Only genuinely malformed input is rejected; every value the UI emits
+        # parses. Mirrors the REST twin's 400 for an invalid spec.
+        raise HTTPException(status_code=400, detail=strike_problem)
+    selected_strikes_token = "all" if strike_count is None else str(strike_count)
+
+    oi_data = await service.get_interval_oi_change(
+        symbol, expiry_date=sel_exp_date, strike_count=strike_count, interval=interval
+    )
+    html = _render(
+        "derivatives_oi_change.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "selected_interval": interval,
+            "selected_strikes": selected_strikes_token,
+            "oi_data": oi_data,
+            **(await _derivatives_filter_context(
+                service,
+                symbol,
+                form_action="/market-data/derivatives/oi-change",
+                expiry=sel_exp_date,
+                interval=interval,
+                strikes=selected_strikes_token,
+            )),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": oi_data.get("is_market_open", False),
+            "as_of_ist": oi_data.get("as_of_ist", "09:15 IST"),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/multistrike-oi", response_class=HTMLResponse)
+async def derivatives_multistrike_oi_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    interval: str = Query(default="5m"),
+    strikes: str = Query(default="5", description="Strike count per side, or 'all'"),
+) -> HTMLResponse:
+    """Full-page view for Multistrike OI comparison view.
+
+    The filter panel re-submits the symbol and expiry selects it was rendered
+    with, so after a symbol change the expiry can still belong to the previous
+    underlying. Only this underlying's listed expiries may drive the read.
+    """
+    from app.services.derivatives_scope import parse_interval_token, parse_strike_count_token
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    selected_expiry = await _canonical_listed_expiry(service, symbol, expiry, expiries=expiries)
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+
+    strike_count, strike_problem = parse_strike_count_token(strikes)
+    if strike_problem:
+        raise HTTPException(status_code=400, detail=strike_problem)
+    selected_strikes_token = "all" if strike_count is None else str(strike_count)
+    interval_minutes = parse_interval_token(interval) or 5
+
+    multi_oi = await service.get_multistrike_oi(
+        symbol,
+        expiry_date=sel_exp_date,
+        strike_count=strike_count,
+        interval_minutes=interval_minutes,
+    )
+    html = _render(
+        "derivatives_multistrike_oi.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "selected_interval": f"{interval_minutes}m",
+            "selected_strikes": selected_strikes_token,
+            "multi_oi": multi_oi,
+            **(await _derivatives_filter_context(
+                service,
+                symbol,
+                form_action="/market-data/derivatives/multistrike-oi",
+                expiry=sel_exp_date,
+                interval=f"{interval_minutes}m",
+                strikes=selected_strikes_token,
+            )),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": False,
+            "as_of_ist": multi_oi.get("as_of_ist", "09:15 IST"),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/options-oi-time", response_class=HTMLResponse)
+async def derivatives_options_oi_time_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    interval: str = Query(default="5m"),
+    strikes: str = Query(default="5", description="Strike count per side, or 'all'"),
+) -> HTMLResponse:
+    """Full-page view for Options OI vs Time synchronized time-series view.
+
+    The filter panel re-submits the expiry select it was rendered with, so after
+    a symbol change the expiry can still belong to the previous underlying. Only
+    this underlying's listed expiries may drive the read.
+    """
+    from app.services.derivatives_scope import parse_interval_token, parse_strike_count_token
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    selected_expiry = await _canonical_listed_expiry(service, symbol, expiry, expiries=expiries)
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+
+    strike_count, strike_problem = parse_strike_count_token(strikes)
+    if strike_problem:
+        raise HTTPException(status_code=400, detail=strike_problem)
+    selected_strikes_token = "all" if strike_count is None else str(strike_count)
+    interval_minutes = parse_interval_token(interval) or 5
+
+    time_data = await service.get_options_oi_vs_time(
+        symbol,
+        expiry_date=sel_exp_date,
+        strike_count=strike_count,
+        interval_minutes=interval_minutes,
+    )
+    html = _render(
+        "derivatives_oi_time.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "selected_interval": f"{interval_minutes}m",
+            "selected_strikes": selected_strikes_token,
+            "time_data": time_data,
+            **(await _derivatives_filter_context(
+                service,
+                symbol,
+                form_action="/market-data/derivatives/options-oi-time",
+                expiry=sel_exp_date,
+                interval=f"{interval_minutes}m",
+                strikes=selected_strikes_token,
+            )),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": False,
+            "as_of_ist": time_data.get("as_of_ist", "09:15 IST"),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/futures-oi-time", response_class=HTMLResponse)
+async def derivatives_futures_oi_time_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    interval: str = Query(default="5m"),
+    oi_unit: str = Query(default="CONTRACTS"),
+    strikes: str = Query(default="5"),
+    call_strikes: str | None = Query(default=None),
+    put_strikes: str | None = Query(default=None),
+    min_strike: str | None = Query(default=None),
+    max_strike: str | None = Query(default=None),
+) -> HTMLResponse:
+    """Futures OI and price vs time, with the real interval ledger.
+
+    All numbers come from real provider futures observations. The page never
+    displays a modelled cost-of-carry price in place of a traded futures price.
+    """
+    from app.services.derivatives_capture_service import get_capture_service
+    from app.services.derivatives_scope import parse_interval_token
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    interval_minutes = parse_interval_token(interval) or 5
+
+    fut_data = await service.get_futures_oi_vs_time(
+        symbol,
+        interval_minutes=interval_minutes,
+        expiry_date=expiry,
+        oi_unit=oi_unit.upper(),
+    )
+    scope = await _safe_scope(service, symbol, expiry)
+    html = _render(
+        "derivatives_futures_oi_time.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "selected_expiry": fut_data.get("selected_expiry"),
+            "selected_interval": f"{interval_minutes}m",
+            "selected_strikes": strikes,
+            "selected_oi_unit": oi_unit.upper(),
+            "selected_call_strikes": call_strikes or "",
+            "selected_put_strikes": put_strikes or "",
+            "selected_min_strike": min_strike or "",
+            "selected_max_strike": max_strike or "",
+            "expiries": fut_data.get("expiries") or [],
+            "scope": scope,
+            "form_action": "/market-data/derivatives/futures-oi-time",
+            "show_oi_unit": True,
+            "show_expiry": True,
+            "fut_data": fut_data,
+            # G.11-OPT-5 (Phase D): keep the operator capture badge visible on
+            # this page too — it was silently missing because this route built
+            # its context by hand instead of via _derivatives_filter_context.
+            "capture_status": get_capture_service().get_status(),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": False,
+            "as_of_ist": (
+                (fut_data.get("observation") or {}).get("observed_at_ist")
+                or "unavailable"
+            ),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/derivatives/oi-replay", response_class=HTMLResponse)
+async def derivatives_oi_replay_page(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    interval: int = Query(default=15, description="Replay interval in minutes"),
+    strikes: str = Query(default="5", description="Strike count per side, or 'all'"),
+    session_date: date | None = Query(default=None, description="Trade session date for replay"),
+) -> HTMLResponse:
+    """Full-page view for Point-in-Time Intraday Option Chain Replay.
+
+    Only the replay *timeline* (real observation instants) is rendered here. The
+    ladder itself is fetched per step from the point-in-time endpoint, so the page
+    can never display today's live chain as a historical state.
+    """
+    from app.services.derivatives_scope import ANALYSIS_WINDOW_CHOICES_MINUTES, parse_interval_token
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    underlyings = await service.get_supported_underlyings()
+    expiries = await service.get_available_expiries(symbol)
+    selected_expiry = expiry.isoformat() if expiry else (expiries[0]["expiry_date"] if expiries else None)
+    sel_exp_date = date.fromisoformat(selected_expiry) if selected_expiry else None
+    replay_interval = parse_interval_token(interval) or 15
+
+    replay_timeline = await service.get_session_replay_timeline(
+        symbol, session_date=session_date, interval_minutes=replay_interval
+    )
+    active_session_date = session_date
+    if (
+        not replay_timeline.get("replay_available")
+        and replay_timeline.get("available_sessions")
+        and session_date is None
+    ):
+        latest_trade_date_str = replay_timeline["available_sessions"][0]["trade_date"]
+        active_session_date = date.fromisoformat(latest_trade_date_str)
+        replay_timeline = await service.get_session_replay_timeline(
+            symbol, session_date=active_session_date, interval_minutes=replay_interval
+        )
+
+    session_expiries = replay_timeline.get("session_expiries", [])
+    if session_expiries and active_session_date and active_session_date < date.today():
+        exp_dates = {e["expiry_date"] for e in expiries}
+        for se_iso in reversed(session_expiries):
+            if se_iso not in exp_dates:
+                expiries.insert(
+                    0,
+                    {
+                        "expiry_date": se_iso,
+                        "display_label": f"{se_iso} (Recorded Expiry)",
+                        "days_to_expiry": 0,
+                        "expiry_type": "Historical",
+                    },
+                )
+        if expiry is None:
+            selected_expiry = session_expiries[0]
+            sel_exp_date = date.fromisoformat(selected_expiry)
+
+    html = _render(
+        "derivatives_oi_replay.html",
+        {
+            "request": request,
+            "underlyings": underlyings,
+            "selected_symbol": symbol.upper(),
+            "expiries": expiries,
+            "selected_expiry": selected_expiry,
+            "replay_timeline": replay_timeline,
+            "selected_session_date": (
+                active_session_date.isoformat()
+                if active_session_date
+                else replay_timeline.get("session_date")
+            ),
+            "replay_interval_choices": ANALYSIS_WINDOW_CHOICES_MINUTES,
+            "replay_interval_minutes": replay_interval,
+            **(await _derivatives_filter_context(
+                service,
+                symbol,
+                form_action="/market-data/derivatives/oi-replay",
+                expiry=sel_exp_date,
+                strikes=strikes,
+                show_interval=False,
+            )),
+            "provider_name": service.adapter.source_name,
+            "is_market_open": False,
+            "as_of_ist": next(
+                (
+                    step["timestamp_ist"]
+                    for step in reversed(replay_timeline.get("timeline_steps") or [])
+                    if step.get("has_snapshot")
+                ),
+                "no persisted observation",
+            ),
+        },
+    )
+    return finalize_page_response(request, HTMLResponse(content=html))
+
+
+@router.get("/options/chain-table", response_class=HTMLResponse)
+async def options_chain_table_partial(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    strike_count: int | None = Query(default=10),
+    show_buildup: bool = Query(default=False),
+    show_iv: bool = Query(default=False),
+    show_delta: bool = Query(default=False),
+    show_gamma: bool = Query(default=False),
+    show_vega: bool = Query(default=False),
+    show_greeks: bool = Query(default=False),
+) -> HTMLResponse:
+    """HTMX partial returning the live strike ladder with optional Greeks/buildup columns.
+
+    The requested expiry is validated against the selected underlying's listed
+    expiries: a partial request can still carry the outgoing underlying's expiry
+    (the container was rendered before the control moved), and querying it would
+    render an empty ladder for a contract that does not exist.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    effective_expiry = await _canonical_listed_expiry(service, symbol, expiry)
+    effective_date = date.fromisoformat(effective_expiry) if effective_expiry else None
+    chain = None
+    try:
+        chain = await service.get_option_chain_ladder(
+            underlying=symbol, expiry_date=effective_date, strike_count=strike_count
+        )
+    except Exception as exc:
+        logger.warning("Error fetching option chain ladder partial: %s", exc)
+        chain = None
+
+    iv_visible = show_iv or show_greeks
+    delta_visible = show_delta or show_greeks
+    gamma_visible = show_gamma or show_greeks
+    vega_visible = show_vega or show_greeks
+
+    html = _render(
+        "components/intraday_option_chain_table.html",
+        {
+            "request": request,
+            "chain": chain,
+            "underlying": symbol,
+            "expiry": effective_expiry,
+            "show_buildup": show_buildup,
+            "show_iv": iv_visible,
+            "show_delta": delta_visible,
+            "show_gamma": gamma_visible,
+            "show_vega": vega_visible,
+            "show_greeks": show_greeks,
+        },
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/options/dashboard-cards", response_class=HTMLResponse)
+async def options_dashboard_cards_partial(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+) -> HTMLResponse:
+    """HTMX partial returning the options dashboard summary cards.
+
+    The expiry is resolved against the selected underlying's listed expiries so
+    the dashboard can never summarise a contract the underlying does not have.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    effective_expiry = await _canonical_listed_expiry(service, symbol, expiry)
+    effective_date = date.fromisoformat(effective_expiry) if effective_expiry else None
+    dashboard = None
+    try:
+        dashboard = await service.get_option_dashboard(underlying=symbol, expiry_date=effective_date)
+    except Exception as exc:
+        logger.warning("Error fetching option dashboard partial: %s", exc)
+        dashboard = None
+
+    html = _render(
+        "components/intraday_option_dashboard_cards.html",
+        {"request": request, "dashboard": dashboard, "underlying": symbol, "expiry": effective_expiry},
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/options/pcr-view", response_class=HTMLResponse)
+async def options_pcr_view_partial(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+) -> HTMLResponse:
+    """HTMX partial returning the Live PCR analytics view.
+
+    The expiry is resolved against the selected underlying's listed expiries so
+    the ratio can never be aggregated over another underlying's contract.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    effective_expiry = await _canonical_listed_expiry(service, symbol, expiry)
+    effective_date = date.fromisoformat(effective_expiry) if effective_expiry else None
+    pcr_data = None
+    try:
+        pcr_data = await service.get_live_pcr(underlying=symbol, expiry_date=effective_date)
+    except Exception as exc:
+        logger.warning("Error fetching live PCR partial: %s", exc)
+        pcr_data = None
+
+    html = _render(
+        "components/intraday_option_pcr_view.html",
+        {"request": request, "pcr_data": pcr_data, "underlying": symbol, "expiry": effective_expiry},
+    )
+    return HTMLResponse(content=html)
+
+
+@router.get("/options/oi-chart", response_class=HTMLResponse)
+async def options_oi_chart_partial(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    strike_count: int = Query(default=15),
+) -> HTMLResponse:
+    """HTMX partial returning the strike-wise Call vs Put OI comparison.
+
+    The expiry is resolved against the selected underlying's listed expiries so
+    the comparison can never be built from another underlying's contract.
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    effective_expiry = await _canonical_listed_expiry(service, symbol, expiry)
+    effective_date = date.fromisoformat(effective_expiry) if effective_expiry else None
+    oi_data = None
+    try:
+        oi_data = await service.get_call_vs_put_oi(
+            underlying=symbol, expiry_date=effective_date, strike_count=strike_count
+        )
+    except Exception as exc:
+        logger.warning("Error fetching OI comparison partial: %s", exc)
+        oi_data = None
+
+    html = _render(
+        "components/intraday_option_oi_comparison.html",
+        {"request": request, "oi_data": oi_data, "underlying": symbol, "expiry": effective_expiry},
+    )
+    # G.11-OPT-12B Phase 2B: the refreshed fragment must re-render the new
+    # tornado chart component so the visualization survives HTMX swaps with a
+    # truthful empty state (no chart canvas at all) when no data exists.
+    chart_html = _render(
+        "components/option_oi_tornado_chart.html",
+        {"request": request, "oi_data": oi_data, "underlying": symbol, "expiry": effective_expiry},
+    )
+    return HTMLResponse(content=html + chart_html)
+
+
+@router.get("/options/oi-change-view", response_class=HTMLResponse)
+async def options_oi_change_view_partial(
+    request: Request,
+    symbol: str = Query(default="NIFTY"),
+    expiry: date | None = Query(default=None),
+    strike_count: int = Query(default=15),
+    buildup_filter: str | None = Query(default="ALL"),
+) -> HTMLResponse:
+    """HTMX partial returning the strike-wise OI Change analysis tab.
+
+    The expiry is resolved against the selected underlying's listed expiries so
+    the change can never be measured against another underlying's contract (the
+    defect an operator saw as an empty, wrong-underlying OI Change tab).
+    """
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    effective_expiry = await _canonical_listed_expiry(service, symbol, expiry)
+    effective_date = date.fromisoformat(effective_expiry) if effective_expiry else None
+    oi_change_data = None
+    try:
+        oi_change_data = await service.get_oi_change_analysis(
+            underlying=symbol,
+            expiry_date=effective_date,
+            strike_count=strike_count,
+            buildup_filter=buildup_filter,
+        )
+    except Exception as exc:
+        logger.warning("Error fetching OI change partial: %s", exc)
+        oi_change_data = None
+
+    html = _render(
+        "components/intraday_option_oi_change_view.html",
+        {
+            "request": request,
+            "oi_change_data": oi_change_data,
+            "underlying": symbol,
+            "expiry": effective_expiry,
+        },
+    )
+    # G.11-OPT-12B Phase 2B: the refreshed fragment must re-render the new ΔOI
+    # chart component so the visualization survives HTMX swaps with a truthful
+    # empty state (no chart canvas at all) when no data exists.
+    chart_html = _render(
+        "components/option_doi_chart.html",
+        {
+            "request": request,
+            "oi_change_data": oi_change_data,
+            "underlying": symbol,
+            "expiry": effective_expiry,
+        },
+    )
+    return HTMLResponse(content=html + chart_html)
+
+
+@router.get("/options/expiries-select", response_class=HTMLResponse)
+async def options_expiries_select_partial(
+    symbol: str = Query(default="NIFTY"),
+    selected_expiry: date | None = Query(default=None),
+) -> HTMLResponse:
+    """Render dynamic HTML select dropdown of valid non-expired expiries."""
+    from app.services.intraday_options_service import IntradayOptionsService
+
+    service = IntradayOptionsService()
+    expiries = await service.get_available_expiries(symbol)
+
+    if not expiries:
+        return HTMLResponse(
+            '<select class="form-select form-select-sm bg-dark text-light border-secondary" name="expiry_date" id="opt-expiry">'
+            '<option value="">No active expiries</option></select>'
+        )
+
+    options = ['<select class="form-select form-select-sm bg-dark text-light border-secondary" name="expiry_date" id="opt-expiry">']
+    for idx, exp in enumerate(expiries):
+        exp_val = exp["expiry_date"]
+        dte = exp["days_to_expiry"]
+        exp_type = exp["expiry_type"]
+        is_sel = (selected_expiry and selected_expiry.isoformat() == exp_val) or (selected_expiry is None and idx == 0)
+        sel_attr = " selected" if is_sel else ""
+        options.append(f'<option value="{exp_val}"{sel_attr}>{exp_val} ({dte} DTE · {exp_type})</option>')
+    options.append("</select>")
+    return HTMLResponse("".join(options))
 
 
 @router.post(
@@ -870,38 +1729,92 @@ async def advanced_options_tab_partial(
     return HTMLResponse(content=html)
 
 
+def _coerce_date(val: date | str | None, param_name: str) -> date | None:
+    if val is None:
+        return None
+    if isinstance(val, date):
+        return val
+    val_str = str(val).strip()
+    if not val_str:
+        return None
+    try:
+        return date.fromisoformat(val_str)
+    except (ValueError, TypeError):
+        from fastapi import HTTPException
+        raise HTTPException(
+            status_code=422,
+            detail=[{
+                "type": "date_from_datetime_parsing",
+                "loc": ["query", param_name],
+                "msg": f"Input should be a valid date, invalid date in '{val_str}'",
+                "input": val_str,
+            }],
+        ) from None
+
+
 @router.get("/derivatives/advanced-exposure/tab", response_class=HTMLResponse)
 async def advanced_exposure_tab_partial(
     request: Request,
     symbol: str = "NIFTY",
-    trade_date: date | None = None,
-    expiry_date: date | None = None,
-    as_of_date: date | None = None,
+    trade_date: str | date | None = None,
+    expiry_date: str | date | None = None,
+    as_of_date: str | date | None = None,
     session: AsyncSession = Depends(get_db_session),
 ) -> HTMLResponse:
     """HTMX partial endpoint for rendering the Advanced Exposure tab component."""
-    from app.services.advanced_exposure_service import AdvancedExposureService
+    from app.services.advanced_exposure_service import (
+        PROFILE_DEALER_HEURISTIC,
+        AdvancedExposureService,
+    )
     from app.services.historical_option_chain import HistoricalOptionChainService
 
-    t_date = trade_date or date.today()
-    as_of = as_of_date or t_date
+    parsed_trade_date = _coerce_date(trade_date, "trade_date")
+    parsed_as_of = _coerce_date(as_of_date, "as_of_date")
+    parsed_expiry = _coerce_date(expiry_date, "expiry_date")
+
+    t_date = parsed_trade_date or date.today()
+    as_of = parsed_as_of or t_date
 
     chain_service = HistoricalOptionChainService(session)
     exp_service = AdvancedExposureService(session)
 
     expiries = await chain_service.get_available_expiries(symbol, t_date, as_of)
-    target_exp = expiry_date or (expiries[0] if expiries else t_date)
+    target_exp = parsed_expiry or (expiries[0] if expiries else t_date)
 
     snapshot = None
     strikes: list = []
     gamma_profile: list = []
 
+    unavailable_reason: str | None = None
+
     try:
-        snapshot = await exp_service.get_exposure_snapshot(symbol, t_date, target_exp, as_of)
-        strikes = await exp_service.get_strike_exposure_table(symbol, t_date, target_exp, as_of)
-        gamma_profile = await exp_service.get_gamma_profile(symbol, t_date, target_exp, as_of)
-    except Exception:
-        pass
+        # G.11-OPT-12B Phase 2A hardening: use the service's supported signed
+        # scenario profile (DEALER_SHORT_CALL_LONG_PUT_HEURISTIC, the exact
+        # profile get_gamma_flip already uses internally) consistently for the
+        # snapshot, strike table and gamma profile. This makes scenario_net_gex
+        # a genuine signed quantity (PE gross − CE gross) and lets gamma_flip
+        # return a real zero-crossing level; the snapshot's signed KPIs and the
+        # scenario grid then agree. No formula or schema change: the profile
+        # constant already exists in the service and is validated by its tests.
+        assumption_profile = PROFILE_DEALER_HEURISTIC
+        snapshot = await exp_service.get_exposure_snapshot(
+            symbol, t_date, target_exp, as_of, assumption_profile
+        )
+        strikes = await exp_service.get_strike_exposure_table(
+            symbol, t_date, target_exp, as_of, assumption_profile
+        )
+        gamma_profile = await exp_service.get_gamma_profile(
+            symbol, t_date, target_exp, as_of, assumption_profile
+        )
+    except ValueError as exc:
+        # Expected data-availability failure: the underlying is not present in the
+        # stored market indices, or no stored history exists for the requested
+        # date/expiry range. Render an explicit unavailable state carrying a reason
+        # code instead of an unhandled server error.
+        #
+        # NOTE: this deliberately does NOT catch broad ``Exception``. A genuine
+        # programming error must stay visible rather than being masked as "no data".
+        unavailable_reason = f"UNDERLYING_NOT_PRESENT_IN_MARKET_INDICES: {exc}"
 
     html = _render(
         "components/advanced_exposure_tab.html",
@@ -914,6 +1827,8 @@ async def advanced_exposure_tab_partial(
             "snapshot": snapshot,
             "strikes": strikes,
             "gamma_profile": gamma_profile,
+            "unavailable_reason": unavailable_reason,
+            "assumption_profile": assumption_profile,
         },
     )
     return HTMLResponse(content=html)

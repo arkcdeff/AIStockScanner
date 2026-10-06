@@ -6,7 +6,7 @@ and full option chains across historical and live market-data providers.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from decimal import Decimal
 from enum import StrEnum
 from typing import Any
@@ -106,12 +106,16 @@ class NormalizedQuote:
     strike_price: Decimal | None = None
     option_type: str | None = None  # 'CE', 'PE'
     expiry_date: date | None = None
-    timestamp: datetime = field(default_factory=datetime.now)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     price_type: PriceType = PriceType.GENERIC_LTP
     source_name: str = "UNKNOWN"
     provider_id: str = "UNKNOWN"
     freshness_status: FreshnessStatus = FreshnessStatus.LIVE
     raw_provider_meta: dict[str, Any] = field(default_factory=dict)
+    contract_id: int | None = None
+    provider_instrument_id: str | None = None
+    source_change_in_oi: int | None = None
+    source_greeks: dict[str, Any] | None = None
 
 
 @dataclass
@@ -127,3 +131,21 @@ class NormalizedOptionChain:
     ce_pe_paired_pct: float = 0.0
     provider_id: str = "UNKNOWN"
     source_name: str = "UNKNOWN"
+    chain_scope: str = "SINGLE_EXPIRY"
+    expiry_scope: date | None = None
+    market_timestamp: datetime | None = None
+    source_timestamp: datetime | None = None
+    raw_payload_hash: str | None = None
+    raw_payload: str | None = None
+    source_reference: str | None = None
+    batch_id: str | None = None
+    is_truncated: bool = False
+    expected_strike_count: int | None = None
+    observed_strike_count: int | None = None
+    quality_status: str = "VALID"
+    quality_flags: dict[str, Any] = field(default_factory=dict)
+    # G.11-OPT-3 provenance: the underlying spot and the expiry list must never be
+    # presented as provider facts unless they actually came from the provider.
+    spot_provenance: str = "UNKNOWN"
+    spot_observed_at: datetime | None = None
+    expiry_provenance: str = "UNKNOWN"

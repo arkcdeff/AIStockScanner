@@ -462,3 +462,14 @@ body {
 
 .border-subtle { border-color: var(--color-border) !important; }
 .bg-surface { background: var(--color-surface) !important; }
+
+/* Advanced Exposure styling compatibility */
+#advanced-exposure-container .text-emerald-400,
+.text-emerald-400 {
+    color: var(--color-success) !important;
+}
+
+#advanced-exposure-container .text-rose-400,
+.text-rose-400 {
+    color: var(--color-danger) !important;
+}

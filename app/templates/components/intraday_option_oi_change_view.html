@@ -1,0 +1,246 @@
+{% if not oi_change_data %}
+<div class="empty-state py-5 text-center">
+    <i class="bi bi-activity display-4 text-muted mb-3 d-block"></i>
+    <h5 class="fw-semibold text-light">No Open Interest Change Data Available</h5>
+    <p class="text-muted small">Please select an underlying and expiry to load strike-wise Open Interest change analytics.</p>
+</div>
+{% else %}
+<!-- Summary Cards Strip -->
+<div class="row g-2 mb-3">
+    <div class="col-md-3 col-sm-6">
+        <div class="card border border-secondary" style="background-color: #121722;">
+            <div class="card-body p-2 text-center">
+                <span class="text-uppercase text-muted small fw-semibold" style="font-size: 0.7rem;">Call OI Change</span>
+                <h5 class="mb-0 fw-bold {{ 'text-success' if oi_change_data.summary.call_oi_change and oi_change_data.summary.call_oi_change > 0 else ('text-danger' if oi_change_data.summary.call_oi_change and oi_change_data.summary.call_oi_change < 0 else 'text-muted') }}">
+                    {% if oi_change_data.summary.call_oi_change is not none %}
+                        {{ '{:+,}'.format(oi_change_data.summary.call_oi_change) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </h5>
+                <span class="text-muted" style="font-size: 0.68rem;">{{ oi_change_data.summary.strike_coverage_label }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border border-secondary" style="background-color: #121722;">
+            <div class="card-body p-2 text-center">
+                <span class="text-uppercase text-muted small fw-semibold" style="font-size: 0.7rem;">Put OI Change</span>
+                <h5 class="mb-0 fw-bold {{ 'text-success' if oi_change_data.summary.pe_oi_change and oi_change_data.summary.pe_oi_change > 0 else ('text-danger' if oi_change_data.summary.pe_oi_change and oi_change_data.summary.pe_oi_change < 0 else 'text-muted') }}">
+                    {% if oi_change_data.summary.pe_oi_change is not none %}
+                        {{ '{:+,}'.format(oi_change_data.summary.pe_oi_change) }}
+                    {% else %}
+                        —
+                    {% endif %}
+                </h5>
+                <span class="text-muted" style="font-size: 0.68rem;">{{ oi_change_data.summary.strike_coverage_label }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border border-secondary" style="background-color: #121722;">
+            <div class="card-body p-2 text-center">
+                <span class="text-uppercase text-muted small fw-semibold" style="font-size: 0.7rem;">Underlying Spot & ATM</span>
+                <h5 class="mb-0 fw-bold text-light">
+                    ₹{{ '{:,.2f}'.format(oi_change_data.spot_price) }}
+                    <span class="badge bg-warning text-dark ms-1" style="font-size: 0.7rem;">ATM {{ '{:,.0f}'.format(oi_change_data.atm_strike) }}</span>
+                </h5>
+                <span class="text-muted" style="font-size: 0.68rem;">Step: {{ oi_change_data.strike_step }} pts</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 col-sm-6">
+        <div class="card border border-secondary" style="background-color: #121722;">
+            <div class="card-body p-2 text-center">
+                <span class="text-uppercase text-muted small fw-semibold" style="font-size: 0.7rem;">Coverage / Session</span>
+                <h5 class="mb-0 fw-bold text-info" style="font-size: 1rem;">
+                    {{ oi_change_data.strike_count }} Strikes
+                    <span class="badge {{ 'bg-success' if oi_change_data.is_market_open else 'bg-secondary' }} ms-1" style="font-size: 0.65rem;">{{ oi_change_data.market_session }}</span>
+                </h5>
+                <span class="text-muted" style="font-size: 0.68rem;">{{ oi_change_data.as_of_ist }}</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Main OI Change Card -->
+<div class="card border border-secondary mb-3" style="background-color: #121722;">
+    <div class="card-header border-bottom border-secondary bg-transparent py-2 d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2">
+            <h6 class="card-title mb-0 fw-semibold text-light">
+                <i class="bi bi-activity me-1 text-info"></i>Strike-Wise Open Interest Change & Buildup Classification
+            </h6>
+            <span class="badge bg-dark border border-secondary text-muted" style="font-size: 0.7rem;">
+                {{ oi_change_data.summary.strike_coverage_label }}
+            </span>
+        </div>
+        <!-- Buildup Filter Selector -->
+        <div class="d-flex align-items-center gap-2">
+            <label class="small text-muted mb-0 text-nowrap" style="font-size: 0.75rem;">Filter Buildup:</label>
+            <select class="form-select form-select-sm bg-dark text-light border-secondary py-0" style="font-size: 0.75rem; width: auto;"
+                    id="opt-buildup-filter" onchange="refreshOIChangeFilter()">
+                <option value="ALL" {{ 'selected' if oi_change_data.active_filter == 'ALL' else '' }}>All Buildups</option>
+                <option value="LONG_BUILDUP" {{ 'selected' if oi_change_data.active_filter == 'LONG_BUILDUP' else '' }}>Long Buildup (LB)</option>
+                <option value="SHORT_BUILDUP" {{ 'selected' if oi_change_data.active_filter == 'SHORT_BUILDUP' else '' }}>Short Buildup (SB)</option>
+                <option value="SHORT_COVERING" {{ 'selected' if oi_change_data.active_filter == 'SHORT_COVERING' else '' }}>Short Covering (SC)</option>
+                <option value="LONG_UNWINDING" {{ 'selected' if oi_change_data.active_filter == 'LONG_UNWINDING' else '' }}>Long Unwinding (LU)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Comparative Table -->
+    <div class="card-body p-0">
+        <div class="table-responsive" style="max-height: 620px; overflow-y: auto;">
+            <table class="table table-dark table-sm table-hover mb-0 text-center align-middle" style="font-size: 0.8rem; font-family: var(--bs-font-monospace, monospace);">
+                <thead class="sticky-top bg-dark border-bottom border-secondary" style="background-color: #161c2b !important; z-index: 5;">
+                    <tr style="background-color: #121722; font-size: 0.75rem;">
+                        <th colspan="4" class="py-2 text-danger border-end border-secondary text-center">
+                            <i class="bi bi-arrow-up-circle me-1"></i>CALL OI CHANGE (CE)
+                        </th>
+                        <th class="py-2 text-warning border-end border-secondary text-center" style="width: 14%;">STRIKE</th>
+                        <th colspan="4" class="py-2 text-success text-center">
+                            <i class="bi bi-arrow-down-circle me-1"></i>PUT OI CHANGE (PE)
+                        </th>
+                    </tr>
+                    <tr style="background-color: #161c2b; font-size: 0.72rem;">
+                        <th class="text-end text-muted" style="width: 10%;">Buildup</th>
+                        <th class="text-end text-muted" style="width: 10%;">LTP (Δ)</th>
+                        <th class="text-end text-muted" style="width: 10%;">ΔOI</th>
+                        <th class="text-end text-muted border-end border-secondary" style="width: 13%;">Bar</th>
+                        <th class="text-warning fw-bold border-end border-secondary text-center">Strike</th>
+                        <th class="text-start text-muted" style="width: 13%;">Bar</th>
+                        <th class="text-start text-muted" style="width: 10%;">ΔOI</th>
+                        <th class="text-start text-muted" style="width: 10%;">LTP (Δ)</th>
+                        <th class="text-start text-muted" style="width: 10%;">Buildup</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if oi_change_data.strikes %}
+                    {% for item in oi_change_data.strikes %}
+                    {% set c = item.call %}
+                    {% set p = item.put %}
+                    {% set is_atm = item.is_atm %}
+                    <tr class="{{ 'table-warning text-dark fw-bold' if is_atm else '' }}" style="{{ 'background-color: rgba(255, 193, 7, 0.12);' if is_atm else '' }}">
+                        <!-- CALL SIDE -->
+                        <!-- Call Buildup Badge -->
+                        <td class="text-end py-1">
+                            <span class="badge bg-{{ c.buildup.color_class }}" title="{{ c.buildup.tooltip }}" style="font-size: 0.7rem; min-width: 26px;">
+                                {{ c.buildup.code }}
+                            </span>
+                        </td>
+                        <!-- Call LTP & Price Change -->
+                        <td class="text-end py-1 text-muted" style="font-size: 0.75rem;">
+                            {% if c.ltp is not none %}
+                                <span>₹{{ '{:,.1f}'.format(c.ltp) }}</span>
+                                <br>
+                                <span class="{{ 'text-success' if c.price_change and c.price_change > 0 else ('text-danger' if c.price_change and c.price_change < 0 else 'text-muted') }}" style="font-size: 0.68rem;">
+                                    {{ '{:+.1f}'.format(c.price_change) if c.price_change is not none else '—' }}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <!-- Call Change in OI -->
+                        <td class="text-end py-1 fw-bold {{ 'text-success' if c.change_in_oi and c.change_in_oi > 0 else ('text-danger' if c.change_in_oi and c.change_in_oi < 0 else 'text-muted') }}" style="font-size: 0.78rem;">
+                            {% if c.change_in_oi is not none %}
+                                {{ '{:+,}'.format(c.change_in_oi) }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <!-- Call Bar (Expansion = Green, Contraction = Red, Right-to-Left) -->
+                        <td class="text-end pe-2 py-1 border-end border-secondary">
+                            <div class="d-flex align-items-center justify-content-end" style="height: 100%;">
+                                <div class="progress flex-grow-1" style="height: 12px; max-width: 140px; transform: rotate(180deg); background-color: #1e2638;">
+                                    {% if c.change_in_oi and c.change_in_oi > 0 %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ c.bar_pct }}%;" aria-valuenow="{{ c.bar_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    {% elif c.change_in_oi and c.change_in_oi < 0 %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ c.bar_pct }}%;" aria-valuenow="{{ c.bar_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+
+                        <!-- STRIKE (CENTER) -->
+                        <td class="fw-bold border-end border-secondary text-center {{ 'bg-warning text-dark' if is_atm else 'text-warning bg-dark' }}">
+                            {{ '{:,.0f}'.format(item.strike_price) }}
+                            {% if is_atm %}
+                            <span class="badge bg-dark text-warning ms-1" style="font-size: 0.62rem;">ATM</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- PUT SIDE -->
+                        <!-- Put Bar (Expansion = Green, Contraction = Red, Left-to-Right) -->
+                        <td class="text-start ps-2 py-1">
+                            <div class="d-flex align-items-center justify-content-start" style="height: 100%;">
+                                <div class="progress flex-grow-1" style="height: 12px; max-width: 140px; background-color: #1e2638;">
+                                    {% if p.change_in_oi and p.change_in_oi > 0 %}
+                                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ p.bar_pct }}%;" aria-valuenow="{{ p.bar_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    {% elif p.change_in_oi and p.change_in_oi < 0 %}
+                                        <div class="progress-bar bg-danger" role="progressbar" style="width: {{ p.bar_pct }}%;" aria-valuenow="{{ p.bar_pct }}" aria-valuemin="0" aria-valuemax="100"></div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                        <!-- Put Change in OI -->
+                        <td class="text-start py-1 fw-bold {{ 'text-success' if p.change_in_oi and p.change_in_oi > 0 else ('text-danger' if p.change_in_oi and p.change_in_oi < 0 else 'text-muted') }}" style="font-size: 0.78rem;">
+                            {% if p.change_in_oi is not none %}
+                                {{ '{:+,}'.format(p.change_in_oi) }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <!-- Put LTP & Price Change -->
+                        <td class="text-start py-1 text-muted" style="font-size: 0.75rem;">
+                            {% if p.ltp is not none %}
+                                <span>₹{{ '{:,.1f}'.format(p.ltp) }}</span>
+                                <br>
+                                <span class="{{ 'text-success' if p.price_change and p.price_change > 0 else ('text-danger' if p.price_change and p.price_change < 0 else 'text-muted') }}" style="font-size: 0.68rem;">
+                                    {{ '{:+.1f}'.format(p.price_change) if p.price_change is not none else '—' }}
+                                </span>
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <!-- Put Buildup Badge -->
+                        <td class="text-start py-1">
+                            <span class="badge bg-{{ p.buildup.color_class }}" title="{{ p.buildup.tooltip }}" style="font-size: 0.7rem; min-width: 26px;">
+                                {{ p.buildup.code }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="py-5 text-center text-muted">
+                            <i class="bi bi-funnel fs-3 d-block mb-2 text-info"></i>
+                            <span class="fw-semibold text-light fs-6">No Contracts Match Buildup Filter: {{ oi_change_data.active_filter }}</span>
+                            <p class="small text-muted mb-0 mt-1">Select "All Buildups" or a different classification above to view contracts.</p>
+                        </td>
+                    </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Buildup Classification Legend & Footnote -->
+    <div class="card-footer border-top border-secondary bg-transparent py-2 small">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <!-- Buildup Legend -->
+            <div class="d-flex flex-wrap align-items-center gap-3 text-muted">
+                <span class="fw-semibold text-light" style="font-size: 0.75rem;">Buildup Legend:</span>
+                <span><span class="badge bg-success me-1">LB</span> <strong class="text-success">Long Buildup</strong> (Price ↑, OI ↑)</span>
+                <span><span class="badge bg-danger me-1">SB</span> <strong class="text-danger">Short Buildup</strong> (Price ↓, OI ↑)</span>
+                <span><span class="badge bg-info me-1">SC</span> <strong class="text-info">Short Covering</strong> (Price ↑, OI ↓)</span>
+                <span><span class="badge bg-warning me-1">LU</span> <strong class="text-warning">Long Unwinding</strong> (Price ↓, OI ↓)</span>
+                <span><span class="badge bg-secondary me-1">—</span> Neutral (Price/OI unchanged)</span>
+            </div>
+            <!-- Baseline & Disclaimer -->
+            <div class="text-muted" style="font-size: 0.72rem;">
+                <i class="bi bi-info-circle me-1 text-info"></i>{{ oi_change_data.interval_baseline }} &middot; Analytics only
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
