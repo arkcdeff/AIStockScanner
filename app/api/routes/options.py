@@ -615,6 +615,21 @@ async def start_capture_session(
         get_capture_service,
     )
 
+    from app.core.config import settings
+
+    # G.11-OPT-14C: the global capture flag is a real safety gate. Rejection uses
+    # this project's existing "feature disabled" convention (HTTP 503, see
+    # app/api/routes/ai.py). RBAC dependencies still run first, so an
+    # unauthenticated caller keeps receiving 401/403.
+    if not settings.derivatives_observation_capture_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=(
+                "Derivatives observation capture is disabled; set "
+                "DERIVATIVES_OBSERVATION_CAPTURE_ENABLED=true to enable it"
+            ),
+        )
+
     data = payload or {}
     expiry_val = None
     if data.get("expiry"):

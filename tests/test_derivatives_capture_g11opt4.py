@@ -355,8 +355,17 @@ async def test_replay_no_lookahead_behavior():
 # ===========================================================================
 
 @pytest.mark.asyncio
-async def test_capture_lifecycle_start_and_stop(capture_service: DerivativesCaptureService):
-    """Verify that an authorized capture starts, reports status, and stops gracefully."""
+async def test_capture_lifecycle_start_and_stop(
+    capture_service: DerivativesCaptureService, monkeypatch: pytest.MonkeyPatch
+):
+    """Verify that an authorized capture starts, reports status, and stops gracefully.
+
+    G.11-OPT-14C: starting a session now additionally requires the global capture
+    flag, so the authorized-session flow is exercised with capture explicitly
+    enabled. The flag itself is covered by
+    tests/test_capture_flag_enforcement_g11opt14c.py.
+    """
+    monkeypatch.setattr(settings, "derivatives_observation_capture_enabled", True)
     config = DerivativesCaptureConfig(
         underlying="NIFTY",
         interval_seconds=60,
@@ -431,11 +440,24 @@ def test_secret_redaction_in_capture_telemetry(capture_service: DerivativesCaptu
 # ===========================================================================
 
 def test_database_schema_unchanged():
-    """Verify that current Alembic head remains b3a4c5d6e7f8 without new unapplied migrations."""
+    """Verify the single Alembic head, with no unapplied *schema* migrations.
+
+    G.11-OPT-14C added ``c4d5e6f7a8b9``, which is data-only (it inserts the
+    canonical BANKNIFTY ``market_indices`` row and alters no schema), so the
+    expected head advanced while the schema-unchanged guarantee still holds.
+    """
     from alembic.config import Config
     from alembic.script import ScriptDirectory
 
     cfg = Config(str(Path("alembic.ini").resolve()))
     script = ScriptDirectory.from_config(cfg)
     heads = script.get_heads()
-    assert heads == ["b3a4c5d6e7f8"], f"Expected single Alembic head b3a4c5d6e7f8, found {heads}"
+    assert heads == ["c4d5e6f7a8b9"], f"Expected single Alembic head c4d5e6f7a8b9, found {heads}"
+
+    # The new revision must be data-only: it may not create/alter/drop anything.
+    revision = script.get_revision("c4d5e6f7a8b9")
+    module_source = Path(revision.path).read_text(encoding="utf-8")
+    assert "op.create_table" not in module_source
+    assert "op.add_column" not in module_source
+    assert "op.drop_column" not in module_source
+    assert "op.alter_column" not in module_source

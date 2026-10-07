@@ -68,6 +68,19 @@ def _chain_is_real_observation(chain: Any) -> tuple[bool, str]:
     return True, ""
 
 
+def observation_capture_enabled() -> bool:
+    """Single source of truth for the global observation-capture safety flag.
+
+    G.11-OPT-14C: ``derivatives_observation_capture_enabled`` is a real safety
+    control, not documentation. It is enforced at the capture entrypoint (HTTP
+    route and service), inside the capture worker loop, and as defense in depth
+    immediately before option-chain observation persistence. It defaults to
+    ``False`` and is never enabled automatically by contract, MarketIndex,
+    provider, token or application-startup code.
+    """
+    return bool(getattr(settings, "derivatives_observation_capture_enabled", False))
+
+
 class CaptureState(StrEnum):
     DISABLED = "DISABLED"
     IDLE = "IDLE"
@@ -174,7 +187,7 @@ class DerivativesCaptureService:
     @property
     def is_globally_enabled(self) -> bool:
         """Global configuration flag; strictly disabled by default."""
-        return bool(getattr(settings, "derivatives_observation_capture_enabled", False))
+        return observation_capture_enabled()
 
     def _refresh_storage_usage(self) -> int:
         used = self.futures_store.get_storage_usage()
@@ -221,6 +234,18 @@ class DerivativesCaptureService:
         """
         if not authorized:
             return False, "AUTHORIZATION_REQUIRED: Operator permissions required to start capture", {}
+
+        # G.11-OPT-14C: the global flag is an explicit operator safety control.
+        # While it is disabled no session may start, so no capture worker is
+        # created, no live observation is fetched and no row is ever persisted.
+        if not observation_capture_enabled():
+            return (
+                False,
+                "CAPTURE_DISABLED: global observation capture is disabled "
+                "(derivatives_observation_capture_enabled=False); no capture worker "
+                "was started and no observation was fetched or persisted",
+                self.get_status(),
+            )
 
         validation_errors = config.validate()
         if validation_errors:
@@ -362,6 +387,17 @@ class DerivativesCaptureService:
                 now_utc = datetime.now(UTC)
                 elapsed = now_utc - start_time
                 self._telemetry.duration_seconds = elapsed.total_seconds()
+
+                # G.11-OPT-14C: the flag may be withdrawn mid-session. Stop
+                # immediately rather than continue fetching and persisting.
+                if not observation_capture_enabled():
+                    logger.warning(
+                        "Capture session [%s] halted: observation capture was disabled",
+                        session_id,
+                    )
+                    self._telemetry.state = CaptureState.STOPPED
+                    self._telemetry.last_error = "CAPTURE_DISABLED_MID_SESSION"
+                    break
 
                 # Check max duration
                 if elapsed >= max_duration:

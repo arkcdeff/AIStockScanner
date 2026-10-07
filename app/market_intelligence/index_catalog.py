@@ -286,6 +286,16 @@ INDEX_CATALOG: tuple[IndexCatalogEntry, ...] = (
 
 INDEX_CATALOG_BY_CODE = {entry.code: entry for entry in INDEX_CATALOG}
 
+# G.11-OPT-14C: catalog codes whose economic identity is already carried by an
+# existing authoritative MarketIndex row. The derivatives pipeline resolves
+# underlyings by the provider short code (``NIFTY``, ``BANKNIFTY``), so when such
+# a row exists the seeder must reconcile onto it rather than create a second
+# identity for the same index.
+CATALOG_CODE_ALIASES: dict[str, tuple[str, ...]] = {
+    "NIFTY_50": ("NIFTY",),
+    "NIFTY_BANK": ("BANKNIFTY",),
+}
+
 
 async def seed_market_index_catalog(session: AsyncSession) -> list[MarketIndex]:
     """Create or reconcile the canonical catalog without creating duplicates.
@@ -294,15 +304,29 @@ async def seed_market_index_catalog(session: AsyncSession) -> list[MarketIndex]:
     original Task 18.2 table and relationships remain the single source of truth.
     """
     codes = tuple(INDEX_CATALOG_BY_CODE)
-    result = await session.scalars(select(MarketIndex).where(MarketIndex.code.in_(codes)))
+    alias_codes = tuple(
+        alias for entry_code in codes for alias in CATALOG_CODE_ALIASES.get(entry_code, ())
+    )
+    result = await session.scalars(
+        select(MarketIndex).where(MarketIndex.code.in_(codes + alias_codes))
+    )
     existing = {row.code: row for row in result.all()}
     catalog_rows: list[MarketIndex] = []
 
     for entry in INDEX_CATALOG:
         row = existing.get(entry.code)
         if row is None:
+            # G.11-OPT-14C: reconcile onto the authoritative short-code row
+            # instead of creating a duplicate identity for the same index. The
+            # resolved row keeps its existing code.
+            for alias in CATALOG_CODE_ALIASES.get(entry.code, ()):
+                if alias in existing:
+                    row = existing[alias]
+                    break
+        if row is None:
             row = MarketIndex(code=entry.code, name=entry.name, country=entry.country)
             session.add(row)
+            existing[entry.code] = row
         row.name = entry.name
         row.country = entry.country
         row.exchange = entry.exchange

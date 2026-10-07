@@ -145,6 +145,28 @@ class SnapshotRevisionConflictError(OptionChainPersistenceError):
     """Raised when a revision uniqueness conflict cannot be proven to be a replay."""
 
 
+class OptionChainCaptureDisabledError(OptionChainPersistenceError):
+    """Raised when a live provider observation is persisted while capture is off.
+
+    G.11-OPT-14C defense in depth: the capture entrypoint already refuses to
+    start while ``derivatives_observation_capture_enabled`` is False, but this
+    layer must not depend on any single caller. Nothing is persisted when this
+    is raised.
+    """
+
+
+#: Provider identities that mark an observation as a *live* provider read. Only
+#: these require the global capture flag; historical imports and test fixtures
+#: carry a different provider identity and stay deliberately exempt.
+_LIVE_PROVIDER_IDENTITIES = frozenset({"UPSTOX_LIVE", "UPSTOX"})
+
+
+def _is_live_provider_observation(chain: Any) -> bool:
+    """Return True when a chain came from a live provider (not a fixture)."""
+    provider_id = str(getattr(chain, "provider_id", "") or "").strip().upper()
+    return provider_id in _LIVE_PROVIDER_IDENTITIES
+
+
 @lru_cache(maxsize=16)
 def get_market_timezone(timezone_name: str = DEFAULT_MARKET_TIMEZONE_NAME) -> tzinfo:
     """Resolve a market timezone name to a ``tzinfo`` with a safe IST fallback.
@@ -746,6 +768,23 @@ class OptionChainPersistenceService:
         IntegrityError:
             Any other database constraint violation (full rollback).
         """
+        # G.11-OPT-14C (defense in depth): a live provider observation may only
+        # be persisted while global observation capture is enabled. Historical
+        # imports and test fixtures carry a non-live provider identity and are
+        # intentionally exempt, so no legitimate persistence path is blocked.
+        if _is_live_provider_observation(chain):
+            from app.services.derivatives_capture_service import (
+                observation_capture_enabled,
+            )
+
+            if not observation_capture_enabled():
+                raise OptionChainCaptureDisabledError(
+                    "Global observation capture is disabled "
+                    "(derivatives_observation_capture_enabled=False); refusing to "
+                    "persist a live provider observation "
+                    f"(provider_id='{getattr(chain, 'provider_id', '')}')"
+                )
+
         overrides = _PersistOverrides(
             underlying_index_id=underlying_index_id,
             chain_scope=chain_scope,
