@@ -34,6 +34,11 @@ def _is_test_db(db_name: str) -> bool:
     return "test" in db_lower
 
 
+def _is_forbidden_db(db_name: str) -> bool:
+    """Return True for explicitly forbidden database names, case-insensitively."""
+    return db_name.strip().lower() in FORBIDDEN_DB_NAMES
+
+
 def _fmt(val) -> str:
     if val is None:
         return "NULL"
@@ -373,6 +378,9 @@ async def main() -> None:
     )
     args = parser.parse_args()
 
+    if args.verify and args.repair:
+        parser.error("Choose exactly one mode: --verify or --repair, not both.")
+
     if not args.verify and not args.repair:
         parser.print_help()
         raise SystemExit(1)
@@ -384,7 +392,7 @@ async def main() -> None:
             if _is_test_db(db_name):
                 print(f"ERROR: Refusing to run --verify on a test database (db='{db_name}').")
                 raise SystemExit(1)
-            if db_name in FORBIDDEN_DB_NAMES:
+            if _is_forbidden_db(db_name):
                 print(f"ERROR: Refusing to run --verify on forbidden database (db='{db_name}').")
                 raise SystemExit(1)
 
@@ -440,6 +448,9 @@ async def main() -> None:
         elif args.repair:
             if _is_test_db(db_name):
                 print(f"ERROR: Refusing to run --repair on a test database (db='{db_name}').")
+                raise SystemExit(1)
+            if _is_forbidden_db(db_name):
+                print(f"ERROR: Refusing to run --repair on forbidden database (db='{db_name}').")
                 raise SystemExit(1)
             print("=== PRE-REPAIR BASELINE ===")
             r = await s.execute(text("SELECT COUNT(*) FROM derivative_contracts"))
