@@ -17,6 +17,8 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    JSON,
+    Boolean,
     CheckConstraint,
     Date,
     DateTime,
@@ -73,6 +75,10 @@ class DerivativeContract(TimestampMixin, Base):
     # Classification & Underlyings
     exchange: Mapped[str] = mapped_column(String(16), nullable=False, default="NSE")
     segment: Mapped[str] = mapped_column(String(16), nullable=False, default="NFO")
+    # G.11-OPT-14D: the provider's own segment (e.g. "NSE_FO") preserved next to
+    # the application's canonical segment ("NFO") instead of replacing it. Nullable
+    # because every pre-14D row carries no provider identity at all.
+    provider_segment: Mapped[str | None] = mapped_column(String(16), nullable=True)
     instrument_type: Mapped[str] = mapped_column(String(32), nullable=False)
 
     underlying_stock_id: Mapped[int | None] = mapped_column(
@@ -199,4 +205,165 @@ class DerivativeLotSizeHistory(TimestampMixin, Base):
         return (
             f"<DerivativeLotSizeHistory id={self.id} lot_size={self.lot_size} "
             f"from={self.effective_from} to={self.effective_to}>"
+        )
+
+
+class DerivativeContractMetadataHistory(TimestampMixin, Base):
+    """Per-contract, effective-dated metadata history.
+
+    G.11-OPT-14E-A.
+
+    Mutable metadata (lot_size, tick_size, freeze_quantity, minimum_lot, is_weekly)
+    is recorded here as an append-only timeline owned by one canonical
+    derivative_contracts row. Economic contract identity (the fingerprint) stays
+    in DerivativeContract and is never rewritten or duplicated because of a
+    metadata change.
+
+    The table is intentionally separate from DerivativeLotSizeHistory: that table
+    is underlying-scoped and was created earlier; this table is per-contract and
+    carries the full metadata set required by 14E.
+    """
+
+    __tablename__ = "derivative_contract_metadata_histories"
+    __table_args__ = (
+        CheckConstraint(
+            "lot_size > 0",
+            name="ck_derivative_contract_metadata_histories_lot_size_positive",
+        ),
+        CheckConstraint(
+            "effective_to IS NULL OR effective_to >= effective_from",
+            name="ck_derivative_contract_metadata_histories_validity_range",
+        ),
+        CheckConstraint(
+            "effective_from <= available_at",
+            name="ck_derivative_contract_metadata_histories_available_at_geq",
+        ),
+        Index(
+            "ix_derivative_contract_metadata_histories_contract_id_from",
+            "contract_id",
+            "effective_from",
+        ),
+        Index(
+            "ix_derivative_contract_metadata_histories_available_at",
+            "available_at",
+        ),
+        Index(
+            "ix_derivative_contract_metadata_histories_source_name",
+            "source_name",
+        ),
+    )
+
+    # (The per-contract metadata timeline is append-only: no fact is ever
+    # rewritten by 14E-B; ``effective_to`` stays NULL and as-of resolution is
+    # deterministic by ``effective_from DESC``.)
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    contract_id: Mapped[int] = mapped_column(
+        ForeignKey("derivative_contracts.id", ondelete="CASCADE"), nullable=False
+    )
+    lot_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    tick_size: Mapped[Decimal | None] = mapped_column(
+        Numeric(18, 4), nullable=True
+    )
+    freeze_quantity: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    minimum_lot: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    is_weekly: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    effective_from: Mapped[date] = mapped_column(Date, nullable=False)
+    effective_to: Mapped[date | None] = mapped_column(Date, nullable=True)
+    available_at: Mapped[date] = mapped_column(Date, nullable=False)
+    source_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    provider_snapshot_hash: Mapped[str | None] = mapped_column(
+        String(64), nullable=True
+    )
+
+    contract = relationship("DerivativeContract", backref="metadata_history")
+
+    def __repr__(self) -> str:
+        return (
+            f"<DerivativeContractMetadataHistory id={self.id} contract_id={self.contract_id} "
+            f"lot_size={self.lot_size} effective_from={self.effective_from}>"
+        )
+
+
+class DerivativeContractSyncRun(TimestampMixin, Base):
+    """Durable audit record of one contract-master reconciliation run.
+
+    G.11-OPT-14E-B.
+
+    Every reconciliation (dry-run, committed, aborted, or clean-with-no-writes)
+    records exactly one row so that "which snapshot produced this contract state?"
+    is answerable from the database instead of from stdout. The row is written in
+    the *same* transaction as the contract/metadata writes it describes, so a
+    rolled-back write can never leave an audit row claiming a committed sync.
+
+    ``dry_run`` and ``committed`` are independent facts:
+      * ``dry_run=True``  -> ``committed`` is always False and ``status='DRY_RUN'``.
+      * ``dry_run=False`` -> ``status`` is ``COMMITTED``, ``NO_WRITE_NEEDED`` or
+        ``ABORTED``, and ``committed`` is True only for ``COMMITTED``.
+
+    This table has no foreign key into ``derivative_contracts`` on purpose: the
+    audit must survive independently of any contract lifecycle and must never
+    cascade a contract deletion into the audit trail.
+    """
+
+    __tablename__ = "derivative_contract_sync_runs"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('DRY_RUN', 'COMMITTED', 'NO_WRITE_NEEDED', 'ABORTED')",
+            name="ck_derivative_contract_sync_runs_status",
+        ),
+        CheckConstraint(
+            "dry_run = false OR committed = false",
+            name="ck_derivative_contract_sync_runs_dry_run_not_committed",
+        ),
+        Index(
+            "ix_derivative_contract_sync_runs_underlying_as_of",
+            "underlying",
+            "as_of_date",
+        ),
+        Index("ix_derivative_contract_sync_runs_payload_hash", "payload_hash"),
+        Index("ix_derivative_contract_sync_runs_status", "status"),
+    )
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    underlying: Mapped[str] = mapped_column(String(32), nullable=False)
+    underlying_index_id: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    as_of_date: Mapped[date] = mapped_column(Date, nullable=False)
+    status: Mapped[str] = mapped_column(String(32), nullable=False)
+    dry_run: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    committed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+
+    # Provenance of the reconciled payload (never invented; see service docs).
+    provider_source: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_name: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    source_reference: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    payload_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    payload_hash_method: Mapped[str | None] = mapped_column(String(64), nullable=True)
+
+    # Counts by reconciliation outcome, exactly as classified.
+    total_rows: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    newly_listed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    unchanged: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    metadata_changed: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    metadata_drift: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    expired_absent: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    missing_while_unexpired: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    stale: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    conflicts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    rejected: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    skipped: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    metadata_facts_written: Mapped[int] = mapped_column(
+        Integer, nullable=False, default=0
+    )
+
+    abort_reason: Mapped[str | None] = mapped_column(String(256), nullable=True)
+    validation_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+    def __repr__(self) -> str:
+        return (
+            f"<DerivativeContractSyncRun id={self.id} underlying={self.underlying} "
+            f"as_of={self.as_of_date} status={self.status} dry_run={self.dry_run}>"
         )

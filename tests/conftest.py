@@ -43,20 +43,44 @@ def _sanitize_url_for_display(url: str) -> str:
     return "postgresql://***@localhost/test"
 
 
+_FORBIDDEN_TEST_DB_NAMES = {"ai_stock_scanner", "postgres", "production", "prod", "master"}
+
+def _normalize_and_validate_test_url(
+    raw_url: str, *, fallback_db_name: str = "test", label: str = "test database"
+) -> str:
+    """Rewrite the main development DB to the test target and enforce the safety gate.
+
+    This helper is deliberately shared by async and sync URLs so an explicitly
+    configured TEST_DATABASE_URL_SYNC cannot bypass the test-database policy.
+    Only database-name metadata is included in errors; credentials are never logged.
+    """
+    parsed = urlparse(raw_url)
+    db_name = parsed.path.lstrip("/").split("?", 1)[0]
+    if db_name.lower() in {"ai_stock_scanner", ""}:
+        db_name = fallback_db_name
+        parsed = parsed._replace(path=f"/{db_name}")
+
+    normalized_name = db_name.lower()
+    if normalized_name in _FORBIDDEN_TEST_DB_NAMES or "test" not in normalized_name:
+        raise RuntimeError(
+            f"SAFETY ERROR: Refusing to use {label} database '{normalized_name}'. "
+            "The database name must contain 'test' and cannot be a production or "
+            "main development database."
+        )
+    return urlunparse(parsed._replace(path=f"/{db_name}"))
+
+
 def _configure_test_database_urls() -> tuple[str, str]:
-    """Resolve and validate async and sync test database URLs without hardcoded passwords.
+    """Resolve and validate async and sync test URLs without exposing credentials.
 
     Resolution order:
-    1. TEST_DATABASE_URL_ASYNC / TEST_DATABASE_URL_SYNC from os.environ
-    2. Derived from DATABASE_URL_ASYNC / DATABASE_URL_SYNC in os.environ or .env
-       (switching target db name to 'test')
-    3. Safe development default (postgresql+asyncpg://postgres:postgres@localhost:5432/test)
+    1. TEST_DATABASE_URL_ASYNC / TEST_DATABASE_URL_SYNC from the environment
+    2. DATABASE_URL_ASYNC / DATABASE_URL_SYNC from the environment or .env
+       (the main development DB name is rewritten to the test DB)
+    3. A safe local test-database default for async, with sync derived from it.
 
-    Safety enforcement:
-    - Target database name must contain 'test' (e.g. 'test', 'ai_stock_scanner_test').
-    - Target database name cannot be 'ai_stock_scanner', 'postgres', 'production',
-      'prod', or 'master'.
-    - Prevents accidental execution of destructive test truncate against production/dev DB.
+    Both URLs must pass the same database-name guard and resolve to the same
+    database name. This prevents an explicit sync URL from targeting another DB.
     """
     raw_async = (
         os.environ.get("TEST_DATABASE_URL_ASYNC")
@@ -65,23 +89,11 @@ def _configure_test_database_urls() -> tuple[str, str]:
         or _read_env_file_var("DATABASE_URL_ASYNC")
         or "postgresql+asyncpg://postgres:postgres@localhost:5432/test"
     )
-
-    parsed = urlparse(raw_async)
-    path = parsed.path.lstrip("/")
-    if path == "ai_stock_scanner" or not path:
-        path = "test"
-        raw_async = urlunparse(parsed._replace(path=f"/{path}"))
-    else:
-        path = parsed.path.lstrip("/")
-
-    db_name = path.lower()
-    FORBIDDEN_DB_NAMES = {"ai_stock_scanner", "postgres", "production", "prod", "master"}
-    if db_name in FORBIDDEN_DB_NAMES or "test" not in db_name:
-        raise RuntimeError(
-            f"SAFETY ERROR: Refusing to run destructive tests against non-test database: "
-            f"'{db_name}'. The database name must contain 'test' and cannot be a production "
-            "or main development database."
-        )
+    raw_async = _normalize_and_validate_test_url(
+        raw_async, fallback_db_name="test", label="async test"
+    )
+    parsed_async = urlparse(raw_async)
+    async_db_name = parsed_async.path.lstrip("/").split("?", 1)[0]
 
     raw_sync = (
         os.environ.get("TEST_DATABASE_URL_SYNC")
@@ -90,17 +102,23 @@ def _configure_test_database_urls() -> tuple[str, str]:
         or _read_env_file_var("DATABASE_URL_SYNC")
     )
     if raw_sync:
-        parsed_sync = urlparse(raw_sync)
-        sync_path = parsed_sync.path.lstrip("/")
-        if sync_path == "ai_stock_scanner" or not sync_path:
-            sync_path = path
-            raw_sync = urlunparse(parsed_sync._replace(path=f"/{sync_path}"))
+        raw_sync = _normalize_and_validate_test_url(
+            raw_sync, fallback_db_name=async_db_name, label="sync test"
+        )
     else:
-        sync_scheme = parsed.scheme.replace("+asyncpg", "+psycopg")
+        sync_scheme = parsed_async.scheme.replace("+asyncpg", "+psycopg")
         if "+psycopg" not in sync_scheme:
             sync_scheme = "postgresql+psycopg"
-        raw_sync = urlunparse(parsed._replace(scheme=sync_scheme, path=f"/{path}"))
+        raw_sync = urlunparse(
+            parsed_async._replace(scheme=sync_scheme, path=f"/{async_db_name}")
+        )
 
+    sync_db_name = urlparse(raw_sync).path.lstrip("/").split("?", 1)[0]
+    if sync_db_name.lower() != async_db_name.lower():
+        raise RuntimeError(
+            "SAFETY ERROR: Async and sync test database names do not match "
+            f"('{async_db_name}' versus '{sync_db_name}'). Refusing to initialize tests."
+        )
     return raw_async, raw_sync
 
 
@@ -125,7 +143,9 @@ _TABLES_TO_TRUNCATE = (
     "market_intelligence_snapshots, econ_events, "
     "trading_positions, trading_executions, trading_orders, trading_accounts, "
     "index_memberships, security_aliases, corporate_actions, data_quality_issues, "
-    "derivative_daily_prices, derivative_lot_size_histories, derivative_contracts, "
+    "derivative_daily_prices, derivative_lot_size_histories, "
+    "derivative_contract_metadata_histories, derivative_contract_sync_runs, "
+    "option_chain_snapshots, option_chain_quotes, derivative_contracts, "
     "derivative_participant_positions, fii_derivative_statistics, "
     "financial_statements, corporate_announcements, shareholding_patterns, "
     "news_entity_links, news_events, bulk_block_deals"

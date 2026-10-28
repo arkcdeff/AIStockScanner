@@ -22,7 +22,12 @@ from app.models.comparable_company import ComparableCompany
 from app.models.corporate_action import CorporateAction
 from app.models.daily_price import DailyPrice
 from app.models.data_quality_issue import DataQualityIssue
-from app.models.derivative_contract import DerivativeContract, DerivativeLotSizeHistory
+from app.models.derivative_contract import (
+    DerivativeContract,
+    DerivativeContractMetadataHistory,
+    DerivativeContractSyncRun,
+    DerivativeLotSizeHistory,
+)
 from app.models.derivative_daily_price import DerivativeDailyPrice
 from app.models.derivative_participant import (
     DerivativeParticipantPosition,
@@ -115,6 +120,8 @@ __all__ = [
     # 19.1D-1 — Derivatives Master
     "DerivativeContract",
     "DerivativeLotSizeHistory",
+    "DerivativeContractMetadataHistory",
+    "DerivativeContractSyncRun",
     # 19.1D-2 — Derivative Daily Prices
     "DerivativeDailyPrice",
     # 19.1D-7 — Participant Derivatives
